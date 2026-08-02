@@ -1,0 +1,90 @@
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules
+.pnpm-store
+
+# ---------------------------------------------------------------------------
+# Build output
+# ---------------------------------------------------------------------------
+dist
+build
+out-tsc
+tmp
+*.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Environment / secrets — never commit these
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# ---------------------------------------------------------------------------
+# Large binaries and archives — keep the repo (and the Docker image) small
+# ---------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.iso
+*.dmg
+*.exe
+*.mp4
+*.mov
+*.avi
+*.psd
+*.ai
+*.sketch
+*.fig
+*.sql
+*.dump
+*.sqlite
+*.sqlite3
+
+# Runtime upload volume — user content, not source
+/data
+uploads/
+
+# Model caches downloaded at runtime
+.cache
+.transformers-cache
+
+# ---------------------------------------------------------------------------
+# Logs
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log*
+coverage
+
+# ---------------------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------------------
+.idea
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Replit leftovers
+# ---------------------------------------------------------------------------
+.replit
+.replitignore
+replit.md
+.agents/
+.local/
+.config/

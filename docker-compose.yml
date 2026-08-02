@@ -1,0 +1,43 @@
+# Local / self-hosted run. Coolify can consume this directly, or you can point
+# Coolify at the Dockerfile and provide Postgres separately.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://mnt:${POSTGRES_PASSWORD:-changeme}@db:5432/mnt_embark
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?set ADMIN_PASSWORD}
+      UPLOAD_DIR: /data/uploads
+      MODEL_CACHE_DIR: /data/model-cache
+    volumes:
+      - app-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mnt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: mnt_embark
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mnt -d mnt_embark']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  app-data:
+  db-data:
