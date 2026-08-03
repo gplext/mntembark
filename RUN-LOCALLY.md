@@ -137,6 +137,15 @@ Almost always a missing environment variable. `DATABASE_URL`, `SESSION_SECRET`
 and `ADMIN_PASSWORD` are all required — the server deliberately refuses to start
 without them. Run `docker compose logs app` to see which one.
 
+**Any database command fails or hangs**
+`drizzle-kit push` hides the real error behind a spinner. Run this instead —
+it reports exactly what is wrong (bad password, closed port, wrong host,
+missing database) without printing your password:
+
+```powershell
+pnpm --filter @workspace/db run check
+```
+
 **`relation "tours" does not exist`**
 The schema was never pushed. Do step 3 above.
 
