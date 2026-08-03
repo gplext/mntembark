@@ -80,15 +80,19 @@ WORKDIR /app
 # pnpm uses a symlinked (isolated) node_modules layout, so the directory tree
 # must be copied wholesale and kept at the same paths or the links break.
 # The prod-deps stage contains only manifests + pruned node_modules — no source.
-COPY --from=prod-deps /app ./
+#
+# Ownership is set with --chown during the copy. Do NOT follow this with a
+# `chown -R /app`: that rewrites every file into a second layer and roughly
+# doubles the image size, which is enough to exhaust disk on a small host.
+COPY --from=prod-deps --chown=node:node /app ./
 
 # The bundled server and the compiled frontend.
-COPY --from=build /app/artifacts/api-server/dist            ./artifacts/api-server/dist
-COPY --from=build /app/artifacts/mnt-embark-web/dist/public ./public
+COPY --from=build --chown=node:node /app/artifacts/api-server/dist            ./artifacts/api-server/dist
+COPY --from=build --chown=node:node /app/artifacts/mnt-embark-web/dist/public ./public
 
 # Uploads and the embedding-model cache live on a persistent volume.
 RUN mkdir -p /data/uploads /data/model-cache \
- && chown -R node:node /app /data
+ && chown -R node:node /data
 
 USER node
 
