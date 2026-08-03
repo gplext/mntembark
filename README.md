@@ -80,11 +80,21 @@ The app ships as a **single container**: one Node process serves the API under
    images and the cached embedding model. Without it, uploads are lost on every
    redeploy.
 
-5. **Push the database schema** once, from a machine with `DATABASE_URL` set:
+5. **Push the database schema.** The tables do not create themselves, and the
+   app will start but fail every query until they exist. The Postgres service is
+   only reachable inside Coolify's network by default, so:
 
-   ```bash
-   pnpm --filter @workspace/db run push
-   ```
+   - Open the Postgres resource in Coolify and temporarily enable its
+     **public port**. Coolify then shows an external connection URL.
+   - From your machine, run:
+
+     ```bash
+     DATABASE_URL="<the external URL>" pnpm --filter @workspace/db run push
+     ```
+
+   - Disable the public port again when you are done.
+
+   Repeat this whenever the Drizzle schema changes.
 
 6. **Health check** — the container already declares one against
    `GET /api/healthz`.

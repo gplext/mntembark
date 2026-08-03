@@ -26,6 +26,10 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    # Exposed so you can push the Drizzle schema from the host:
+    #   pnpm --filter @workspace/db run push
+    ports:
+      - '5432:5432'
     environment:
       POSTGRES_USER: mnt
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
