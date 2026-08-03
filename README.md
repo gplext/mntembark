@@ -126,11 +126,13 @@ implementation — the route contract above does not need to change.
 - **Sessions are in-memory.** Admins are logged out whenever the container
   restarts. Add `connect-pg-simple` (or Redis) as a session store if that
   becomes annoying.
-- **The build needs network access to `api.nuget.org`**, because
-  `onnxruntime-node` downloads native binaries during install. This is only a
-  build-time requirement.
-- **The embedding model (~23 MB) is downloaded on first use** and cached in
-  `MODEL_CACHE_DIR`. Keep that on the volume or it re-downloads every restart.
+- **Semantic tour search is off by default.** `@huggingface/transformers` and
+  `onnxruntime-node` are ~400 MB of native ML runtime, so they are optional
+  dependencies and are excluded from the production image. Search uses its
+  keyword (ILIKE) path instead. To enable semantic ranking: remove
+  `--no-optional` from the `prod-deps` stage in the Dockerfile and set
+  `ENABLE_SEMANTIC_SEARCH=true`. The model (~23 MB) then downloads on first use
+  and is cached in `MODEL_CACHE_DIR` — keep that on the volume.
 
 ## Conventions
 

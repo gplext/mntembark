@@ -139,10 +139,10 @@ The schema was never pushed. Do step 3 above.
 Something else is using it. Either stop that program, or change the left-hand
 number in the `ports:` entry in `docker-compose.yml` (e.g. `'8081:8080'`).
 
-**Build fails downloading `onnxruntime-node`**
-That package fetches native binaries from `api.nuget.org` during install. A
-firewall, VPN or proxy blocking it will fail the build. This is the most likely
-cause of a build that runs a long time and then errors.
+**Search returns fewer relevant results than expected**
+Semantic ranking is disabled by default (it needs ~400 MB of ML dependencies
+that are excluded from the image). Search falls back to keyword matching. See
+the README if you want to turn it on.
 
 **Uploaded images disappear after `docker compose down -v`**
 Expected — `-v` deletes the volumes. Use plain `docker compose down` to keep them.
