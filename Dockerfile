@@ -61,8 +61,13 @@ RUN pnpm --filter @workspace/mnt-embark-web run build \
 ###############################################################################
 FROM deps AS prod-deps
 ENV NODE_ENV=production
+# --no-optional skips @huggingface/transformers and onnxruntime-node (~400 MB of
+# native ML runtime). Tour search falls back to keyword matching without them.
+# To enable semantic search: drop --no-optional here and set
+# ENABLE_SEMANTIC_SEARCH=true on the container.
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --frozen-lockfile --prod --filter @workspace/api-server...
+    pnpm install --frozen-lockfile --prod --no-optional \
+      --filter @workspace/api-server...
 
 ###############################################################################
 # Stage 4 — slim runtime
