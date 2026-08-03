@@ -96,6 +96,18 @@ The app ships as a **single container**: one Node process serves the API under
 
    Repeat this whenever the Drizzle schema changes.
 
+6. **Optional — seed starter content.** The tables are empty after a push, so
+   the site renders but lists nothing. To populate all four tables with
+   ready-made content wired to the bundled images:
+
+   ```bash
+   DATABASE_URL="<same URL>" pnpm --filter @workspace/db run seed
+   ```
+
+   It is safe to re-run — it does nothing if content already exists. Use
+   `seed:reset` to wipe the content tables and repopulate. Everything it
+   creates is editable and deletable from the admin panel.
+
 6. **Health check** — the container already declares one against
    `GET /api/healthz`.
 

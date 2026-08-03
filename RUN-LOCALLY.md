@@ -51,9 +51,14 @@ cd C:\Users\lapify\Downloads\Elite-Traveler\Elite-Traveler
 $env:DATABASE_URL="postgres://mnt:localdevpassword@localhost:5432/mnt_embark"
 pnpm install
 pnpm --filter @workspace/db run push
+pnpm --filter @workspace/db run seed
 ```
 
 (Use the same password you put in `.env`.)
+
+`seed` fills the site with starter content — tours, destinations, categories
+and journals — so you have something to look at. Skip it if you would rather
+start empty and add everything through the admin panel.
 
 ### 4. Open it
 
@@ -134,6 +139,10 @@ without them. Run `docker compose logs app` to see which one.
 
 **`relation "tours" does not exist`**
 The schema was never pushed. Do step 3 above.
+
+**Site loads but every list is empty**
+The schema exists but there is no content. Run
+`pnpm --filter @workspace/db run seed`, or add entries via the admin panel.
 
 **Port 8080 or 5432 already in use**
 Something else is using it. Either stop that program, or change the left-hand
