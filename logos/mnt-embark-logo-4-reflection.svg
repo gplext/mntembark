@@ -1,0 +1,44 @@
+<svg width="500" height="320" viewBox="0 0 500 320" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="500" height="320" fill="#0C0C0C"/>
+
+  <!-- ── MOUNTAINS (gold filled triangles) ── -->
+  <!-- Left mountain -->
+  <polygon points="30,165 110,60 190,165" fill="#B89A4A"/>
+  <!-- Center mountain (tallest) -->
+  <polygon points="190,165 250,20 310,165" fill="#C4A455"/>
+  <!-- Right mountain -->
+  <polygon points="310,165 390,60 470,165" fill="#B89A4A"/>
+
+  <!-- ── SNOW LINES (white horizontal line near each peak) ── -->
+  <!-- Left snow line at ~40% from apex down -->
+  <line x1="89" y1="88" x2="131" y2="88" stroke="#F2EDE3" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Center snow line -->
+  <line x1="236" y1="55" x2="264" y2="55" stroke="#F2EDE3" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Right snow line -->
+  <line x1="369" y1="88" x2="411" y2="88" stroke="#F2EDE3" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- ── WATERLINE ── -->
+  <line x1="30" y1="165" x2="470" y2="165" stroke="#B89A4A" stroke-width="1" stroke-linecap="round"/>
+
+  <!-- ── LAKE REFLECTIONS (inverted white triangles, ~50% height) ── -->
+  <polygon points="30,165 110,218 190,165"  fill="white" opacity="0.18"/>
+  <polygon points="190,165 250,238 310,165" fill="white" opacity="0.26"/>
+  <polygon points="310,165 390,218 470,165" fill="white" opacity="0.18"/>
+
+  <!-- ── WORDMARK ── -->
+  <text x="250" y="272"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="24" font-weight="300"
+    letter-spacing="14"
+    fill="#B89A4A">MNT EMBARK</text>
+
+  <!-- ── TAGLINE ── -->
+  <text x="250" y="297"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="7.5" font-weight="400"
+    letter-spacing="5"
+    fill="#7A6532">BEYOND THE REACH OF THE ORDINARY</text>
+</svg>

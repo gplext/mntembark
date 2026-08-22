@@ -1,0 +1,49 @@
+<svg width="500" height="280" viewBox="0 0 500 280" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="500" height="280" fill="#0C0C0C"/>
+
+  <!-- Top hairline -->
+  <line x1="155" y1="28" x2="345" y2="28" stroke="#B89A4A" stroke-width="1"/>
+
+  <!-- Flanking diamonds on hairline -->
+  <polygon points="150,28 155,24 160,28 155,32" fill="#B89A4A"/>
+  <polygon points="340,28 345,24 350,28 345,32" fill="#B89A4A"/>
+
+  <!-- Diamond apex on center peak -->
+  <polygon points="250,46 254,58 250,66 246,58" fill="#B89A4A"/>
+
+  <!-- Three-peak mountain range -->
+  <polyline
+    points="80,168 120,114 148,140 250,66 352,140 380,114 420,168"
+    stroke="#B89A4A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Base line -->
+  <line x1="80" y1="168" x2="420" y2="168" stroke="#B89A4A" stroke-width="1.4"/>
+
+  <!-- Terminal dots -->
+  <circle cx="80"  cy="168" r="3.5" fill="#B89A4A"/>
+  <circle cx="420" cy="168" r="3.5" fill="#B89A4A"/>
+
+  <!-- Bottom hairline -->
+  <line x1="155" y1="180" x2="345" y2="180" stroke="#B89A4A" stroke-width="1"/>
+
+  <!-- Flanking diamonds on bottom hairline -->
+  <polygon points="150,180 155,176 160,180 155,184" fill="#B89A4A"/>
+  <polygon points="340,180 345,176 350,180 345,184" fill="#B89A4A"/>
+
+  <!-- Wordmark -->
+  <text x="250" y="218"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="26" font-weight="300"
+    letter-spacing="14"
+    fill="#B89A4A">MNT EMBARK</text>
+
+  <!-- Tagline -->
+  <text x="250" y="246"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="9" font-weight="400"
+    letter-spacing="6"
+    fill="#7A6532">BEYOND THE REACH OF THE ORDINARY</text>
+</svg>

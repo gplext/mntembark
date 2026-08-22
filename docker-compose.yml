@@ -1,0 +1,59 @@
+# Deploying to Coolify with a Separate PostgreSQL Resource:
+#   1. Provision a PostgreSQL Database resource in Coolify.
+#   2. In Coolify project settings, set DATABASE_URL to your PostgreSQL connection string.
+#   3. Deploy this Compose stack. The 'db' service is under the 'with-db' profile,
+#      so Coolify will only start the 'app' container and connect to your standalone DB.
+#
+# Running locally with embedded PostgreSQL:
+#   - Run: docker compose --profile with-db up
+#   - Or set COMPOSE_PROFILES=with-db in your local .env file.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '${PORT:-8080}:8080'
+    environment:
+      NODE_ENV: production
+      PORT: ${PORT:-8080}
+      DATABASE_URL: ${DATABASE_URL:-postgres://mnt:${POSTGRES_PASSWORD:-changeme}@db:5432/mnt_embark}
+      SESSION_SECRET: ${SESSION_SECRET:-secret_key_change_me_in_production}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      UPLOAD_DIR: /data/uploads
+      MODEL_CACHE_DIR: /data/model-cache
+    volumes:
+      - app-data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+        required: false
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    profiles:
+      - with-db
+      - local
+    # Exposed so you can push the Drizzle schema from the host:
+    #   pnpm --filter @workspace/db run push
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mnt}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-mnt_embark}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-mnt} -d ${POSTGRES_DB:-mnt_embark}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  app-data:
+  db-data:
+

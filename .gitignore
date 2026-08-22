@@ -1,0 +1,94 @@
+# ---------------------------------------------------------------------------
+# Dependencies
+# ---------------------------------------------------------------------------
+node_modules
+.pnpm-store
+
+# ---------------------------------------------------------------------------
+# Build output & TypeScript Cache
+# ---------------------------------------------------------------------------
+dist
+build
+out-tsc
+tmp
+*.tsbuildinfo
+.tsbuildinfo
+
+# ---------------------------------------------------------------------------
+# Environment / secrets — never commit these
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# ---------------------------------------------------------------------------
+# Large binaries and archives — keep the repo small
+# ---------------------------------------------------------------------------
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+*.iso
+*.dmg
+*.exe
+*.mp4
+*.mov
+*.avi
+*.psd
+*.ai
+*.sketch
+*.fig
+*.sql
+*.dump
+*.sqlite
+*.sqlite3
+
+# Runtime upload volume — user content, not source
+/data
+uploads/
+
+# Model caches downloaded at runtime
+.cache
+.transformers-cache
+
+# ---------------------------------------------------------------------------
+# Logs & Coverage
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-error.log
+pnpm-debug.log*
+coverage
+
+# ---------------------------------------------------------------------------
+# Editors and OS
+# ---------------------------------------------------------------------------
+.idea
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# ---------------------------------------------------------------------------
+# Replit & AI Tool Leftovers / Attachments
+# ---------------------------------------------------------------------------
+.replit
+.replitignore
+.replit-artifact/
+replit.md
+attached_assets/
+.agents/
+.local/
+.config/
+.gemini/

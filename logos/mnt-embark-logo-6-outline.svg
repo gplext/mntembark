@@ -1,0 +1,65 @@
+<svg width="500" height="340" viewBox="0 0 500 340" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="500" height="340" fill="#0C0C0C"/>
+
+  <!-- ── MOUNTAINS (outline style, no fill — more refined) ── -->
+  <!-- Shared mountain silhouette as one continuous path -->
+  <polyline
+    points="30,170 120,62 210,170 250,22 290,170 380,62 470,170"
+    stroke="#B89A4A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- Mountain fill (subtle, darker gold) so snow lines read clearly -->
+  <polygon points="30,170 120,62 210,170"  fill="#1A1508" stroke="none"/>
+  <polygon points="210,170 250,22 290,170" fill="#1A1508" stroke="none"/>
+  <polygon points="290,170 380,62 470,170" fill="#1A1508" stroke="none"/>
+
+  <!-- Re-draw outlines on top of fill -->
+  <polyline
+    points="30,170 120,62 210,170 250,22 290,170 380,62 470,170"
+    stroke="#B89A4A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+  <!-- ── SNOW LINES (prominent white horizontal lines near peaks) ── -->
+  <!-- Left peak: apex (120,62), snow at y=90 -->
+  <line x1="92"  y1="90" x2="148" y2="90"  stroke="#F5F0E6" stroke-width="3" stroke-linecap="round"/>
+  <!-- Center peak: apex (250,22), snow at y=56 -->
+  <line x1="222" y1="56" x2="278" y2="56"  stroke="#F5F0E6" stroke-width="3" stroke-linecap="round"/>
+  <!-- Right peak: apex (380,62), snow at y=90 -->
+  <line x1="352" y1="90" x2="408" y2="90"  stroke="#F5F0E6" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Small peak cap dots (the very tip of each peak, white) -->
+  <circle cx="120" cy="62" r="2.5" fill="#F5F0E6"/>
+  <circle cx="250" cy="22" r="2.5" fill="#F5F0E6"/>
+  <circle cx="380" cy="62" r="2.5" fill="#F5F0E6"/>
+
+  <!-- ── WATERLINE ── -->
+  <line x1="30" y1="170" x2="470" y2="170" stroke="#B89A4A" stroke-width="1.2"/>
+  <!-- Small terminal ticks on waterline -->
+  <line x1="30"  y1="162" x2="30"  y2="178" stroke="#B89A4A" stroke-width="1.2"/>
+  <line x1="470" y1="162" x2="470" y2="178" stroke="#B89A4A" stroke-width="1.2"/>
+
+  <!-- ── LAKE TRIANGLE (single large white inverted triangle = mirror of center) ── -->
+  <!-- Shows the whole mountain range mirrored in the lake -->
+  <polygon points="30,170 250,252 470,170" fill="white" opacity="0.12"/>
+  <!-- Center reflected peak brighter -->
+  <polygon points="210,170 250,234 290,170" fill="white" opacity="0.20"/>
+
+  <!-- ── WORDMARK ── -->
+  <text x="250" y="284"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="23" font-weight="300"
+    letter-spacing="13"
+    fill="#B89A4A">MNT EMBARK</text>
+
+  <!-- Thin rule flanking wordmark -->
+  <line x1="52"  y1="270" x2="148" y2="270" stroke="#B89A4A" stroke-width="0.6"/>
+  <line x1="352" y1="270" x2="448" y2="270" stroke="#B89A4A" stroke-width="0.6"/>
+
+  <!-- ── TAGLINE ── -->
+  <text x="250" y="308"
+    text-anchor="middle"
+    font-family="Arial, Helvetica, sans-serif"
+    font-size="7.5" font-weight="400"
+    letter-spacing="5"
+    fill="#7A6532">BEYOND THE REACH OF THE ORDINARY</text>
+</svg>
