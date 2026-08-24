@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: tours
     description: Tour operations
+  - name: activities
+    description: Activity filter operations
   - name: destinations
     description: Destination operations
   - name: categories
@@ -22,6 +24,10 @@ tags:
     description: AI-powered search
   - name: stats
     description: Dashboard statistics
+  - name: locations
+    description: Location operations
+  - name: countries
+    description: Country operations
   - name: Storage
     description: Object storage upload and serving endpoints.
 
@@ -96,6 +102,46 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
 
+  # ── Activities ────────────────────────────────────────────────────────
+  /activities:
+    get:
+      operationId: listActivityFilters
+      tags: [activities]
+      summary: Activity groups with live tour counts for the filter sidebar
+      responses:
+        "200":
+          description: Activity filter groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ActivityFilterGroup"
+
+  /activities/{slug}:
+    get:
+      operationId: getActivityBySlug
+      tags: [activities]
+      summary: Get a single activity by slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Activity detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityDetail"
+        "404":
+          description: Activity not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   # ── Tours ─────────────────────────────────────────────────────────────
   /tours:
     get:
@@ -109,6 +155,35 @@ paths:
         - name: destinationId
           in: query
           schema: { type: number }
+        - name: categorySlug
+          in: query
+          schema: { type: string }
+        - name: destinationSlug
+          in: query
+          schema: { type: string }
+        - name: countrySlug
+          in: query
+          schema: { type: string }
+        - name: locationSlug
+          in: query
+          schema: { type: string }
+        - name: classification
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [standard, special, exclusive]
+          style: form
+          explode: true
+        - name: activitySlugs
+          in: query
+          schema:
+            type: array
+            items:
+              type: string
+          style: form
+          explode: true
       responses:
         "200":
           description: List of tours
@@ -177,6 +252,31 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Tour"
+
+  /tours/slug/{slug}:
+    get:
+      operationId: getTourBySlug
+      tags: [tours]
+      summary: Get a tour by slug with full taxonomy
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tour with full taxonomy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TourWithTaxonomy"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 
   /tours/{id}:
     get:
@@ -248,6 +348,38 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /tours/{id}/activities:
+    put:
+      operationId: setTourActivities
+      tags: [tours]
+      summary: Replace a tour's full activity set (max 10)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TourActivitiesInput"
+      responses:
+        "204":
+          description: Activities updated
+        "400":
+          description: Validation error (e.g. exceeds activity cap)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Tour not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   # ── Destinations ──────────────────────────────────────────────────────
   /destinations:
     get:
@@ -262,7 +394,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/Destination"
+                  $ref: "#/components/schemas/DestinationListItem"
     post:
       operationId: createDestination
       tags: [destinations]
@@ -350,6 +482,120 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+
+  /destinations/{slug}/places:
+    get:
+      operationId: getDestinationPlaces
+      tags: [destinations]
+      summary: Countries and locations linked to a destination
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Place hierarchy for this destination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DestinationPlaces"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  # Admin endpoint: read/write the country+location ID sets for a destination.
+  # Uses integer {id} while the public endpoint above uses string {slug}.
+  /destinations/{id}/places:
+    get:
+      operationId: getDestinationPlacesById
+      tags: [destinations]
+      summary: Country and location IDs linked to a destination (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: ID arrays for the destination's linked places
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DestinationPlacesIds"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: setDestinationPlaces
+      tags: [destinations]
+      summary: Replace the country and location sets for a destination (admin)
+      security:
+        - adminSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DestinationPlacesInput"
+      responses:
+        "204":
+          description: Updated
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  # ── Locations ─────────────────────────────────────────────────────────
+  /locations:
+    get:
+      operationId: listLocations
+      tags: [locations]
+      summary: All locations with country name for admin selects
+      responses:
+        "200":
+          description: Location list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LocationSummary"
+
+  # ── Countries ─────────────────────────────────────────────────────────
+  /countries:
+    get:
+      operationId: listCountries
+      tags: [countries]
+      summary: All countries ordered by display_order for admin selects
+      responses:
+        "200":
+          description: Country list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CountrySummary"
 
   # ── Categories ────────────────────────────────────────────────────────
   /categories:
@@ -626,6 +872,17 @@ components:
           type: number
         featured:
           type: boolean
+        classification:
+          type: string
+          enum: [standard, special, exclusive]
+        slug:
+          type: ["string", "null"]
+        locationId:
+          type: ["number", "null"]
+        locationName:
+          type: ["string", "null"]
+        countryName:
+          type: ["string", "null"]
         categoryId:
           type: ["number", "null"]
         destinationId:
@@ -694,14 +951,112 @@ components:
           type: number
         featured:
           type: boolean
+        classification:
+          type: string
+          enum: [standard, special, exclusive]
         categoryId:
           type: ["number", "null"]
         destinationId:
+          type: ["number", "null"]
+        locationId:
           type: ["number", "null"]
         itinerarySteps:
           type: array
           items:
             $ref: "#/components/schemas/ItineraryStep"
+
+    # ── Activity filters ──────────────────────────────────────────────
+    ActivityFilterItem:
+      type: object
+      properties:
+        id:
+          type: number
+        slug:
+          type: string
+        name:
+          type: string
+        icon:
+          type: ["string", "null"]
+        aliases:
+          type: array
+          items:
+            type: string
+        count:
+          type: number
+      required: [id, slug, name, icon, aliases, count]
+
+    ActivityFilterGroup:
+      type: object
+      properties:
+        groupSlug:
+          type: string
+        groupName:
+          type: string
+        activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityFilterItem"
+      required: [groupSlug, groupName, activities]
+
+    TourActivitiesInput:
+      type: object
+      properties:
+        activityIds:
+          type: array
+          items:
+            type: number
+      required: [activityIds]
+
+    ActivityDetail:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        groupSlug:
+          type: string
+        groupName:
+          type: string
+        isIndexable:
+          type: boolean
+        redirectToSlug:
+          type: ["string", "null"]
+      required: [slug, name, description, coverImage, icon, groupSlug, groupName, isIndexable, redirectToSlug]
+
+    LocationSummary:
+      type: object
+      properties:
+        id:
+          type: number
+        slug:
+          type: string
+        name:
+          type: string
+        countryName:
+          type: ["string", "null"]
+      required: [id, slug, name, countryName]
+
+    CountrySummary:
+      type: object
+      properties:
+        id:
+          type: number
+        slug:
+          type: string
+        name:
+          type: string
+        code:
+          type: ["string", "null"]
+        image:
+          type: ["string", "null"]
+      required: [id, slug, name, code, image]
 
     # ── Destination ───────────────────────────────────────────────────
     Destination:
@@ -709,19 +1064,122 @@ components:
       properties:
         id:
           type: number
+        slug:
+          type: ["string", "null"]
         name:
           type: string
+        displayOrder:
+          type: number
         country:
-          type: string
+          type: ["string", "null"]
         region:
           type: ["string", "null"]
         description:
-          type: string
+          type: ["string", "null"]
         coverImage:
-          type: string
+          type: ["string", "null"]
         createdAt:
           type: string
-      required: [id, name, country, description, coverImage, createdAt]
+      required: [id, name, displayOrder, createdAt]
+
+    DestinationCountryRef:
+      type: object
+      properties:
+        id:
+          type: number
+        slug:
+          type: string
+        name:
+          type: string
+      required: [id, slug, name]
+
+    DestinationListItem:
+      type: object
+      properties:
+        id:
+          type: number
+        slug:
+          type: ["string", "null"]
+        name:
+          type: string
+        displayOrder:
+          type: number
+        country:
+          type: ["string", "null"]
+        region:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        countries:
+          type: array
+          items:
+            $ref: "#/components/schemas/DestinationCountryRef"
+      required: [id, name, displayOrder, createdAt, countries]
+
+    DestinationCountrySummary:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        code:
+          type: ["string", "null"]
+      required: [slug, name, code]
+
+    DestinationLocationSummary:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        countrySlug:
+          type: ["string", "null"]
+      required: [slug, name, countrySlug]
+
+    DestinationPlaces:
+      type: object
+      properties:
+        countries:
+          type: array
+          items:
+            $ref: "#/components/schemas/DestinationCountrySummary"
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/DestinationLocationSummary"
+      required: [countries, locations]
+
+    DestinationPlacesIds:
+      type: object
+      properties:
+        countryIds:
+          type: array
+          items:
+            type: number
+        locationIds:
+          type: array
+          items:
+            type: number
+      required: [countryIds, locationIds]
+
+    DestinationPlacesInput:
+      type: object
+      properties:
+        countryIds:
+          type: array
+          items:
+            type: number
+        locationIds:
+          type: array
+          items:
+            type: number
+      required: [countryIds, locationIds]
 
     DestinationInput:
       type: object
@@ -729,22 +1187,31 @@ components:
         name:
           type: string
           minLength: 1
+        slug:
+          type: string
+          pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+        displayOrder:
+          type: number
         country:
           type: string
-          minLength: 1
         region:
           type: string
         description:
           type: string
         coverImage:
           type: string
-      required: [name, country, description, coverImage]
+      required: [name, slug, description, coverImage]
 
     DestinationUpdate:
       type: object
       properties:
         name:
           type: string
+        slug:
+          type: string
+          pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+        displayOrder:
+          type: number
         country:
           type: string
         region:
@@ -760,12 +1227,16 @@ components:
       properties:
         id:
           type: number
+        slug:
+          type: ["string", "null"]
         name:
           type: string
         description:
           type: string
         coverImage:
           type: string
+        icon:
+          type: ["string", "null"]
         createdAt:
           type: string
       required: [id, name, description, coverImage, createdAt]
@@ -896,6 +1367,158 @@ components:
       properties:
         error:
           type: string
+
+    # ── Tour taxonomy ─────────────────────────────────────────────────
+
+    TourCategoryTaxonomy:
+      type: object
+      properties:
+        slug:
+          type: ["string", "null"]
+        name:
+          type: string
+        icon:
+          type: ["string", "null"]
+      required: [name]
+
+    TourDestinationTaxonomy:
+      type: object
+      properties:
+        slug:
+          type: ["string", "null"]
+        name:
+          type: string
+      required: [name]
+
+    TourLocationTaxonomy:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+      required: [slug, name]
+
+    TourCountryTaxonomy:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        code:
+          type: ["string", "null"]
+      required: [slug, name, code]
+
+    TourActivityItem:
+      type: object
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        icon:
+          type: ["string", "null"]
+      required: [slug, name, icon]
+
+    TourActivitySection:
+      type: object
+      properties:
+        groupSlug:
+          type: string
+        groupName:
+          type: string
+        activities:
+          type: array
+          items:
+            $ref: "#/components/schemas/TourActivityItem"
+      required: [groupSlug, groupName, activities]
+
+    TourWithTaxonomy:
+      # Standalone — not allOf[Tour] — because Drizzle's relational query API
+      # shadows the legacy `tours.location: text` column with the joined Location
+      # relation object, making them the same key at runtime. Using allOf would
+      # produce an impossible Zod intersection (string AND object). Instead we
+      # list all Tour fields explicitly, replacing `location` with the taxonomy
+      # object, and promote `country` to the top level.
+      type: object
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        description:
+          type: string
+        coverImage:
+          type: string
+        images:
+          type: array
+          items:
+            type: string
+        durationDays:
+          type: number
+        priceFrom:
+          type: number
+        featured:
+          type: boolean
+        classification:
+          type: string
+          enum: [standard, special, exclusive]
+        slug:
+          type: ["string", "null"]
+        locationName:
+          type: ["string", "null"]
+        countryName:
+          type: ["string", "null"]
+        categoryId:
+          type: ["number", "null"]
+        destinationId:
+          type: ["number", "null"]
+        itinerarySteps:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItineraryStep"
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+        category:
+          oneOf:
+            - $ref: "#/components/schemas/TourCategoryTaxonomy"
+            - type: "null"
+        destination:
+          oneOf:
+            - $ref: "#/components/schemas/TourDestinationTaxonomy"
+            - type: "null"
+        location:
+          oneOf:
+            - $ref: "#/components/schemas/TourLocationTaxonomy"
+            - type: "null"
+        country:
+          oneOf:
+            - $ref: "#/components/schemas/TourCountryTaxonomy"
+            - type: "null"
+        activitySections:
+          type: array
+          items:
+            $ref: "#/components/schemas/TourActivitySection"
+      required:
+        - id
+        - title
+        - description
+        - coverImage
+        - images
+        - durationDays
+        - priceFrom
+        - featured
+        - itinerarySteps
+        - createdAt
+        - updatedAt
+        - category
+        - destination
+        - location
+        - country
+        - activitySections
 
     # ── Stats ─────────────────────────────────────────────────────────
     Stats:

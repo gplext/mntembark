@@ -5,11 +5,12 @@ import { Route, Switch, Router as WouterRouter, Redirect } from 'wouter';
 import NotFound from '@/pages/not-found';
 import HomePage from '@/pages/home';
 import ToursPage from '@/pages/tours';
-import TourDetailPage from '@/pages/tour-detail';
+import TourDetailPage from '@/pages/tour-detail-slug';
 import DestinationsPage from '@/pages/destinations';
 import CategoriesPage from '@/pages/categories';
 import JournalsPage from '@/pages/journals';
 import JournalDetailPage from '@/pages/journal-detail';
+import ActivityDetailPage from '@/pages/activity-detail';
 import AboutPage from '@/pages/about';
 import ContactPage from '@/pages/contact';
 import AdminToursPage from '@/pages/admin/tours';
@@ -34,11 +35,12 @@ function Router() {
     <Switch>
       <Route path="/" component={HomePage} />
       <Route path="/tours" component={ToursPage} />
-      <Route path="/tours/:id" component={TourDetailPage} />
+      <Route path="/tours/:slugOrId" component={TourDetailPage} />
       <Route path="/destinations" component={DestinationsPage} />
       <Route path="/categories" component={CategoriesPage} />
       <Route path="/journals" component={JournalsPage} />
       <Route path="/journals/:id" component={JournalDetailPage} />
+      <Route path="/activities/:slug" component={ActivityDetailPage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/admin/login" component={AdminLoginPage} />

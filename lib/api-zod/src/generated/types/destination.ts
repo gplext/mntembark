@@ -8,11 +8,17 @@
 
 export interface Destination {
   id: number;
+  /** @nullable */
+  slug?: string | null;
   name: string;
-  country: string;
+  displayOrder: number;
+  /** @nullable */
+  country?: string | null;
   /** @nullable */
   region?: string | null;
-  description: string;
-  coverImage: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  coverImage?: string | null;
   createdAt: string;
 }

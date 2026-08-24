@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
 import { requireAdmin } from "../middleware/requireAdmin";
-import { seedDatabaseIfEmpty } from "@workspace/db";
 
 const router: IRouter = Router();
 
@@ -32,14 +31,4 @@ router.get("/admin/me", requireAdmin, (_req, res): void => {
   res.json({ isAdmin: true });
 });
 
-router.post("/seed", async (_req, res): Promise<void> => {
-  try {
-    await seedDatabaseIfEmpty(true);
-    res.json({ ok: true, message: "Database re-seeded successfully." });
-  } catch (err) {
-    res.status(500).json({ error: String(err) });
-  }
-});
-
 export default router;
-

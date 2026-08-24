@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ItineraryStep } from './itineraryStep';
+import type { TourUpdateClassification } from './tourUpdateClassification';
 
 export interface TourUpdate {
   /** @minLength 1 */
@@ -17,9 +18,12 @@ export interface TourUpdate {
   durationDays?: number;
   priceFrom?: number;
   featured?: boolean;
+  classification?: TourUpdateClassification;
   /** @nullable */
   categoryId?: number | null;
   /** @nullable */
   destinationId?: number | null;
+  /** @nullable */
+  locationId?: number | null;
   itinerarySteps?: ItineraryStep[];
 }

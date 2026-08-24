@@ -1,7 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { backfillTourEmbeddings } from "./routes/tours";
-import { ensureTablesExist, seedDatabaseIfEmpty } from "@workspace/db";
+import { seedInitialContent } from "./lib/seedInitialContent";
 
 const rawPort = process.env["PORT"];
 
@@ -17,29 +17,26 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
 
-app.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
+async function startServer(): Promise<void> {
+  await seedInitialContent();
 
-  logger.info({ port }, "Server listening");
+  app.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
 
-  // Ensure DB schema tables exist and seed sample data if empty
-  ensureTablesExist()
-    .then(async () => {
-      logger.info("Database tables initialized/verified.");
-      await seedDatabaseIfEmpty();
-      logger.info("Database seeding checked/populated.");
-      // Kick off embedding backfill in the background so tours already in the DB
-      // get their embeddings the first time the server runs with an OPENAI_API_KEY.
-      backfillTourEmbeddings().catch((err) =>
-        logger.warn({ err }, "Tour embedding backfill encountered an error"),
-      );
-    })
-    .catch((err) => {
-      logger.error({ err }, "Failed to initialize or seed database");
-    });
+    logger.info({ port }, "Server listening");
+
+    // Kick off embedding backfill in the background so tours already in the DB
+    // get their embeddings the first time the server runs with an OPENAI_API_KEY.
+    backfillTourEmbeddings().catch((err) =>
+      logger.warn({ err }, "Tour embedding backfill encountered an error"),
+    );
+  });
+}
+
+startServer().catch((err) => {
+  logger.error({ err }, "Unable to initialize the API server");
+  process.exit(1);
 });
-
-

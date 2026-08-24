@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ItineraryStep } from './itineraryStep';
+import type { TourClassification } from './tourClassification';
 
 export interface Tour {
   id: number;
@@ -17,6 +18,15 @@ export interface Tour {
   durationDays: number;
   priceFrom: number;
   featured: boolean;
+  classification?: TourClassification;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  locationId?: number | null;
+  /** @nullable */
+  locationName?: string | null;
+  /** @nullable */
+  countryName?: string | null;
   /** @nullable */
   categoryId?: number | null;
   /** @nullable */

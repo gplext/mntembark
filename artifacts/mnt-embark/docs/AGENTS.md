@@ -6,9 +6,9 @@ This package defines the visual language for MNT Embark — an ultra-luxury tour
 
 **MNT Embark** is an ultra-luxury all-inclusive tour brand. The aesthetic is defined by:
 
-- **Jet-black surfaces** — `background: #0A0908` in dark mode; warm ivory `#FAF7F0` in light mode (dark mode is primary).
-- **Warm gold accent** — `primary: #C9A84C` (dark) / `#A8832A` (light). This is the signature brand color. Use it for buttons, focus rings, active states, and key accents. Never replace it with a generic blue or gray.
-- **Ivory/cream text** — `foreground: #F2EAD3` on dark. Warm, not stark white.
+- **Cool white-blue surfaces** — `background: #F4F8FB` in light mode. The site uses this light treatment by default, with dark mode available only where deliberately needed.
+- **Deep warm gold accent** — `primary: #8F6D1E` on light surfaces. This is the signature brand color. Use it for buttons, focus rings, active states, and key accents. Never replace it with a generic blue or gray.
+- **Deep blue-black text** — `foreground: #17212B` on light surfaces. Keep text placed directly on photographs light for legibility.
 - **Cormorant Garamond** — the display/headline typeface (`font-serif`). High contrast, elegant, authoritative. Use for hero titles, tour names, section headings, and editorial moments.
 - **Montserrat** — the body/UI typeface (`font-sans`). Geometric, refined, legible. Use for body copy, labels, navigation, and all functional text.
 - **Architectural radius** — `0.25rem` base (4 px). Crisp, not rounded. Matches the brand's precise, unhurried character.
@@ -49,9 +49,9 @@ This package defines the visual language for MNT Embark — an ultra-luxury tour
    @import "@workspace/mnt-embark/styles.css";
    ```
    Do NOT add a separate `@import "tailwindcss"` — it's already included.
-4. In `index.html`, add the `dark` class to `<html>` for dark-first rendering:
+4. In `index.html`, leave `<html>` without the `dark` class for light-first rendering:
    ```html
-   <html class="dark" lang="en">
+   <html lang="en">
    ```
 5. Import components:
    ```tsx
@@ -62,15 +62,15 @@ This package defines the visual language for MNT Embark — an ultra-luxury tour
 
 Read `docs/consuming-web.md` for the full setup. Read `docs/migrating-web.md` if replacing an existing scaffolded theme.
 
-## Dark-mode setup
+## Light-mode setup
 
-The site is **dark-first**. Apply the `dark` class to the `<html>` element globally:
+The site is **light-first**. Do not apply the `dark` class to the `<html>` element globally:
 
 ```html
-<html class="dark" lang="en">
+<html lang="en">
 ```
 
-Do not toggle it dynamically unless building an explicit theme switcher. All UI is designed to render on dark surfaces by default.
+Do not toggle it dynamically unless building an explicit theme switcher. Use `text-foreground` for content on light surfaces and preserve light text where it overlays photography.
 
 ## Key token CSS variables
 
@@ -114,7 +114,7 @@ Never mix the two typefaces on the same text node. Display headings and tour nam
 - **Outline Button** — ghost with gold border. Secondary actions: "Learn more", "Enquire".
 - **Card** — `bg-card` surface with `border` (subtle). Tour cards, destination cards, journal cards.
 - **Badge** — use for tour tags: "Exclusive", "All-inclusive", "Safari", etc.
-- **Input** — dark field (`bg-input`) with gold focus ring (`ring-primary`). All form fields.
+- **Input** — cool white-blue field (`bg-input`) with gold focus ring (`ring-primary`). All form fields.
 - **Separator** — horizontal divider; can be gold-tinted with `bg-primary/30` for editorial moments.
 - **Carousel** — used for hero images, journal entries, destinations, and tours. Always add descriptive caption text beneath slides.
 
@@ -122,7 +122,7 @@ Never mix the two typefaces on the same text node. Display headings and tour nam
 
 - Do not invent new colors. Use token CSS variables only.
 - Do not use `font-sans` for tour names or headline text — use `font-serif`.
-- Do not set a light background globally — the app is dark-first.
+- Do not force dark mode globally — the app is light-first.
 - Do not copy token values, component source, or these docs into a consuming artifact. Import from `@workspace/mnt-embark`.
 - Do not use emojis anywhere in the UI.
 

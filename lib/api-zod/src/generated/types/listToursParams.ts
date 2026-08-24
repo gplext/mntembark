@@ -5,8 +5,15 @@
  * MNT Embark API — luxury tour company
  * OpenAPI spec version: 0.1.0
  */
+import type { ListToursClassificationItem } from './listToursClassificationItem';
 
 export type ListToursParams = {
 categoryId?: number;
 destinationId?: number;
+categorySlug?: string;
+destinationSlug?: string;
+countrySlug?: string;
+locationSlug?: string;
+classification?: ListToursClassificationItem[];
+activitySlugs?: string[];
 };

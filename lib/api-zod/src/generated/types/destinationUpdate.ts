@@ -8,6 +8,9 @@
 
 export interface DestinationUpdate {
   name?: string;
+  /** @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$ */
+  slug?: string;
+  displayOrder?: number;
   country?: string;
   region?: string;
   description?: string;

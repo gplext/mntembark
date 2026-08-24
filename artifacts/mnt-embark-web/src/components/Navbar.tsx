@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Menu, X } from "lucide-react";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
@@ -17,9 +17,21 @@ const rightLinks = [
   { href: "/contact", label: "Contact" },
 ];
 
+const brandLogoSrc = "/mnt-embark-logo.png";
+
 export default function Navbar() {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const updateScrollState = () => setIsScrolled(window.scrollY > 24);
+    updateScrollState();
+    window.addEventListener("scroll", updateScrollState, { passive: true });
+    return () => window.removeEventListener("scroll", updateScrollState);
+  }, []);
+
+  const hasSurface = isScrolled || location !== "/";
 
   const NavLink = ({ href, label }: { href: string; label: string }) => {
     const isActive = location === href || (href !== "/" && location.startsWith(href));
@@ -28,10 +40,12 @@ export default function Navbar() {
         href={href}
         data-testid={`nav-link-${label.toLowerCase().replace(/\s+/g, "-")}`}
         className={cn(
-          "font-sans text-xs font-medium uppercase tracking-widest transition-colors duration-200",
+          "font-sans text-xs font-semibold uppercase tracking-widest transition-colors duration-200",
           isActive
-            ? "text-primary"
-            : "text-muted-foreground hover:text-foreground"
+            ? hasSurface ? "text-primary" : "text-accent"
+            : hasSurface
+              ? "text-muted-foreground hover:text-foreground"
+              : "text-white/90 hover:text-white"
         )}
       >
         {label}
@@ -41,12 +55,18 @@ export default function Navbar() {
 
   return (
     <nav
-      className="fixed top-0 left-0 right-0 z-50 bg-background border-b border-border/40"
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300",
+        hasSurface
+          ? "bg-background/95 backdrop-blur-md border-border/60 shadow-sm"
+          : "bg-transparent border-transparent"
+      )}
+      data-scrolled={isScrolled}
       data-testid="navbar"
     >
-      <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="max-w-7xl mx-auto px-6">
         {/* Desktop */}
-        <div className="hidden md:flex items-center justify-between">
+        <div className="hidden md:flex h-16 items-center justify-between">
           {/* Left nav */}
           <div className="flex items-center gap-8">
             {leftLinks.map((link) => (
@@ -55,14 +75,17 @@ export default function Navbar() {
           </div>
 
           {/* Center brand */}
-          <div className="text-center absolute left-1/2 -translate-x-1/2">
-            <Link href="/" data-testid="nav-brand">
-              <h1 className="font-serif text-xl font-light text-primary tracking-widest uppercase">
-                MNT Embark
-              </h1>
-              <p className="font-sans text-xs text-muted-foreground tracking-widest uppercase" style={{ fontSize: "0.6rem" }}>
-                Exclusive like no other
-              </p>
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+            <Link
+              href="/"
+              data-testid="nav-brand"
+              className="inline-flex items-center justify-center"
+            >
+              <img
+                src={brandLogoSrc}
+                alt="MNT Embark"
+                className="h-14 w-auto object-contain"
+              />
             </Link>
           </div>
 
@@ -75,11 +98,17 @@ export default function Navbar() {
         </div>
 
         {/* Mobile */}
-        <div className="flex md:hidden items-center justify-between">
-          <Link href="/" data-testid="nav-brand-mobile">
-            <span className="font-serif text-lg font-light text-primary tracking-widest">
-              MNT Embark
-            </span>
+        <div className="relative flex h-14 items-center justify-end md:hidden">
+          <Link
+            href="/"
+            data-testid="nav-brand-mobile"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center"
+          >
+            <img
+              src={brandLogoSrc}
+              alt="MNT Embark"
+              className="h-12 w-auto object-contain"
+            />
           </Link>
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -87,7 +116,10 @@ export default function Navbar() {
                 variant="ghost"
                 size="icon"
                 data-testid="nav-mobile-menu"
-                className="text-muted-foreground hover:text-foreground"
+                className={cn(
+                  "transition-colors duration-300",
+                  hasSurface ? "text-muted-foreground hover:text-foreground" : "text-white/90 hover:text-white"
+                )}
               >
                 <Menu className="h-5 w-5" />
               </Button>
@@ -95,10 +127,11 @@ export default function Navbar() {
             <SheetContent side="right" className="bg-background border-border w-72">
               <div className="flex flex-col gap-1 mt-8">
                 <div className="mb-4 pb-4 border-b border-border/40">
-                  <p className="font-serif text-lg font-light text-primary">MNT Embark</p>
-                  <p className="font-sans text-xs text-muted-foreground tracking-widest uppercase mt-1" style={{ fontSize: "0.6rem" }}>
-                    Exclusive like no other
-                  </p>
+                  <img
+                    src={brandLogoSrc}
+                    alt="MNT Embark"
+                    className="h-20 w-auto object-contain"
+                  />
                 </div>
                 {[...leftLinks, ...rightLinks].map((link) => {
                   const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
@@ -109,7 +142,7 @@ export default function Navbar() {
                       data-testid={`mobile-nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
                       onClick={() => setMobileOpen(false)}
                       className={cn(
-                        "font-sans text-xs font-medium uppercase tracking-widest py-3 px-2 transition-colors duration-200 border-b border-border/20",
+                        "font-sans text-xs font-semibold uppercase tracking-widest py-3 px-2 transition-colors duration-200 border-b border-border/20",
                         isActive
                           ? "text-primary"
                           : "text-muted-foreground hover:text-foreground"

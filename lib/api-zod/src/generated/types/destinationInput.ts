@@ -9,8 +9,10 @@
 export interface DestinationInput {
   /** @minLength 1 */
   name: string;
-  /** @minLength 1 */
-  country: string;
+  /** @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$ */
+  slug: string;
+  displayOrder?: number;
+  country?: string;
   region?: string;
   description: string;
   coverImage: string;

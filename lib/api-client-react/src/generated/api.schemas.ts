@@ -34,6 +34,15 @@ export interface ItineraryStep {
   image?: string | null;
 }
 
+export type TourClassification = typeof TourClassification[keyof typeof TourClassification];
+
+
+export const TourClassification = {
+  standard: 'standard',
+  special: 'special',
+  exclusive: 'exclusive',
+} as const;
+
 export interface Tour {
   id: number;
   title: string;
@@ -44,6 +53,15 @@ export interface Tour {
   durationDays: number;
   priceFrom: number;
   featured: boolean;
+  classification?: TourClassification;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  locationId?: number | null;
+  /** @nullable */
+  locationName?: string | null;
+  /** @nullable */
+  countryName?: string | null;
   /** @nullable */
   categoryId?: number | null;
   /** @nullable */
@@ -70,6 +88,15 @@ export interface TourInput {
   itinerarySteps?: ItineraryStep[];
 }
 
+export type TourUpdateClassification = typeof TourUpdateClassification[keyof typeof TourUpdateClassification];
+
+
+export const TourUpdateClassification = {
+  standard: 'standard',
+  special: 'special',
+  exclusive: 'exclusive',
+} as const;
+
 export interface TourUpdate {
   /** @minLength 1 */
   title?: string;
@@ -80,29 +107,147 @@ export interface TourUpdate {
   durationDays?: number;
   priceFrom?: number;
   featured?: boolean;
+  classification?: TourUpdateClassification;
   /** @nullable */
   categoryId?: number | null;
   /** @nullable */
   destinationId?: number | null;
+  /** @nullable */
+  locationId?: number | null;
   itinerarySteps?: ItineraryStep[];
+}
+
+export interface ActivityFilterItem {
+  id: number;
+  slug: string;
+  name: string;
+  /** @nullable */
+  icon: string | null;
+  aliases: string[];
+  count: number;
+}
+
+export interface ActivityFilterGroup {
+  groupSlug: string;
+  groupName: string;
+  activities: ActivityFilterItem[];
+}
+
+export interface TourActivitiesInput {
+  activityIds: number[];
+}
+
+export interface ActivityDetail {
+  slug: string;
+  name: string;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  coverImage: string | null;
+  /** @nullable */
+  icon: string | null;
+  groupSlug: string;
+  groupName: string;
+  isIndexable: boolean;
+  /** @nullable */
+  redirectToSlug: string | null;
+}
+
+export interface LocationSummary {
+  id: number;
+  slug: string;
+  name: string;
+  /** @nullable */
+  countryName: string | null;
+}
+
+export interface CountrySummary {
+  id: number;
+  slug: string;
+  name: string;
+  /** @nullable */
+  code: string | null;
+  /** @nullable */
+  image: string | null;
 }
 
 export interface Destination {
   id: number;
+  /** @nullable */
+  slug?: string | null;
   name: string;
-  country: string;
+  displayOrder: number;
+  /** @nullable */
+  country?: string | null;
   /** @nullable */
   region?: string | null;
-  description: string;
-  coverImage: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  coverImage?: string | null;
   createdAt: string;
+}
+
+export interface DestinationCountryRef {
+  id: number;
+  slug: string;
+  name: string;
+}
+
+export interface DestinationListItem {
+  id: number;
+  /** @nullable */
+  slug?: string | null;
+  name: string;
+  displayOrder: number;
+  /** @nullable */
+  country?: string | null;
+  /** @nullable */
+  region?: string | null;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  coverImage?: string | null;
+  createdAt: string;
+  countries: DestinationCountryRef[];
+}
+
+export interface DestinationCountrySummary {
+  slug: string;
+  name: string;
+  /** @nullable */
+  code: string | null;
+}
+
+export interface DestinationLocationSummary {
+  slug: string;
+  name: string;
+  /** @nullable */
+  countrySlug: string | null;
+}
+
+export interface DestinationPlaces {
+  countries: DestinationCountrySummary[];
+  locations: DestinationLocationSummary[];
+}
+
+export interface DestinationPlacesIds {
+  countryIds: number[];
+  locationIds: number[];
+}
+
+export interface DestinationPlacesInput {
+  countryIds: number[];
+  locationIds: number[];
 }
 
 export interface DestinationInput {
   /** @minLength 1 */
   name: string;
-  /** @minLength 1 */
-  country: string;
+  /** @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$ */
+  slug: string;
+  displayOrder?: number;
+  country?: string;
   region?: string;
   description: string;
   coverImage: string;
@@ -110,6 +255,9 @@ export interface DestinationInput {
 
 export interface DestinationUpdate {
   name?: string;
+  /** @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$ */
+  slug?: string;
+  displayOrder?: number;
   country?: string;
   region?: string;
   description?: string;
@@ -118,9 +266,13 @@ export interface DestinationUpdate {
 
 export interface Category {
   id: number;
+  /** @nullable */
+  slug?: string | null;
   name: string;
   description: string;
   coverImage: string;
+  /** @nullable */
+  icon?: string | null;
   createdAt: string;
 }
 
@@ -192,6 +344,84 @@ export interface ErrorEnvelope {
   error: string;
 }
 
+export interface TourCategoryTaxonomy {
+  /** @nullable */
+  slug?: string | null;
+  name: string;
+  /** @nullable */
+  icon?: string | null;
+}
+
+export interface TourDestinationTaxonomy {
+  /** @nullable */
+  slug?: string | null;
+  name: string;
+}
+
+export interface TourLocationTaxonomy {
+  slug: string;
+  name: string;
+}
+
+export interface TourCountryTaxonomy {
+  slug: string;
+  name: string;
+  /** @nullable */
+  code: string | null;
+}
+
+export interface TourActivityItem {
+  slug: string;
+  name: string;
+  /** @nullable */
+  icon: string | null;
+}
+
+export interface TourActivitySection {
+  groupSlug: string;
+  groupName: string;
+  activities: TourActivityItem[];
+}
+
+export type TourWithTaxonomyClassification = typeof TourWithTaxonomyClassification[keyof typeof TourWithTaxonomyClassification];
+
+
+export const TourWithTaxonomyClassification = {
+  standard: 'standard',
+  special: 'special',
+  exclusive: 'exclusive',
+} as const;
+
+export interface TourWithTaxonomy {
+  id: number;
+  title: string;
+  description: string;
+  coverImage: string;
+  images: string[];
+  durationDays: number;
+  priceFrom: number;
+  featured: boolean;
+  classification?: TourWithTaxonomyClassification;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  locationName?: string | null;
+  /** @nullable */
+  countryName?: string | null;
+  /** @nullable */
+  categoryId?: number | null;
+  /** @nullable */
+  destinationId?: number | null;
+  itinerarySteps: ItineraryStep[];
+  createdAt: string;
+  updatedAt: string;
+  category: TourCategoryTaxonomy | null;
+  destination: TourDestinationTaxonomy | null;
+  location: TourLocationTaxonomy | null;
+  country: TourCountryTaxonomy | null;
+  activitySections: TourActivitySection[];
+}
+
 export interface Stats {
   tourCount: number;
   destinationCount: number;
@@ -203,7 +433,22 @@ export interface Stats {
 export type ListToursParams = {
 categoryId?: number;
 destinationId?: number;
+categorySlug?: string;
+destinationSlug?: string;
+countrySlug?: string;
+locationSlug?: string;
+classification?: ListToursClassificationItem[];
+activitySlugs?: string[];
 };
+
+export type ListToursClassificationItem = typeof ListToursClassificationItem[keyof typeof ListToursClassificationItem];
+
+
+export const ListToursClassificationItem = {
+  standard: 'standard',
+  special: 'special',
+  exclusive: 'exclusive',
+} as const;
 
 export type SearchToursParams = {
 q: string;

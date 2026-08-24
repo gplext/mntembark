@@ -5,11 +5,19 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./queries": "./src/queries/taxonomy.ts"
   },
   "scripts": {
-    "push": "drizzle-kit push --config ./drizzle.config.ts",
-    "push-force": "drizzle-kit push --force --config ./drizzle.config.ts"
+      "push": "echo '\n⛔ push is DISABLED. drizzle-kit push DROPS COLUMNS to make the database match the schema, and this database has real data.\n\nUse instead:\n  pnpm sql ./sql/01-phase1-additive.sql     run a provided SQL file\n  pnpm generate                             create a migration from schema changes\n  pnpm migrate                              apply pending migrations\n\nBack up first: pnpm backup\n' && exit 1",
+      "push-force": "echo '\n⛔ push-force is DISABLED and is the most destructive command in this repo.\n\n--force skips drizzle-kit'\\''s \"this will drop column X\" confirmation. It will silently destroy data.\n\nUse pnpm generate + pnpm migrate instead. Never re-enable this script.\n' && exit 1",
+      "generate": "drizzle-kit generate --config ./drizzle.config.ts",
+      "migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
+      "studio": "drizzle-kit studio --config ./drizzle.config.ts",
+      "check": "drizzle-kit check --config ./drizzle.config.ts",
+      "sql": "psql \"$DATABASE_URL\" -v ON_ERROR_STOP=1 -f",
+      "backup": "pg_dump \"$DATABASE_URL\" > backup-$(date +%F-%H%M).sql && ls -lh backup-*.sql",
+      "push:unsafe": "drizzle-kit push --config ./drizzle.config.ts"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
@@ -20,6 +28,7 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "@types/pg": "^8.20.0",
-    "drizzle-kit": "^0.31.10"
+    "drizzle-kit": "^0.31.10",
+    "tsx": "catalog:"
   }
 }

@@ -58,11 +58,55 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
+ * @summary Activity groups with live tour counts for the filter sidebar
+ */
+export const ListActivityFiltersResponseItem = zod.object({
+  "groupSlug": zod.string(),
+  "groupName": zod.string(),
+  "activities": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "icon": zod.string().nullable(),
+  "aliases": zod.array(zod.string()),
+  "count": zod.number()
+}))
+})
+export const ListActivityFiltersResponse = zod.array(ListActivityFiltersResponseItem)
+
+
+/**
+ * @summary Get a single activity by slug
+ */
+export const GetActivityBySlugParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetActivityBySlugResponse = zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
+  "icon": zod.string().nullable(),
+  "groupSlug": zod.string(),
+  "groupName": zod.string(),
+  "isIndexable": zod.boolean(),
+  "redirectToSlug": zod.string().nullable()
+})
+
+
+/**
  * @summary List all tours
  */
 export const ListToursQueryParams = zod.object({
   "categoryId": zod.coerce.number().optional(),
-  "destinationId": zod.coerce.number().optional()
+  "destinationId": zod.coerce.number().optional(),
+  "categorySlug": zod.coerce.string().optional(),
+  "destinationSlug": zod.coerce.string().optional(),
+  "countrySlug": zod.coerce.string().optional(),
+  "locationSlug": zod.coerce.string().optional(),
+  "classification": zod.array(zod.enum(['standard', 'special', 'exclusive'])).optional(),
+  "activitySlugs": zod.array(zod.coerce.string()).optional()
 })
 
 export const ListToursResponseItem = zod.object({
@@ -75,6 +119,11 @@ export const ListToursResponseItem = zod.object({
   "durationDays": zod.number(),
   "priceFrom": zod.number(),
   "featured": zod.boolean(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
+  "slug": zod.string().nullish(),
+  "locationId": zod.number().nullish(),
+  "locationName": zod.string().nullish(),
+  "countryName": zod.string().nullish(),
   "categoryId": zod.number().nullish(),
   "destinationId": zod.number().nullish(),
   "itinerarySteps": zod.array(zod.object({
@@ -124,6 +173,11 @@ export const CreateTourResponse = zod.object({
   "durationDays": zod.number(),
   "priceFrom": zod.number(),
   "featured": zod.boolean(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
+  "slug": zod.string().nullish(),
+  "locationId": zod.number().nullish(),
+  "locationName": zod.string().nullish(),
+  "countryName": zod.string().nullish(),
   "categoryId": zod.number().nullish(),
   "destinationId": zod.number().nullish(),
   "itinerarySteps": zod.array(zod.object({
@@ -150,6 +204,11 @@ export const GetFeaturedToursResponseItem = zod.object({
   "durationDays": zod.number(),
   "priceFrom": zod.number(),
   "featured": zod.boolean(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
+  "slug": zod.string().nullish(),
+  "locationId": zod.number().nullish(),
+  "locationName": zod.string().nullish(),
+  "countryName": zod.string().nullish(),
   "categoryId": zod.number().nullish(),
   "destinationId": zod.number().nullish(),
   "itinerarySteps": zod.array(zod.object({
@@ -183,6 +242,11 @@ export const SearchToursResponseItem = zod.object({
   "durationDays": zod.number(),
   "priceFrom": zod.number(),
   "featured": zod.boolean(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
+  "slug": zod.string().nullish(),
+  "locationId": zod.number().nullish(),
+  "locationName": zod.string().nullish(),
+  "countryName": zod.string().nullish(),
   "categoryId": zod.number().nullish(),
   "destinationId": zod.number().nullish(),
   "itinerarySteps": zod.array(zod.object({
@@ -195,6 +259,66 @@ export const SearchToursResponseItem = zod.object({
   "updatedAt": zod.string()
 })
 export const SearchToursResponse = zod.array(SearchToursResponseItem)
+
+
+/**
+ * @summary Get a tour by slug with full taxonomy
+ */
+export const GetTourBySlugParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetTourBySlugResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "images": zod.array(zod.string()),
+  "durationDays": zod.number(),
+  "priceFrom": zod.number(),
+  "featured": zod.boolean(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
+  "slug": zod.string().nullish(),
+  "locationName": zod.string().nullish(),
+  "countryName": zod.string().nullish(),
+  "categoryId": zod.number().nullish(),
+  "destinationId": zod.number().nullish(),
+  "itinerarySteps": zod.array(zod.object({
+  "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
+  "title": zod.string(),
+  "description": zod.string(),
+  "image": zod.string().nullish()
+})),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "category": zod.union([zod.object({
+  "slug": zod.string().nullish(),
+  "name": zod.string(),
+  "icon": zod.string().nullish()
+}),zod.null()]),
+  "destination": zod.union([zod.object({
+  "slug": zod.string().nullish(),
+  "name": zod.string()
+}),zod.null()]),
+  "location": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string()
+}),zod.null()]),
+  "country": zod.union([zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "code": zod.string().nullable()
+}),zod.null()]),
+  "activitySections": zod.array(zod.object({
+  "groupSlug": zod.string(),
+  "groupName": zod.string(),
+  "activities": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "icon": zod.string().nullable()
+}))
+}))
+})
 
 
 /**
@@ -214,6 +338,11 @@ export const GetTourResponse = zod.object({
   "durationDays": zod.number(),
   "priceFrom": zod.number(),
   "featured": zod.boolean(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
+  "slug": zod.string().nullish(),
+  "locationId": zod.number().nullish(),
+  "locationName": zod.string().nullish(),
+  "countryName": zod.string().nullish(),
   "categoryId": zod.number().nullish(),
   "destinationId": zod.number().nullish(),
   "itinerarySteps": zod.array(zod.object({
@@ -246,8 +375,10 @@ export const UpdateTourBody = zod.object({
   "durationDays": zod.number().optional(),
   "priceFrom": zod.number().optional(),
   "featured": zod.boolean().optional(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
   "categoryId": zod.number().nullish(),
   "destinationId": zod.number().nullish(),
+  "locationId": zod.number().nullish(),
   "itinerarySteps": zod.array(zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
@@ -266,6 +397,11 @@ export const UpdateTourResponse = zod.object({
   "durationDays": zod.number(),
   "priceFrom": zod.number(),
   "featured": zod.boolean(),
+  "classification": zod.enum(['standard', 'special', 'exclusive']).optional(),
+  "slug": zod.string().nullish(),
+  "locationId": zod.number().nullish(),
+  "locationName": zod.string().nullish(),
+  "countryName": zod.string().nullish(),
   "categoryId": zod.number().nullish(),
   "destinationId": zod.number().nullish(),
   "itinerarySteps": zod.array(zod.object({
@@ -290,16 +426,37 @@ export const DeleteTourResponse = zod.void()
 
 
 /**
+ * @summary Replace a tour's full activity set (max 10)
+ */
+export const SetTourActivitiesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SetTourActivitiesBody = zod.object({
+  "activityIds": zod.array(zod.number())
+})
+
+export const SetTourActivitiesResponse = zod.void()
+
+
+/**
  * @summary List all destinations
  */
 export const ListDestinationsResponseItem = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
-  "country": zod.string(),
+  "displayOrder": zod.number(),
+  "country": zod.string().nullish(),
   "region": zod.string().nullish(),
-  "description": zod.string(),
-  "coverImage": zod.string(),
-  "createdAt": zod.string()
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "countries": zod.array(zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string()
+}))
 })
 export const ListDestinationsResponse = zod.array(ListDestinationsResponseItem)
 
@@ -308,12 +465,14 @@ export const ListDestinationsResponse = zod.array(ListDestinationsResponseItem)
  * @summary Create a destination
  */
 
-
+export const createDestinationBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
 
 
 export const CreateDestinationBody = zod.object({
   "name": zod.string().min(1),
-  "country": zod.string().min(1),
+  "slug": zod.string().regex(createDestinationBodySlugRegExp),
+  "displayOrder": zod.number().optional(),
+  "country": zod.string().optional(),
   "region": zod.string().optional(),
   "description": zod.string(),
   "coverImage": zod.string()
@@ -321,11 +480,13 @@ export const CreateDestinationBody = zod.object({
 
 export const CreateDestinationResponse = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
-  "country": zod.string(),
+  "displayOrder": zod.number(),
+  "country": zod.string().nullish(),
   "region": zod.string().nullish(),
-  "description": zod.string(),
-  "coverImage": zod.string(),
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -339,11 +500,13 @@ export const GetDestinationParams = zod.object({
 
 export const GetDestinationResponse = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
-  "country": zod.string(),
+  "displayOrder": zod.number(),
+  "country": zod.string().nullish(),
   "region": zod.string().nullish(),
-  "description": zod.string(),
-  "coverImage": zod.string(),
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -355,8 +518,13 @@ export const UpdateDestinationParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateDestinationBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
+
+
 export const UpdateDestinationBody = zod.object({
   "name": zod.string().optional(),
+  "slug": zod.string().regex(updateDestinationBodySlugRegExp).optional(),
+  "displayOrder": zod.number().optional(),
   "country": zod.string().optional(),
   "region": zod.string().optional(),
   "description": zod.string().optional(),
@@ -365,11 +533,13 @@ export const UpdateDestinationBody = zod.object({
 
 export const UpdateDestinationResponse = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
-  "country": zod.string(),
+  "displayOrder": zod.number(),
+  "country": zod.string().nullish(),
   "region": zod.string().nullish(),
-  "description": zod.string(),
-  "coverImage": zod.string(),
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -385,13 +555,89 @@ export const DeleteDestinationResponse = zod.void()
 
 
 /**
+ * @summary Countries and locations linked to a destination
+ */
+export const GetDestinationPlacesParams = zod.object({
+  "slug": zod.coerce.string()
+})
+
+export const GetDestinationPlacesResponse = zod.object({
+  "countries": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "code": zod.string().nullable()
+})),
+  "locations": zod.array(zod.object({
+  "slug": zod.string(),
+  "name": zod.string(),
+  "countrySlug": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Country and location IDs linked to a destination (admin)
+ */
+export const GetDestinationPlacesByIdParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetDestinationPlacesByIdResponse = zod.object({
+  "countryIds": zod.array(zod.number()),
+  "locationIds": zod.array(zod.number())
+})
+
+
+/**
+ * @summary Replace the country and location sets for a destination (admin)
+ */
+export const SetDestinationPlacesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SetDestinationPlacesBody = zod.object({
+  "countryIds": zod.array(zod.number()),
+  "locationIds": zod.array(zod.number())
+})
+
+export const SetDestinationPlacesResponse = zod.void()
+
+
+/**
+ * @summary All locations with country name for admin selects
+ */
+export const ListLocationsResponseItem = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "countryName": zod.string().nullable()
+})
+export const ListLocationsResponse = zod.array(ListLocationsResponseItem)
+
+
+/**
+ * @summary All countries ordered by display_order for admin selects
+ */
+export const ListCountriesResponseItem = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "code": zod.string().nullable(),
+  "image": zod.string().nullable()
+})
+export const ListCountriesResponse = zod.array(ListCountriesResponseItem)
+
+
+/**
  * @summary List all categories
  */
 export const ListCategoriesResponseItem = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
   "description": zod.string(),
   "coverImage": zod.string(),
+  "icon": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListCategoriesResponse = zod.array(ListCategoriesResponseItem)
@@ -411,9 +657,11 @@ export const CreateCategoryBody = zod.object({
 
 export const CreateCategoryResponse = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
   "description": zod.string(),
   "coverImage": zod.string(),
+  "icon": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -427,9 +675,11 @@ export const GetCategoryParams = zod.object({
 
 export const GetCategoryResponse = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
   "description": zod.string(),
   "coverImage": zod.string(),
+  "icon": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -449,9 +699,11 @@ export const UpdateCategoryBody = zod.object({
 
 export const UpdateCategoryResponse = zod.object({
   "id": zod.number(),
+  "slug": zod.string().nullish(),
   "name": zod.string(),
   "description": zod.string(),
   "coverImage": zod.string(),
+  "icon": zod.string().nullish(),
   "createdAt": zod.string()
 })
 

@@ -84,19 +84,19 @@ export default function CategoriesPage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
 
                 <div className="absolute bottom-0 left-0 right-0 p-8">
-                  <h3 className="font-serif text-3xl font-light text-foreground mb-2">
+                  <h3 className="font-serif text-3xl font-light text-white mb-2">
                     {category.name}
                   </h3>
-                  <p className="font-sans text-sm text-foreground/70 leading-relaxed mb-4 line-clamp-2">
+                  <p className="font-sans text-sm text-white/75 leading-relaxed mb-4 line-clamp-2">
                     {category.description}
                   </p>
-                  <div className="flex items-center gap-2 text-primary font-sans text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="flex items-center gap-2 text-accent font-sans text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     Explore Journeys <ArrowRight className="h-3 w-3" />
                   </div>
                 </div>
 
                 {/* Gold line accent on hover */}
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary/0 group-hover:bg-primary/60 transition-all duration-500" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent/0 group-hover:bg-accent/60 transition-all duration-500" />
               </Link>
             ))}
           </div>

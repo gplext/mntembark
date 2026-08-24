@@ -20,12 +20,19 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActivityDetail,
+  ActivityFilterGroup,
   ApiError,
   Category,
   CategoryInput,
   CategoryUpdate,
+  CountrySummary,
   Destination,
   DestinationInput,
+  DestinationListItem,
+  DestinationPlaces,
+  DestinationPlacesIds,
+  DestinationPlacesInput,
   DestinationUpdate,
   ErrorEnvelope,
   HealthStatus,
@@ -33,11 +40,14 @@ import type {
   JournalEntryInput,
   JournalEntryUpdate,
   ListToursParams,
+  LocationSummary,
   SearchToursParams,
   Stats,
   Tour,
+  TourActivitiesInput,
   TourInput,
   TourUpdate,
+  TourWithTaxonomy,
   UploadUrlRequest,
   UploadUrlResponse
 } from './api.schemas';
@@ -295,10 +305,172 @@ export function useHealthCheck<TData = Awaited<ReturnType<typeof healthCheck>>, 
 
 
 
+export const getListActivityFiltersUrl = () => {
+
+
+
+
+  return `/api/activities`
+}
+
+/**
+ * @summary Activity groups with live tour counts for the filter sidebar
+ */
+export const listActivityFilters = async ( options?: Parameters<typeof customFetch>[1]): Promise<ActivityFilterGroup[]> => {
+
+  return customFetch<ActivityFilterGroup[]>(getListActivityFiltersUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListActivityFiltersQueryKey = () => {
+    return [
+    `/api/activities`
+    ] as const;
+    }
+
+
+export const getListActivityFiltersQueryOptions = <TData = Awaited<ReturnType<typeof listActivityFilters>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listActivityFilters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListActivityFiltersQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listActivityFilters>>> = ({ signal }) => listActivityFilters({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listActivityFilters>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListActivityFiltersQueryResult = NonNullable<Awaited<ReturnType<typeof listActivityFilters>>>
+export type ListActivityFiltersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Activity groups with live tour counts for the filter sidebar
+ */
+
+export function useListActivityFilters<TData = Awaited<ReturnType<typeof listActivityFilters>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listActivityFilters>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListActivityFiltersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetActivityBySlugUrl = (slug: string,) => {
+
+
+
+
+  return `/api/activities/${slug}`
+}
+
+/**
+ * @summary Get a single activity by slug
+ */
+export const getActivityBySlug = async (slug: string, options?: Parameters<typeof customFetch>[1]): Promise<ActivityDetail> => {
+
+  return customFetch<ActivityDetail>(getGetActivityBySlugUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActivityBySlugQueryKey = (slug: string,) => {
+    return [
+    `/api/activities/${slug}`
+    ] as const;
+    }
+
+
+export const getGetActivityBySlugQueryOptions = <TData = Awaited<ReturnType<typeof getActivityBySlug>>, TError = ErrorType<ApiError>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActivityBySlugQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActivityBySlug>>> = ({ signal }) => getActivityBySlug(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActivityBySlug>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActivityBySlugQueryResult = NonNullable<Awaited<ReturnType<typeof getActivityBySlug>>>
+export type GetActivityBySlugQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get a single activity by slug
+ */
+
+export function useGetActivityBySlug<TData = Awaited<ReturnType<typeof getActivityBySlug>>, TError = ErrorType<ApiError>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActivityBySlugQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getListToursUrl = (params?: ListToursParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["classification","activitySlugs"];
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : String(v));
+      });
+      return;
+    }
 
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : String(value))
@@ -611,6 +783,83 @@ export function useSearchTours<TData = Awaited<ReturnType<typeof searchTours>>, 
 
 
 
+export const getGetTourBySlugUrl = (slug: string,) => {
+
+
+
+
+  return `/api/tours/slug/${slug}`
+}
+
+/**
+ * @summary Get a tour by slug with full taxonomy
+ */
+export const getTourBySlug = async (slug: string, options?: Parameters<typeof customFetch>[1]): Promise<TourWithTaxonomy> => {
+
+  return customFetch<TourWithTaxonomy>(getGetTourBySlugUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTourBySlugQueryKey = (slug: string,) => {
+    return [
+    `/api/tours/slug/${slug}`
+    ] as const;
+    }
+
+
+export const getGetTourBySlugQueryOptions = <TData = Awaited<ReturnType<typeof getTourBySlug>>, TError = ErrorType<ApiError>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTourBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTourBySlugQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTourBySlug>>> = ({ signal }) => getTourBySlug(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTourBySlug>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTourBySlugQueryResult = NonNullable<Awaited<ReturnType<typeof getTourBySlug>>>
+export type GetTourBySlugQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get a tour by slug with full taxonomy
+ */
+
+export function useGetTourBySlug<TData = Awaited<ReturnType<typeof getTourBySlug>>, TError = ErrorType<ApiError>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTourBySlug>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTourBySlugQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getGetTourUrl = (id: number,) => {
 
 
@@ -831,6 +1080,78 @@ export const useDeleteTour = <TError = ErrorType<ApiError>,
       return useMutation(getDeleteTourMutationOptions(options));
     }
 
+export const getSetTourActivitiesUrl = (id: number,) => {
+
+
+
+
+  return `/api/tours/${id}/activities`
+}
+
+/**
+ * @summary Replace a tour's full activity set (max 10)
+ */
+export const setTourActivities = async (id: number,
+    tourActivitiesInput: TourActivitiesInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getSetTourActivitiesUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(tourActivitiesInput)
+  }
+);}
+
+
+
+
+
+export const getSetTourActivitiesMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setTourActivities>>, TError,{id: number;data: BodyType<TourActivitiesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setTourActivities>>, TError,{id: number;data: BodyType<TourActivitiesInput>}, TContext> => {
+
+const mutationKey = ['setTourActivities'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setTourActivities>>, {id: number;data: BodyType<TourActivitiesInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setTourActivities(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetTourActivitiesMutationResult = NonNullable<Awaited<ReturnType<typeof setTourActivities>>>
+    export type SetTourActivitiesMutationBody = BodyType<TourActivitiesInput>
+    export type SetTourActivitiesMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Replace a tour's full activity set (max 10)
+ */
+export const useSetTourActivities = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setTourActivities>>, TError,{id: number;data: BodyType<TourActivitiesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setTourActivities>>,
+        TError,
+        {id: number;data: BodyType<TourActivitiesInput>},
+        TContext
+      > => {
+      return useMutation(getSetTourActivitiesMutationOptions(options));
+    }
+
 export const getListDestinationsUrl = () => {
 
 
@@ -842,9 +1163,9 @@ export const getListDestinationsUrl = () => {
 /**
  * @summary List all destinations
  */
-export const listDestinations = async ( options?: Parameters<typeof customFetch>[1]): Promise<Destination[]> => {
+export const listDestinations = async ( options?: Parameters<typeof customFetch>[1]): Promise<DestinationListItem[]> => {
 
-  return customFetch<Destination[]>(getListDestinationsUrl(),
+  return customFetch<DestinationListItem[]>(getListDestinationsUrl(),
   {
     ...options,
     method: 'GET'
@@ -1198,6 +1519,386 @@ export const useDeleteDestination = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getDeleteDestinationMutationOptions(options));
     }
+
+export const getGetDestinationPlacesUrl = (slug: string,) => {
+
+
+
+
+  return `/api/destinations/${slug}/places`
+}
+
+/**
+ * @summary Countries and locations linked to a destination
+ */
+export const getDestinationPlaces = async (slug: string, options?: Parameters<typeof customFetch>[1]): Promise<DestinationPlaces> => {
+
+  return customFetch<DestinationPlaces>(getGetDestinationPlacesUrl(slug),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDestinationPlacesQueryKey = (slug: string,) => {
+    return [
+    `/api/destinations/${slug}/places`
+    ] as const;
+    }
+
+
+export const getGetDestinationPlacesQueryOptions = <TData = Awaited<ReturnType<typeof getDestinationPlaces>>, TError = ErrorType<ApiError>>(slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDestinationPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDestinationPlacesQueryKey(slug);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDestinationPlaces>>> = ({ signal }) => getDestinationPlaces(slug, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: slug !== null && slug !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDestinationPlaces>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDestinationPlacesQueryResult = NonNullable<Awaited<ReturnType<typeof getDestinationPlaces>>>
+export type GetDestinationPlacesQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Countries and locations linked to a destination
+ */
+
+export function useGetDestinationPlaces<TData = Awaited<ReturnType<typeof getDestinationPlaces>>, TError = ErrorType<ApiError>>(
+ slug: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDestinationPlaces>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDestinationPlacesQueryOptions(slug,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetDestinationPlacesByIdUrl = (id: number,) => {
+
+
+
+
+  return `/api/destinations/${id}/places`
+}
+
+/**
+ * @summary Country and location IDs linked to a destination (admin)
+ */
+export const getDestinationPlacesById = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<DestinationPlacesIds> => {
+
+  return customFetch<DestinationPlacesIds>(getGetDestinationPlacesByIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetDestinationPlacesByIdQueryKey = (id: number,) => {
+    return [
+    `/api/destinations/${id}/places`
+    ] as const;
+    }
+
+
+export const getGetDestinationPlacesByIdQueryOptions = <TData = Awaited<ReturnType<typeof getDestinationPlacesById>>, TError = ErrorType<ApiError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDestinationPlacesById>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetDestinationPlacesByIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getDestinationPlacesById>>> = ({ signal }) => getDestinationPlacesById(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getDestinationPlacesById>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetDestinationPlacesByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getDestinationPlacesById>>>
+export type GetDestinationPlacesByIdQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Country and location IDs linked to a destination (admin)
+ */
+
+export function useGetDestinationPlacesById<TData = Awaited<ReturnType<typeof getDestinationPlacesById>>, TError = ErrorType<ApiError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getDestinationPlacesById>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetDestinationPlacesByIdQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetDestinationPlacesUrl = (id: number,) => {
+
+
+
+
+  return `/api/destinations/${id}/places`
+}
+
+/**
+ * @summary Replace the country and location sets for a destination (admin)
+ */
+export const setDestinationPlaces = async (id: number,
+    destinationPlacesInput: DestinationPlacesInput, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getSetDestinationPlacesUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(destinationPlacesInput)
+  }
+);}
+
+
+
+
+
+export const getSetDestinationPlacesMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setDestinationPlaces>>, TError,{id: number;data: BodyType<DestinationPlacesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setDestinationPlaces>>, TError,{id: number;data: BodyType<DestinationPlacesInput>}, TContext> => {
+
+const mutationKey = ['setDestinationPlaces'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setDestinationPlaces>>, {id: number;data: BodyType<DestinationPlacesInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setDestinationPlaces(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetDestinationPlacesMutationResult = NonNullable<Awaited<ReturnType<typeof setDestinationPlaces>>>
+    export type SetDestinationPlacesMutationBody = BodyType<DestinationPlacesInput>
+    export type SetDestinationPlacesMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Replace the country and location sets for a destination (admin)
+ */
+export const useSetDestinationPlaces = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setDestinationPlaces>>, TError,{id: number;data: BodyType<DestinationPlacesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setDestinationPlaces>>,
+        TError,
+        {id: number;data: BodyType<DestinationPlacesInput>},
+        TContext
+      > => {
+      return useMutation(getSetDestinationPlacesMutationOptions(options));
+    }
+
+export const getListLocationsUrl = () => {
+
+
+
+
+  return `/api/locations`
+}
+
+/**
+ * @summary All locations with country name for admin selects
+ */
+export const listLocations = async ( options?: Parameters<typeof customFetch>[1]): Promise<LocationSummary[]> => {
+
+  return customFetch<LocationSummary[]>(getListLocationsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListLocationsQueryKey = () => {
+    return [
+    `/api/locations`
+    ] as const;
+    }
+
+
+export const getListLocationsQueryOptions = <TData = Awaited<ReturnType<typeof listLocations>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListLocationsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listLocations>>> = ({ signal }) => listLocations({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listLocations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListLocationsQueryResult = NonNullable<Awaited<ReturnType<typeof listLocations>>>
+export type ListLocationsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All locations with country name for admin selects
+ */
+
+export function useListLocations<TData = Awaited<ReturnType<typeof listLocations>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listLocations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListLocationsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListCountriesUrl = () => {
+
+
+
+
+  return `/api/countries`
+}
+
+/**
+ * @summary All countries ordered by display_order for admin selects
+ */
+export const listCountries = async ( options?: Parameters<typeof customFetch>[1]): Promise<CountrySummary[]> => {
+
+  return customFetch<CountrySummary[]>(getListCountriesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCountriesQueryKey = () => {
+    return [
+    `/api/countries`
+    ] as const;
+    }
+
+
+export const getListCountriesQueryOptions = <TData = Awaited<ReturnType<typeof listCountries>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCountries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCountriesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCountries>>> = ({ signal }) => listCountries({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCountries>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCountriesQueryResult = NonNullable<Awaited<ReturnType<typeof listCountries>>>
+export type ListCountriesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary All countries ordered by display_order for admin selects
+ */
+
+export function useListCountries<TData = Awaited<ReturnType<typeof listCountries>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCountries>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCountriesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListCategoriesUrl = () => {
 

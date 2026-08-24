@@ -2,8 +2,8 @@ import express, { type Express } from "express";
 import cors from "cors";
 import session from "express-session";
 import pinoHttp from "pino-http";
-import path from "path";
 import fs from "fs";
+import path from "path";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -54,23 +54,14 @@ app.use(
 
 app.use("/api", router);
 
-// Serve static frontend assets and SPA fallback
 const publicDir = process.env["PUBLIC_DIR"] || path.resolve(process.cwd(), "public");
+
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
   app.use((req, res, next) => {
-    if (req.method !== "GET" || req.path.startsWith("/api")) {
-      return next();
-    }
-    const indexPath = path.join(publicDir, "index.html");
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      next();
-    }
+    if (req.path.startsWith("/api")) return next();
+    res.sendFile(path.join(publicDir, "index.html"));
   });
 }
 
-
 export default app;
-

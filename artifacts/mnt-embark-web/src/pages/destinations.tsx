@@ -3,6 +3,7 @@ import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { MapPin } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { DestinationCoverImage } from "@/components/DestinationCoverImage";
 
 export default function DestinationsPage() {
   const { data: destinations, isLoading, isError, refetch } = useListDestinations();
@@ -74,8 +75,8 @@ export default function DestinationsPage() {
                   className={`group relative overflow-hidden rounded cursor-default ${isLarge ? "md:col-span-1" : ""}`}
                   style={{ height: isLarge ? "420px" : "300px" }}
                 >
-                  <img
-                    src={dest.coverImage}
+                  <DestinationCoverImage
+                    coverImage={dest.coverImage}
                     alt={dest.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -84,16 +85,16 @@ export default function DestinationsPage() {
                   {/* Content */}
                   <div className="absolute bottom-0 left-0 right-0 p-6">
                     <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="h-3 w-3 text-primary" />
-                      <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary">
+                      <MapPin className="h-3 w-3 text-accent" />
+                      <p className="font-sans text-xs font-medium uppercase tracking-widest text-accent">
                         {dest.country}
                         {dest.region && ` · ${dest.region}`}
                       </p>
                     </div>
-                    <h3 className="font-serif text-2xl font-light text-foreground mb-2">
+                    <h3 className="font-serif text-2xl font-light text-white mb-2">
                       {dest.name}
                     </h3>
-                    <p className="font-sans text-xs text-foreground/60 leading-relaxed line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <p className="font-sans text-xs text-white/70 leading-relaxed line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       {dest.description}
                     </p>
                   </div>

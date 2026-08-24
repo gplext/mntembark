@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { useGetFeaturedTours, useListJournalEntries, useListDestinations } from "@workspace/api-client-react";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
@@ -9,30 +9,114 @@ import { cn } from "@workspace/mnt-embark/lib/utils";
 import { MapPin, Clock, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { TourCard } from "@/components/TourCard";
+import { DestinationCoverImage } from "@/components/DestinationCoverImage";
+
+const CAROUSEL_FADE_MS = 240;
+const CAROUSEL_GAP_MS = 16;
 
 function HeroCarousel() {
   const { data: tours, isLoading } = useGetFeaturedTours();
   const [activeIndex, setActiveIndex] = useState(0);
   const [fading, setFading] = useState(false);
+  const [pendingIndex, setPendingIndex] = useState<number | null>(null);
+  const [transitionPhase, setTransitionPhase] = useState<"idle" | "out" | "black" | "ready" | "in">("idle");
+  const [pendingLoaded, setPendingLoaded] = useState(false);
+  const transitionTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const loadedImageUrls = useRef(new Set<string>());
+
+  const clearTransitionTimers = () => {
+    transitionTimers.current.forEach((timer) => clearTimeout(timer));
+    transitionTimers.current = [];
+  };
+
+  const beginTransition = (nextIndex: number) => {
+    if (fading || nextIndex === activeIndex) return;
+
+    clearTransitionTimers();
+    setFading(true);
+    setPendingIndex(nextIndex);
+    setPendingLoaded(loadedImageUrls.current.has(tours?.[nextIndex]?.coverImage ?? ""));
+    setTransitionPhase("out");
+    transitionTimers.current = [
+      setTimeout(() => setTransitionPhase("black"), CAROUSEL_FADE_MS),
+    ];
+  };
+
+  const revealPending = () => {
+    if (pendingIndex === null || pendingLoaded) return;
+
+    setPendingLoaded(true);
+  };
+
+  const cancelTransition = () => {
+    clearTransitionTimers();
+    setPendingIndex(null);
+    setPendingLoaded(false);
+    setTransitionPhase("idle");
+    setFading(false);
+  };
+
+  useEffect(() => () => clearTransitionTimers(), []);
 
   useEffect(() => {
     if (!tours || tours.length === 0) return;
-    const interval = setInterval(() => {
-      setFading(true);
-      setTimeout(() => {
-        setActiveIndex((i) => (i + 1) % tours.length);
-        setFading(false);
-      }, 600);
-    }, 6000);
-    return () => clearInterval(interval);
+
+    const preloadedImages = tours.map((tour) => {
+      const image = new Image();
+      image.onload = () => loadedImageUrls.current.add(tour.coverImage);
+      image.src = tour.coverImage;
+      return image;
+    });
+
+    return () => {
+      preloadedImages.forEach((image) => {
+        image.onload = null;
+        image.onerror = null;
+      });
+    };
   }, [tours]);
 
-  const goTo = (idx: number) => {
-    setFading(true);
-    setTimeout(() => {
-      setActiveIndex(idx);
+  useEffect(() => {
+    if (transitionPhase !== "black" || pendingIndex === null || !pendingLoaded) return;
+    setActiveIndex(pendingIndex);
+    setTransitionPhase("ready");
+  }, [transitionPhase, pendingIndex, pendingLoaded]);
+
+  useEffect(() => {
+    if (transitionPhase !== "ready") return;
+
+    const timer = setTimeout(() => {
+      setTransitionPhase("in");
+    }, CAROUSEL_GAP_MS);
+
+    return () => clearTimeout(timer);
+  }, [transitionPhase]);
+
+  useEffect(() => {
+    if (transitionPhase !== "in") return;
+
+    const timer = setTimeout(() => {
+      setTransitionPhase("idle");
+      setPendingIndex(null);
+      setPendingLoaded(false);
       setFading(false);
-    }, 400);
+    }, CAROUSEL_FADE_MS);
+
+    return () => clearTimeout(timer);
+  }, [transitionPhase]);
+
+  useEffect(() => {
+    if (!tours || tours.length === 0 || fading) return;
+    const timeout = setTimeout(
+      () => beginTransition((activeIndex + 1) % tours.length),
+      4000,
+    );
+    return () => clearTimeout(timeout);
+  }, [tours, activeIndex, fading]);
+
+  const goTo = (idx: number) => {
+    beginTransition(idx);
   };
 
   if (isLoading) {
@@ -62,19 +146,72 @@ function HeroCarousel() {
   }
 
   const tour = tours[activeIndex];
+  const pendingTour = pendingIndex === null ? null : tours[pendingIndex];
+  const slideOpacity = transitionPhase === "idle" || transitionPhase === "in" ? 1 : 0;
+  const renderTourContent = (displayTour: typeof tour) => (
+    <div className="max-w-4xl">
+      {displayTour.featured && (
+        <Badge
+          variant="outline"
+          className="border-accent text-accent font-sans text-xs font-semibold tracking-widest uppercase mb-4"
+        >
+          Featured
+        </Badge>
+      )}
+      <h2 className="font-serif text-5xl md:text-7xl font-light text-white leading-tight mb-4">
+        {displayTour.title}
+      </h2>
+      <div className="flex items-center gap-2 mb-6">
+        <MapPin className="h-4 w-4 text-accent" />
+        <span className="font-sans text-sm text-white/80 tracking-wide">
+          {displayTour.location}
+        </span>
+        <span className="text-white/60 mx-2">|</span>
+        <Clock className="h-4 w-4 text-accent" />
+        <span className="font-sans text-sm text-white/80 tracking-wide">
+          {displayTour.durationDays} days
+        </span>
+      </div>
+      <div className="flex gap-4">
+        <Link
+          href={`/tours/${displayTour.slug ?? displayTour.id}`}
+          data-testid={`hero-cta-${displayTour.id}`}
+        >
+          <Button
+            variant="default"
+            className="font-sans text-xs font-semibold tracking-widest uppercase text-white hover:text-white"
+          >
+            Discover Journey
+          </Button>
+        </Link>
+        <Link
+          href="/tours"
+          data-testid="hero-view-all"
+        >
+          <Button
+            variant="outline"
+            className="font-sans text-xs font-semibold tracking-widest uppercase text-white hover:text-white border-white/60 hover:border-white"
+          >
+            View All Tours
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
 
   return (
     <div
-      className="relative w-full overflow-hidden"
+      className="relative w-full overflow-hidden bg-black"
       style={{ height: "100dvh" }}
       data-testid="hero-carousel"
     >
       {/* Background image */}
       <div
-        className={cn(
-          "absolute inset-0 transition-opacity duration-700",
-          fading ? "opacity-0" : "opacity-100"
-        )}
+        className="absolute inset-0"
+        style={{
+          opacity: slideOpacity,
+          transition: `opacity ${CAROUSEL_FADE_MS}ms ease`,
+        }}
       >
         <img
           src={tour.coverImage}
@@ -84,57 +221,35 @@ function HeroCarousel() {
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/80" />
       </div>
 
-      {/* Content */}
-      <div
-        className={cn(
-          "absolute bottom-0 left-0 right-0 p-8 md:p-16 transition-opacity duration-700",
-          fading ? "opacity-0" : "opacity-100"
-        )}
-      >
-        <div className="max-w-4xl">
-          {tour.featured && (
-            <Badge
-              variant="outline"
-              className="border-primary text-primary font-sans text-xs tracking-widest uppercase mb-4"
-            >
-              Featured
-            </Badge>
-          )}
-          <h2 className="font-serif text-5xl md:text-7xl font-light text-foreground leading-tight mb-4">
-            {tour.title}
-          </h2>
-          <div className="flex items-center gap-2 mb-6">
-            <MapPin className="h-4 w-4 text-primary" />
-            <span className="font-sans text-sm text-muted-foreground tracking-wide">
-              {tour.location}
-            </span>
-            <span className="text-border mx-2">|</span>
-            <Clock className="h-4 w-4 text-primary" />
-            <span className="font-sans text-sm text-muted-foreground tracking-wide">
-              {tour.durationDays} days
-            </span>
-          </div>
-          <div className="flex gap-4">
-            <Link href={`/tours/${tour.id}`}>
-              <Button
-                variant="default"
-                data-testid={`hero-cta-${tour.id}`}
-                className="font-sans text-xs tracking-widest uppercase"
-              >
-                Discover Journey
-              </Button>
-            </Link>
-            <Link href="/tours">
-              <Button
-                variant="outline"
-                data-testid="hero-view-all"
-                className="font-sans text-xs tracking-widest uppercase"
-              >
-                View All Tours
-              </Button>
-            </Link>
-          </div>
+      {/* Preload the next image without allowing it to appear before the fade. */}
+      {pendingTour && (
+        <div
+          className="absolute inset-0 pointer-events-none opacity-0"
+          aria-hidden="true"
+          style={{
+            visibility: "hidden",
+          }}
+        >
+          <img
+            src={pendingTour.coverImage}
+            alt=""
+            onLoad={revealPending}
+            onError={cancelTransition}
+            className="w-full h-full object-cover"
+          />
         </div>
+      )}
+
+      {/* Slide content follows the same fade timing as the image. */}
+      <div
+        className="absolute bottom-0 left-0 right-0 z-20 p-8 md:p-16"
+        style={{
+          opacity: slideOpacity,
+          transition: `opacity ${CAROUSEL_FADE_MS}ms ease`,
+          pointerEvents: transitionPhase === "idle" || transitionPhase === "in" ? "auto" : "none",
+        }}
+      >
+        {renderTourContent(tour)}
       </div>
 
       {/* Slide controls */}
@@ -204,7 +319,7 @@ function LatestTravelsSection() {
           : portraitTours.map((tour, idx) => (
               <Link
                 key={tour.id}
-                href={`/tours/${tour.id}`}
+                href={`/tours/${tour.slug ?? tour.id}`}
                 data-testid={`latest-travel-card-${tour.id}`}
                 className="group relative overflow-hidden rounded block"
                 style={{ aspectRatio: "2/3" }}
@@ -216,17 +331,17 @@ function LatestTravelsSection() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p className="font-serif text-base font-light text-foreground leading-tight">
+                    <p className="font-serif text-base font-bold text-white leading-tight">
                     {tour.title}
                   </p>
-                  <p className="font-sans text-xs text-primary mt-1 flex items-center gap-1">
+                  <p className="font-sans text-xs font-bold text-accent mt-1 flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
                     {tour.location}
                   </p>
                 </div>
                 <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center">
-                    <ArrowRight className="h-3 w-3 text-primary" />
+                  <div className="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center">
+                    <ArrowRight className="h-3 w-3 text-accent" />
                   </div>
                 </div>
               </Link>
@@ -397,17 +512,17 @@ function DestinationsCarousel() {
               className="group relative overflow-hidden rounded block"
               style={{ height: idx === 1 ? "420px" : "320px" }}
             >
-              <img
-                src={dest.coverImage}
+              <DestinationCoverImage
+                coverImage={dest.coverImage}
                 alt={dest.name}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-6">
-                <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-1">
+                <p className="font-sans text-xs font-bold uppercase tracking-widest text-accent mb-1">
                   {dest.country}
                 </p>
-                <h3 className="font-serif text-2xl font-light text-foreground">
+                    <h3 className="font-serif text-2xl font-bold text-white">
                   {dest.name}
                 </h3>
               </div>
@@ -447,51 +562,7 @@ function ToursCarousel() {
                 <Skeleton key={i} className="h-64 rounded bg-card" />
               ))
             : (tours || []).slice(0, 3).map((tour) => (
-                <Link
-                  key={tour.id}
-                  href={`/tours/${tour.id}`}
-                  data-testid={`tour-card-${tour.id}`}
-                  className="group relative bg-card border border-border/40 overflow-hidden rounded hover:border-primary/40 transition-colors duration-300 block"
-                >
-                  <div className="aspect-[16/10] overflow-hidden">
-                    <img
-                      src={tour.coverImage}
-                      alt={tour.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="p-6">
-                    <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-serif text-xl font-light text-foreground leading-tight">
-                        {tour.title}
-                      </h3>
-                      {tour.featured && (
-                        <Badge variant="outline" className="border-primary text-primary text-xs shrink-0 ml-2">
-                          Exclusive
-                        </Badge>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground mb-4">
-                      <MapPin className="h-3 w-3 text-primary" />
-                      <span className="font-sans text-xs">{tour.location}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <span className="font-sans text-xs text-muted-foreground">
-                          {tour.durationDays} days
-                        </span>
-                      </div>
-                      <p className="font-sans text-sm text-foreground">
-                        From{" "}
-                        <span className="text-primary font-medium">
-                          ${tour.priceFrom.toLocaleString()}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                  {/* Gold accent bar */}
-                  <div className="absolute right-0 top-0 bottom-0 w-0.5 bg-primary/0 group-hover:bg-primary/60 transition-all duration-300" />
-                </Link>
+                <TourCard key={tour.id} tour={tour} />
               ))}
         </div>
       </div>
@@ -507,7 +578,7 @@ function VideoSection() {
       data-testid="video-section"
     >
       <div
-        className="absolute inset-0 bg-gradient-to-br from-black via-card to-black"
+        className="absolute inset-0 bg-gradient-to-br from-background via-card to-background"
         style={{
           backgroundImage:
             "radial-gradient(ellipse at 60% 40%, hsl(var(--primary)/0.08) 0%, transparent 60%)",
@@ -539,11 +610,31 @@ function VideoSection() {
   );
 }
 
+function PhilosophySection() {
+  return (
+    <section
+      className="bg-background px-6 py-12 text-center md:py-16"
+      data-testid="philosophy-section"
+    >
+      <div className="mx-auto max-w-5xl">
+        <p className="font-sans text-xs font-medium uppercase tracking-[0.35em] text-primary/60">
+          Our Philosophy
+        </p>
+        <h2 className="mt-8 font-serif text-3xl font-light leading-tight tracking-wide text-foreground md:text-5xl">
+          <span className="block">We craft journeys that redefine the possible.</span>
+          <span className="mt-2 block">Every detail considered, every moment elevated.</span>
+        </h2>
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
   return (
     <div className="min-h-[100dvh] bg-background">
       <Navbar />
       <HeroCarousel />
+      <PhilosophySection />
       <LatestTravelsSection />
       <Separator className="bg-border/20" />
       <JournalCarousel />

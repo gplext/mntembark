@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   useListTours,
@@ -7,7 +7,12 @@ import {
   useDeleteTour,
   useListCategories,
   useListDestinations,
+  useListLocations,
+  useListActivityFilters,
+  useGetTourBySlug,
+  useSetTourActivities,
   getGetFeaturedToursQueryKey,
+  getGetTourBySlugQueryKey,
 } from "@workspace/api-client-react";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Input } from "@workspace/mnt-embark/components/ui/input";
@@ -20,12 +25,133 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@workspace/mnt-emb
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@workspace/mnt-embark/components/ui/alert-dialog";
 import { useToast } from "@workspace/mnt-embark/hooks/use-toast";
 import { Separator } from "@workspace/mnt-embark/components/ui/separator";
+import { cn } from "@workspace/mnt-embark/lib/utils";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { ImageUploadField, ImageGalleryUploadField } from "@/components/ImageUploadField";
-import type { Tour, TourInput, ItineraryStep } from "@workspace/api-client-react";
+import type {
+  Tour,
+  TourInput,
+  TourUpdate,
+  TourClassification,
+  ItineraryStep,
+  ActivityFilterGroup,
+} from "@workspace/api-client-react";
 
 const STEP_TYPES = ["Pickup", "Flight", "Visa", "Layover", "Ride", "Hotel", "Activities"] as const;
+const MAX_ACTIVITIES = 10;
+const CLASSIFICATION_OPTIONS: { value: TourClassification; label: string }[] = [
+  { value: "standard", label: "Standard" },
+  { value: "special",  label: "Special" },
+  { value: "exclusive", label: "Exclusive" },
+];
+
+// ── ActivityMultiSelect ───────────────────────────────────────────────────────
+
+function ActivityMultiSelect({
+  groups,
+  selectedIds,
+  onChange,
+  "data-testid": testId,
+}: {
+  groups: ActivityFilterGroup[];
+  selectedIds: number[];
+  onChange: (ids: number[]) => void;
+  "data-testid"?: string;
+}) {
+  const [search, setSearch] = useState("");
+  const atCap = selectedIds.length >= MAX_ACTIVITIES;
+
+  const toggle = (id: number) => {
+    if (selectedIds.includes(id)) {
+      onChange(selectedIds.filter((x) => x !== id));
+    } else if (!atCap) {
+      onChange([...selectedIds, id]);
+    }
+  };
+
+  const q = search.toLowerCase();
+  const filteredGroups = groups
+    .map((g) => ({
+      ...g,
+      activities: g.activities.filter(
+        (a) =>
+          q === "" ||
+          a.name.toLowerCase().includes(q) ||
+          a.aliases.some((alias) => alias.toLowerCase().includes(q))
+      ),
+    }))
+    .filter((g) => g.activities.length > 0);
+
+  return (
+    <div className="space-y-2" data-testid={testId}>
+      <div className="flex items-center justify-between">
+        <span className="font-sans text-xs text-muted-foreground">
+          {selectedIds.length} / {MAX_ACTIVITIES} selected
+        </span>
+        {atCap && (
+          <span className="font-sans text-xs text-amber-500">Cap reached</span>
+        )}
+      </div>
+      <Input
+        placeholder="Search by name or alias…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        className="bg-background border-border/60 font-sans text-xs h-8"
+        data-testid="activity-search"
+      />
+      <div
+        className="border border-border/40 rounded overflow-y-auto max-h-56 p-2 space-y-3"
+        data-testid="activity-list"
+      >
+        {filteredGroups.length === 0 ? (
+          <p className="font-sans text-xs text-muted-foreground text-center py-4">
+            No activities found
+          </p>
+        ) : (
+          filteredGroups.map((group) => (
+            <div key={group.groupSlug}>
+              <p className="font-sans text-xs uppercase tracking-widest text-muted-foreground mb-1 pb-1 border-b border-border/20">
+                {group.groupName}
+              </p>
+              <div className="space-y-1 mt-1">
+                {group.activities.map((activity) => {
+                  const checked = selectedIds.includes(activity.id);
+                  const disabled = !checked && atCap;
+                  return (
+                    <div
+                      key={activity.id}
+                      className={cn("flex items-center gap-2 py-0.5", disabled && "opacity-40")}
+                    >
+                      <Checkbox
+                        id={`activity-${activity.id}`}
+                        checked={checked}
+                        disabled={disabled}
+                        onCheckedChange={() => toggle(activity.id)}
+                        data-testid={`activity-checkbox-${activity.slug}`}
+                      />
+                      <label
+                        htmlFor={`activity-${activity.id}`}
+                        className={cn(
+                          "font-sans text-xs text-foreground select-none",
+                          disabled ? "cursor-not-allowed" : "cursor-pointer"
+                        )}
+                      >
+                        {activity.name}
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── ItineraryStepBuilder ──────────────────────────────────────────────────────
 
 function ItineraryStepBuilder({
   steps,
@@ -126,6 +252,8 @@ function ItineraryStepBuilder({
   );
 }
 
+// ── TourForm ──────────────────────────────────────────────────────────────────
+
 function TourForm({
   tour,
   onClose,
@@ -135,12 +263,24 @@ function TourForm({
 }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  // Data hooks
   const { data: categories } = useListCategories();
   const { data: destinations } = useListDestinations();
+  const { data: locations } = useListLocations();
+  const { data: activityGroups } = useListActivityFilters();
+  const tourSlug = tour?.slug ?? "";
+  const { data: tourDetail, isSuccess: tourDetailLoaded, isError: tourDetailError } =
+    useGetTourBySlug(tourSlug, {
+      query: { queryKey: getGetTourBySlugQueryKey(tourSlug), enabled: !!tour?.slug },
+    });
 
+  // Mutations
   const createTour = useCreateTour();
   const updateTour = useUpdateTour();
+  const setActivitiesMutation = useSetTourActivities();
 
+  // Core form state
   const [form, setForm] = useState({
     title: tour?.title ?? "",
     description: tour?.description ?? "",
@@ -152,52 +292,117 @@ function TourForm({
     featured: tour?.featured ?? false,
     categoryId: String(tour?.categoryId ?? ""),
     destinationId: String(tour?.destinationId ?? ""),
+    classification: (tour?.classification ?? "standard") as TourClassification,
   });
 
   const [steps, setSteps] = useState<ItineraryStep[]>(tour?.itinerarySteps ?? []);
 
+  const [locationId, setLocationId] = useState(
+    tour?.locationId != null ? String(tour.locationId) : ""
+  );
+
+  // Activity selection — loaded once both activityGroups and tourDetail are available
+  const [selectedActivityIds, setSelectedActivityIds] = useState<number[]>([]);
+  const activitiesInitialized = useRef(false);
+  useEffect(() => {
+    if (activitiesInitialized.current || !activityGroups) return;
+    // If editing a tour with a slug, wait for the slug detail to finish loading
+    if (tour?.slug && !tourDetailLoaded && !tourDetailError) return;
+
+    activitiesInitialized.current = true;
+
+    if (!tourDetail?.activitySections?.length) return;
+
+    const slugToId = new Map<string, number>();
+    for (const group of activityGroups) {
+      for (const a of group.activities) slugToId.set(a.slug, a.id);
+    }
+
+    const ids: number[] = [];
+    for (const section of tourDetail.activitySections) {
+      for (const item of section.activities) {
+        const id = slugToId.get(item.slug);
+        if (id !== undefined) ids.push(id);
+      }
+    }
+    setSelectedActivityIds(ids);
+  }, [activityGroups, tourDetailLoaded, tourDetailError]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Save flow ──────────────────────────────────────────────────────────────
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: getGetFeaturedToursQueryKey() });
+    queryClient.invalidateQueries({ queryKey: ["/api/tours"] });
+  };
+
+  const doActivities = (tourId: number, label: string) => {
+    setActivitiesMutation.mutate(
+      { id: tourId, data: { activityIds: selectedActivityIds } },
+      {
+        onSuccess: () => {
+          invalidate();
+          toast({ title: label, description: `"${form.title}" has been saved.` });
+          onClose();
+        },
+        onError: () => {
+          invalidate();
+          toast({
+            title: "Saved with errors",
+            description: `Tour ${label.toLowerCase()} successfully, but activities could not be saved.`,
+            variant: "destructive",
+          });
+          onClose();
+        },
+      }
+    );
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const payload: TourInput = {
-      title: form.title,
-      description: form.description,
-      coverImage: form.coverImage,
-      images: form.images,
-      location: form.location,
-      durationDays: Number(form.durationDays),
-      priceFrom: Number(form.priceFrom),
-      featured: form.featured,
-      categoryId: form.categoryId ? Number(form.categoryId) : null,
-      destinationId: form.destinationId ? Number(form.destinationId) : null,
-      itinerarySteps: steps,
-    };
-
     if (tour) {
+      const payload: TourUpdate = {
+        title: form.title,
+        description: form.description,
+        coverImage: form.coverImage,
+        images: form.images,
+        location: form.location,
+        durationDays: Number(form.durationDays),
+        priceFrom: Number(form.priceFrom),
+        featured: form.featured,
+        classification: form.classification,
+        categoryId: form.categoryId ? Number(form.categoryId) : null,
+        destinationId: form.destinationId ? Number(form.destinationId) : null,
+        locationId: locationId ? Number(locationId) : null,
+        itinerarySteps: steps,
+      };
       updateTour.mutate(
         { id: tour.id, data: payload },
         {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getGetFeaturedToursQueryKey() });
-            queryClient.invalidateQueries({ queryKey: ["/api/tours"] });
-            toast({ title: "Tour Updated", description: `"${payload.title}" has been updated.` });
-            onClose();
-          },
+          onSuccess: () => doActivities(tour.id, "Tour Updated"),
           onError: () => {
             toast({ title: "Error", description: "Failed to update tour.", variant: "destructive" });
           },
         }
       );
     } else {
+      const payload: TourInput = {
+        title: form.title,
+        description: form.description,
+        coverImage: form.coverImage,
+        images: form.images,
+        location: form.location,
+        durationDays: Number(form.durationDays),
+        priceFrom: Number(form.priceFrom),
+        featured: form.featured,
+        categoryId: form.categoryId ? Number(form.categoryId) : null,
+        destinationId: form.destinationId ? Number(form.destinationId) : null,
+        itinerarySteps: steps,
+      };
       createTour.mutate(
         { data: payload },
         {
-          onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: getGetFeaturedToursQueryKey() });
-            queryClient.invalidateQueries({ queryKey: ["/api/tours"] });
-            toast({ title: "Tour Created", description: `"${payload.title}" has been created.` });
-            onClose();
-          },
+          onSuccess: (created) => doActivities(created.id, "Tour Created"),
           onError: () => {
             toast({ title: "Error", description: "Failed to create tour.", variant: "destructive" });
           },
@@ -206,11 +411,15 @@ function TourForm({
     }
   };
 
-  const isPending = createTour.isPending || updateTour.isPending;
+  const isPending =
+    createTour.isPending || updateTour.isPending || setActivitiesMutation.isPending;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-1" data-testid="tour-form">
       <div className="grid grid-cols-2 gap-3">
+        {/* Title */}
         <div className="col-span-2">
           <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Title</label>
           <Input
@@ -221,6 +430,8 @@ function TourForm({
             className="bg-background border-border/60 font-sans text-sm"
           />
         </div>
+
+        {/* Description */}
         <div className="col-span-2">
           <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Description</label>
           <Textarea
@@ -232,6 +443,8 @@ function TourForm({
             className="bg-background border-border/60 font-sans text-sm resize-none"
           />
         </div>
+
+        {/* Cover Image */}
         <div className="col-span-2">
           <ImageUploadField
             label="Cover Image"
@@ -241,6 +454,8 @@ function TourForm({
             data-testid="tour-form-cover-image"
           />
         </div>
+
+        {/* Additional Images */}
         <div className="col-span-2">
           <ImageGalleryUploadField
             label="Additional Images"
@@ -249,6 +464,8 @@ function TourForm({
             data-testid="tour-form-images"
           />
         </div>
+
+        {/* Location (freetext) */}
         <div>
           <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Location</label>
           <Input
@@ -259,6 +476,8 @@ function TourForm({
             className="bg-background border-border/60 font-sans text-sm"
           />
         </div>
+
+        {/* Duration */}
         <div>
           <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Duration (days)</label>
           <Input
@@ -271,6 +490,8 @@ function TourForm({
             className="bg-background border-border/60 font-sans text-sm"
           />
         </div>
+
+        {/* Price */}
         <div>
           <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Price From ($)</label>
           <Input
@@ -283,6 +504,8 @@ function TourForm({
             className="bg-background border-border/60 font-sans text-sm"
           />
         </div>
+
+        {/* Featured */}
         <div className="flex items-center gap-2 pt-5">
           <Checkbox
             id="featured"
@@ -294,6 +517,8 @@ function TourForm({
             Featured
           </label>
         </div>
+
+        {/* Category */}
         <div>
           <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Category</label>
           <Select
@@ -311,6 +536,8 @@ function TourForm({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Destination */}
         <div>
           <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Destination</label>
           <Select
@@ -328,10 +555,64 @@ function TourForm({
             </SelectContent>
           </Select>
         </div>
+
+        {/* Location select (structured) */}
+        <div>
+          <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Location (Structured)</label>
+          <Select
+            value={locationId || "none"}
+            onValueChange={(v) => setLocationId(v === "none" ? "" : v)}
+          >
+            <SelectTrigger className="bg-background border-border/60 font-sans text-sm" data-testid="tour-form-location-id">
+              <SelectValue placeholder="None" />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              <SelectItem value="none">None</SelectItem>
+              {locations?.map((l) => (
+                <SelectItem key={l.id} value={String(l.id)}>
+                  {l.name}{l.countryName ? ` — ${l.countryName}` : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Classification */}
+        <div>
+          <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">Classification</label>
+          <Select
+            value={form.classification}
+            onValueChange={(v) => setForm({ ...form, classification: v as TourClassification })}
+          >
+            <SelectTrigger className="bg-background border-border/60 font-sans text-sm" data-testid="tour-form-classification">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="bg-card border-border">
+              {CLASSIFICATION_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value} className="font-sans text-sm">
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <Separator className="bg-border/20" />
       <ItineraryStepBuilder steps={steps} onChange={setSteps} />
+
+      <Separator className="bg-border/20" />
+
+      {/* Activities */}
+      <div>
+        <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-2">Activities</label>
+        <ActivityMultiSelect
+          groups={activityGroups ?? []}
+          selectedIds={selectedActivityIds}
+          onChange={setSelectedActivityIds}
+          data-testid="tour-form-activities"
+        />
+      </div>
 
       <Separator className="bg-border/20" />
       <div className="flex gap-3 pt-2">
@@ -341,7 +622,7 @@ function TourForm({
           disabled={isPending}
           className="flex-1 font-sans text-xs uppercase tracking-widest"
         >
-          {isPending ? "Saving..." : tour ? "Update Tour" : "Create Tour"}
+          {isPending ? "Saving…" : tour ? "Update Tour" : "Create Tour"}
         </Button>
         <Button
           type="button"
@@ -356,6 +637,8 @@ function TourForm({
     </form>
   );
 }
+
+// ── AdminToursPage ────────────────────────────────────────────────────────────
 
 export default function AdminToursPage() {
   const queryClient = useQueryClient();
@@ -443,57 +726,72 @@ export default function AdminToursPage() {
                 </tr>
               </thead>
               <tbody>
-                {tours.map((tour) => (
-                  <tr
-                    key={tour.id}
-                    data-testid={`tour-row-admin-${tour.id}`}
-                    className="border-b border-border/20 hover:bg-card/40 transition-colors"
-                  >
-                    <td className="p-4">
-                      <p className="font-sans text-sm text-foreground">{tour.title}</p>
-                    </td>
-                    <td className="p-4 hidden md:table-cell">
-                      <p className="font-sans text-xs text-muted-foreground">{tour.location}</p>
-                    </td>
-                    <td className="p-4 hidden md:table-cell">
-                      <p className="font-sans text-xs text-muted-foreground">{tour.durationDays}d</p>
-                    </td>
-                    <td className="p-4 hidden md:table-cell">
-                      <p className="font-sans text-xs text-foreground">${tour.priceFrom.toLocaleString()}</p>
-                    </td>
-                    <td className="p-4">
-                      {tour.featured ? (
-                        <Badge variant="outline" className="border-primary text-primary font-sans text-xs">
-                          Featured
-                        </Badge>
-                      ) : (
-                        <span className="font-sans text-xs text-muted-foreground">Standard</span>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2 justify-end">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          data-testid={`edit-tour-${tour.id}`}
-                          onClick={() => openEdit(tour)}
-                          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          data-testid={`delete-tour-${tour.id}`}
-                          onClick={() => setDeleteTarget(tour)}
-                          className="h-7 w-7 text-muted-foreground hover:text-destructive"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {tours.map((tour) => {
+                  // Build location string from structured fields; fall back to "—"
+                  const locationDisplay = tour.locationName
+                    ? tour.countryName
+                      ? `${tour.locationName}, ${tour.countryName}`
+                      : tour.locationName
+                    : "—";
+
+                  return (
+                    <tr
+                      key={tour.id}
+                      data-testid={`tour-row-admin-${tour.id}`}
+                      className="border-b border-border/20 hover:bg-card/40 transition-colors"
+                    >
+                      <td className="p-4">
+                        <p className="font-sans text-sm text-foreground">{tour.title}</p>
+                      </td>
+                      <td className="p-4 hidden md:table-cell">
+                        <p className="font-sans text-xs text-muted-foreground">{locationDisplay}</p>
+                      </td>
+                      <td className="p-4 hidden md:table-cell">
+                        <p className="font-sans text-xs text-muted-foreground">{tour.durationDays}d</p>
+                      </td>
+                      <td className="p-4 hidden md:table-cell">
+                        <p className="font-sans text-xs text-foreground">${tour.priceFrom.toLocaleString()}</p>
+                      </td>
+                      <td className="p-4">
+                        {tour.featured ? (
+                          <Badge variant="outline" className="border-primary text-primary font-sans text-xs">
+                            Featured
+                          </Badge>
+                        ) : (
+                          <span className="font-sans text-xs text-muted-foreground">
+                            {tour.classification === "special"
+                              ? "Special"
+                              : tour.classification === "exclusive"
+                              ? "Exclusive"
+                              : "Standard"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-2 justify-end">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`edit-tour-${tour.id}`}
+                            onClick={() => openEdit(tour)}
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            data-testid={`delete-tour-${tour.id}`}
+                            onClick={() => setDeleteTarget(tour)}
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

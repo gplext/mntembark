@@ -5,13 +5,8 @@ import { defineConfig } from 'vite';
 
 import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
 
-const port = Number(process.env.PORT || 5173);
-
-if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${process.env.PORT}"`);
-}
-
-const apiTarget = process.env.API_PROXY_TARGET || 'http://localhost:8080';
+const rawPort = process.env.PORT || '8080';
+const port = Number(rawPort) || 8080;
 const basePath = process.env.BASE_PATH || '/';
 
 export default defineConfig({
@@ -58,12 +53,6 @@ export default defineConfig({
     allowedHosts: true,
     fs: {
       strict: true,
-    },
-    proxy: {
-      '/api': {
-        target: apiTarget,
-        changeOrigin: true,
-      },
     },
   },
   preview: {

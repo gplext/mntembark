@@ -8,8 +8,12 @@
 
 export interface Category {
   id: number;
+  /** @nullable */
+  slug?: string | null;
   name: string;
   description: string;
   coverImage: string;
+  /** @nullable */
+  icon?: string | null;
   createdAt: string;
 }
