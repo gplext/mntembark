@@ -5,13 +5,18 @@ import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@workspace/mnt-embark/components/ui/sheet";
 import { cn } from "@workspace/mnt-embark/lib/utils";
 
+// ── Link groups ───────────────────────────────────────────────────────────────
+// Left side: discovery / transactional
 const leftLinks = [
   { href: "/tours", label: "Exclusive Tours" },
+  { href: "/activities", label: "Activities" },
   { href: "/categories", label: "Categories" },
   { href: "/destinations", label: "Destinations" },
 ];
 
+// Right side: editorial / brand
 const rightLinks = [
+  { href: "/guide", label: "Guide" },
   { href: "/journals", label: "Travel Journals" },
   { href: "/about", label: "About Us" },
   { href: "/contact", label: "Contact" },
@@ -19,9 +24,41 @@ const rightLinks = [
 
 const brandLogoSrc = "/mnt-embark-logo.png";
 
+// ── NavLink ───────────────────────────────────────────────────────────────────
+
+interface NavLinkProps {
+  href: string;
+  label: string;
+  hasSurface: boolean;
+  location: string;
+}
+
+function NavLink({ href, label, hasSurface, location }: NavLinkProps) {
+  const isActive = location === href || (href !== "/" && location.startsWith(href));
+  return (
+    <Link
+      href={href}
+      data-testid={`nav-link-${label.toLowerCase().replace(/\s+/g, "-")}`}
+      className={cn(
+        "font-sans text-xs font-semibold uppercase tracking-widest transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm",
+        isActive
+          ? hasSurface ? "text-primary" : "text-accent"
+          : hasSurface
+            ? "text-muted-foreground hover:text-foreground"
+            : "text-white/90 hover:text-white"
+      )}
+    >
+      {label}
+    </Link>
+  );
+}
+
+// ── Navbar ────────────────────────────────────────────────────────────────────
+
 export default function Navbar() {
   const [location] = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -31,27 +68,34 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", updateScrollState);
   }, []);
 
+  // Close sheets on route change
+  useEffect(() => {
+    setLeftOpen(false);
+    setRightOpen(false);
+  }, [location]);
+
   const hasSurface = isScrolled || location !== "/";
 
-  const NavLink = ({ href, label }: { href: string; label: string }) => {
+  // ── Mobile link item ───────────────────────────────────────────────────────
+
+  function MobileLinkItem({ href, label }: { href: string; label: string }) {
     const isActive = location === href || (href !== "/" && location.startsWith(href));
     return (
       <Link
         href={href}
-        data-testid={`nav-link-${label.toLowerCase().replace(/\s+/g, "-")}`}
+        data-testid={`mobile-nav-link-${label.toLowerCase().replace(/\s+/g, "-")}`}
+        onClick={() => { setLeftOpen(false); setRightOpen(false); }}
         className={cn(
-          "font-sans text-xs font-semibold uppercase tracking-widest transition-colors duration-200",
+          "font-sans text-xs font-semibold uppercase tracking-widest py-3 px-2 transition-colors duration-200 border-b border-border/20 block",
           isActive
-            ? hasSurface ? "text-primary" : "text-accent"
-            : hasSurface
-              ? "text-muted-foreground hover:text-foreground"
-              : "text-white/90 hover:text-white"
+            ? "text-primary"
+            : "text-muted-foreground hover:text-foreground"
         )}
       >
         {label}
       </Link>
     );
-  };
+  }
 
   return (
     <nav
@@ -65,12 +109,20 @@ export default function Navbar() {
       data-testid="navbar"
     >
       <div className="max-w-7xl mx-auto px-6">
-        {/* Desktop */}
-        <div className="hidden md:flex h-16 items-center justify-between">
+
+        {/* ── Desktop ──────────────────────────────────────────────────────── */}
+        <div className="hidden xl:flex h-16 items-center justify-between">
+
           {/* Left nav */}
           <div className="flex items-center gap-8">
             {leftLinks.map((link) => (
-              <NavLink key={link.href} {...link} />
+              <NavLink
+                key={link.href}
+                href={link.href}
+                label={link.label}
+                hasSurface={hasSurface}
+                location={location}
+              />
             ))}
           </div>
 
@@ -92,13 +144,55 @@ export default function Navbar() {
           {/* Right nav */}
           <div className="flex items-center gap-8">
             {rightLinks.map((link) => (
-              <NavLink key={link.href} {...link} />
+              <NavLink
+                key={link.href}
+                href={link.href}
+                label={link.label}
+                hasSurface={hasSurface}
+                location={location}
+              />
             ))}
           </div>
         </div>
 
-        {/* Mobile */}
-        <div className="relative flex h-14 items-center justify-end md:hidden">
+        {/* ── Mobile ───────────────────────────────────────────────────────── */}
+        {/* Two burger menus: left for discovery, right for editorial */}
+        <div className="relative flex h-14 items-center justify-between xl:hidden">
+
+          {/* Left burger — discovery links */}
+          <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                data-testid="nav-mobile-menu-left"
+                aria-label="Discovery menu"
+                className={cn(
+                  "transition-colors duration-300",
+                  hasSurface ? "text-muted-foreground hover:text-foreground" : "text-white/90 hover:text-white"
+                )}
+              >
+                {leftOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="bg-background border-border w-72">
+              <div className="flex flex-col gap-1 mt-8">
+                <div className="mb-5 pb-4 border-b border-border/40">
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-primary mb-1">
+                    Discover
+                  </p>
+                  <p className="font-serif text-xl font-light text-foreground">
+                    Explore
+                  </p>
+                </div>
+                {leftLinks.map((link) => (
+                  <MobileLinkItem key={link.href} href={link.href} label={link.label} />
+                ))}
+              </div>
+            </SheetContent>
+          </Sheet>
+
+          {/* Center brand */}
           <Link
             href="/"
             data-testid="nav-brand-mobile"
@@ -110,52 +204,41 @@ export default function Navbar() {
               className="h-12 w-auto object-contain"
             />
           </Link>
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+
+          {/* Right burger — editorial links */}
+          <Sheet open={rightOpen} onOpenChange={setRightOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                data-testid="nav-mobile-menu"
+                data-testid="nav-mobile-menu-right"
+                aria-label="Editorial menu"
                 className={cn(
                   "transition-colors duration-300",
                   hasSurface ? "text-muted-foreground hover:text-foreground" : "text-white/90 hover:text-white"
                 )}
               >
-                <Menu className="h-5 w-5" />
+                {rightOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="bg-background border-border w-72">
               <div className="flex flex-col gap-1 mt-8">
-                <div className="mb-4 pb-4 border-b border-border/40">
-                  <img
-                    src={brandLogoSrc}
-                    alt="MNT Embark"
-                    className="h-20 w-auto object-contain"
-                  />
+                <div className="mb-5 pb-4 border-b border-border/40">
+                  <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-primary mb-1">
+                    Editorial
+                  </p>
+                  <p className="font-serif text-xl font-light text-foreground">
+                    Read
+                  </p>
                 </div>
-                {[...leftLinks, ...rightLinks].map((link) => {
-                  const isActive = location === link.href || (link.href !== "/" && location.startsWith(link.href));
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      data-testid={`mobile-nav-link-${link.label.toLowerCase().replace(/\s+/g, "-")}`}
-                      onClick={() => setMobileOpen(false)}
-                      className={cn(
-                        "font-sans text-xs font-semibold uppercase tracking-widest py-3 px-2 transition-colors duration-200 border-b border-border/20",
-                        isActive
-                          ? "text-primary"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {link.label}
-                    </Link>
-                  );
-                })}
+                {rightLinks.map((link) => (
+                  <MobileLinkItem key={link.href} href={link.href} label={link.label} />
+                ))}
               </div>
             </SheetContent>
           </Sheet>
         </div>
+
       </div>
     </nav>
   );

@@ -11,6 +11,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { TourCard } from "@/components/TourCard";
 import { DestinationCoverImage } from "@/components/DestinationCoverImage";
+import { DestinationMontage } from "@/components/DestinationMontage";
 
 const CAROUSEL_FADE_MS = 240;
 const CAROUSEL_GAP_MS = 16;
@@ -475,7 +476,7 @@ function DestinationsCarousel() {
               Where to Go
             </p>
             <h2 className="font-serif text-4xl font-light text-foreground">
-              Curated Destinations
+              Our Best Sellers
             </h2>
           </div>
           <div className="flex items-center gap-4">
@@ -536,6 +537,9 @@ function DestinationsCarousel() {
 
 function ToursCarousel() {
   const { data: tours, isLoading } = useGetFeaturedTours();
+  const exclusiveTours = (tours || []).filter(
+    (tour) => tour.classification === "exclusive",
+  );
 
   return (
     <section className="py-20 bg-card/20" data-testid="tours-section">
@@ -543,15 +547,15 @@ function ToursCarousel() {
         <div className="flex items-end justify-between mb-12">
           <div>
             <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-2">
-              Exclusive Offerings
+              Our Unique Offerings
             </p>
             <h2 className="font-serif text-4xl font-light text-foreground">
               Signature Journeys
             </h2>
           </div>
-          <Link href="/tours">
+          <Link href="/tours?classification=exclusive&classification=special">
             <Button variant="ghost" data-testid="tours-view-all" className="font-sans text-xs uppercase tracking-widest text-muted-foreground hover:text-primary gap-2">
-              All Tours <ArrowRight className="h-3 w-3" />
+              Signature Tours <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
         </div>
@@ -561,7 +565,7 @@ function ToursCarousel() {
             ? Array.from({ length: 3 }).map((_, i) => (
                 <Skeleton key={i} className="h-64 rounded bg-card" />
               ))
-            : (tours || []).slice(0, 3).map((tour) => (
+            : exclusiveTours.slice(0, 3).map((tour) => (
                 <TourCard key={tour.id} tour={tour} />
               ))}
         </div>
@@ -601,7 +605,6 @@ function VideoSection() {
         </div>
       </div>
 
-      {/* Decorative corner lines */}
       <div className="absolute top-8 left-8 w-12 h-12 border-t border-l border-primary/30" />
       <div className="absolute top-8 right-8 w-12 h-12 border-t border-r border-primary/30" />
       <div className="absolute bottom-8 left-8 w-12 h-12 border-b border-l border-primary/30" />
@@ -640,6 +643,7 @@ export default function HomePage() {
       <JournalCarousel />
       <DestinationsCarousel />
       <ToursCarousel />
+      <DestinationMontage />
       <VideoSection />
       <Footer />
     </div>

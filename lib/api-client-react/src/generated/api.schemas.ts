@@ -325,6 +325,132 @@ export interface JournalEntryUpdate {
   publishedAt?: string;
 }
 
+export type EnquirySource = typeof EnquirySource[keyof typeof EnquirySource];
+
+
+export const EnquirySource = {
+  tour: 'tour',
+  contact: 'contact',
+} as const;
+
+export type EnquiryStatus = typeof EnquiryStatus[keyof typeof EnquiryStatus];
+
+
+export const EnquiryStatus = {
+  new: 'new',
+  handled: 'handled',
+} as const;
+
+export interface Enquiry {
+  id: number;
+  source: EnquirySource;
+  status: EnquiryStatus;
+  /** @nullable */
+  title?: string | null;
+  firstName: string;
+  lastName: string;
+  email: string;
+  /** @nullable */
+  phone?: string | null;
+  /** @nullable */
+  isTravelAdvisor?: boolean | null;
+  /** @nullable */
+  notes?: string | null;
+  acceptPrivacy: boolean;
+  receiveUpdates: boolean;
+  /** @nullable */
+  tourTitle?: string | null;
+  /** @nullable */
+  tourLocation?: string | null;
+  /** @nullable */
+  tourDurationDays?: number | null;
+  /** @nullable */
+  enquiryType?: string | null;
+  /** @nullable */
+  budget?: string | null;
+  createdAt: string;
+  /** @nullable */
+  handledAt?: string | null;
+}
+
+export type EnquiryInputSource = typeof EnquiryInputSource[keyof typeof EnquiryInputSource];
+
+
+export const EnquiryInputSource = {
+  tour: 'tour',
+  contact: 'contact',
+} as const;
+
+export type EnquiryInputEnquiryType = typeof EnquiryInputEnquiryType[keyof typeof EnquiryInputEnquiryType];
+
+
+export const EnquiryInputEnquiryType = {
+  'tour-booking': 'tour-booking',
+  'custom-journey': 'custom-journey',
+  membership: 'membership',
+  corporate: 'corporate',
+  general: 'general',
+} as const;
+
+export interface EnquiryInput {
+  source: EnquiryInputSource;
+  /** @maxLength 50 */
+  title?: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  firstName: string;
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  lastName: string;
+  /**
+     * @maxLength 254
+     * @pattern ^[^\s@]+@[^\s@]+\.[^\s@]+$
+     */
+  email: string;
+  /**
+     * @maxLength 50
+     * @nullable
+     */
+  phone?: string | null;
+  /** @nullable */
+  isTravelAdvisor?: boolean | null;
+  /**
+     * @maxLength 5000
+     * @nullable
+     */
+  notes?: string | null;
+  acceptPrivacy: boolean;
+  receiveUpdates: boolean;
+  /** @maxLength 200 */
+  tourTitle?: string;
+  /** @maxLength 200 */
+  tourLocation?: string;
+  /** @minimum 1 */
+  tourDurationDays?: number;
+  enquiryType?: EnquiryInputEnquiryType;
+  /**
+     * @maxLength 100
+     * @nullable
+     */
+  budget?: string | null;
+}
+
+export type EnquiryStatusInputStatus = typeof EnquiryStatusInputStatus[keyof typeof EnquiryStatusInputStatus];
+
+
+export const EnquiryStatusInputStatus = {
+  new: 'new',
+  handled: 'handled',
+} as const;
+
+export interface EnquiryStatusInput {
+  status: EnquiryStatusInputStatus;
+}
+
 export interface UploadUrlRequest {
   /** @minLength 1 */
   name: string;

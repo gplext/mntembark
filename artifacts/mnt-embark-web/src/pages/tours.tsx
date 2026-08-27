@@ -139,7 +139,7 @@ export default function ToursPage() {
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSearch()}
-              placeholder="Search any destination, experience, or activity..."
+              placeholder="Describe the journey you want — destination, mood, or activity..."
               className="pl-12 pr-12 h-12 bg-card border-border/60 font-sans text-sm rounded-none focus-visible:ring-primary placeholder:text-muted-foreground/60"
             />
             {searchInput && (
@@ -160,6 +160,9 @@ export default function ToursPage() {
             Search
           </Button>
         </div>
+        <p className="mt-3 font-sans text-xs text-muted-foreground">
+          AI-assisted search understands journey descriptions and close spellings.
+        </p>
 
         {/* Active search badge */}
         {qParam && (

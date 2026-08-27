@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useSearchParams } from "wouter";
 import {
   useListCategories,
@@ -17,6 +18,7 @@ import { Checkbox } from "@workspace/mnt-embark/components/ui/checkbox";
 import { Separator } from "@workspace/mnt-embark/components/ui/separator";
 import { Label } from "@workspace/mnt-embark/components/ui/label";
 import { cn } from "@workspace/mnt-embark/lib/utils";
+import { ChevronDown } from "lucide-react";
 
 // ─── small helpers ────────────────────────────────────────────────────────────
 
@@ -64,6 +66,7 @@ export function TourFilterSidebar({ activeCount }: Props) {
   const locationSlug    = urlParams.get("locationSlug") ?? "";
   const classifications = urlParams.getAll("classification");
   const activitySlugs  = urlParams.getAll("activitySlugs");
+  const [activitiesExpanded, setActivitiesExpanded] = useState(true);
 
   // ── data ────────────────────────────────────────────────────────────────────
   const { data: categories }     = useListCategories();
@@ -284,59 +287,89 @@ export function TourFilterSidebar({ activeCount }: Props) {
 
       {/* ── Block 3: Activities ────────────────────────────────────────────── */}
       <section aria-label="Activities" data-testid="filter-section-activities">
-        <SectionLabel>Activities</SectionLabel>
-        <div className="space-y-5">
-          {activityGroups?.map(group => (
-            <div key={group.groupSlug}>
-              <p className="font-sans text-[10px] uppercase tracking-wider text-foreground/35 mb-2.5">
-                {group.groupName}
-              </p>
-              <div className="space-y-2.5">
-                {group.activities.map(activity => {
-                  const checked  = activitySlugs.includes(activity.slug);
-                  const disabled = activity.count === 0;
-                  return (
-                    <div
-                      key={activity.slug}
-                      className="flex items-center gap-2.5"
-                    >
-                      <Checkbox
-                        id={`act-${activity.slug}`}
-                        checked={checked}
-                        disabled={disabled}
-                        onCheckedChange={() =>
-                          toggleRepeated("activitySlugs", activity.slug)
-                        }
-                        className="rounded-none border-border/60 data-[state=checked]:bg-primary data-[state=checked]:border-primary shrink-0"
-                        data-testid={`activity-checkbox-${activity.slug}`}
-                      />
-                      <label
-                        htmlFor={`act-${activity.slug}`}
-                        className={cn(
-                          "font-sans text-xs leading-none select-none flex-1 flex items-center justify-between gap-2",
-                          disabled
-                            ? "text-muted-foreground/30 cursor-not-allowed"
-                            : "text-foreground/75 cursor-pointer",
-                        )}
-                      >
-                        <span>{activity.name}</span>
-                        <span
-                          className={cn(
-                            "text-[10px] tabular-nums shrink-0",
-                            disabled
-                              ? "text-muted-foreground/20"
-                              : "text-muted-foreground/50",
-                          )}
+        <button
+          type="button"
+          onClick={() => setActivitiesExpanded(expanded => !expanded)}
+          aria-expanded={activitiesExpanded}
+          aria-controls="activities-filter-options"
+          data-testid="activities-section-toggle"
+          className="w-full flex items-center justify-between mb-3 text-left group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm"
+        >
+          <span className="font-sans text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
+            Activities
+          </span>
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-300",
+              activitiesExpanded ? "rotate-180" : "rotate-0",
+            )}
+            aria-hidden="true"
+          />
+        </button>
+        <div
+          id="activities-filter-options"
+          className={cn(
+            "grid transition-[grid-template-rows,opacity] duration-300 ease-out",
+            activitiesExpanded
+              ? "grid-rows-[1fr] opacity-100"
+              : "grid-rows-[0fr] opacity-0 invisible",
+          )}
+        >
+          <div className="min-h-0 overflow-hidden">
+            <div className="space-y-5">
+              {activityGroups?.map(group => (
+                <div key={group.groupSlug}>
+                  <p className="font-sans text-[10px] uppercase tracking-wider text-foreground/35 mb-2.5">
+                    {group.groupName}
+                  </p>
+                  <div className="space-y-2.5">
+                    {group.activities.map(activity => {
+                      const checked  = activitySlugs.includes(activity.slug);
+                      const disabled = activity.count === 0;
+                      return (
+                        <div
+                          key={activity.slug}
+                          className="flex items-center gap-2.5"
                         >
-                          {activity.count}
-                        </span>
-                      </label>
-                    </div>
-                  );
-                })}
-              </div>
+                          <Checkbox
+                            id={`act-${activity.slug}`}
+                            checked={checked}
+                            disabled={disabled}
+                            onCheckedChange={() =>
+                              toggleRepeated("activitySlugs", activity.slug)
+                            }
+                            className="rounded-none border-border/60 data-[state=checked]:bg-primary data-[state=checked]:border-primary shrink-0"
+                            data-testid={`activity-checkbox-${activity.slug}`}
+                          />
+                          <label
+                            htmlFor={`act-${activity.slug}`}
+                            className={cn(
+                              "font-sans text-xs leading-none select-none flex-1 flex items-center justify-between gap-2",
+                              disabled
+                                ? "text-muted-foreground/30 cursor-not-allowed"
+                                : "text-foreground/75 cursor-pointer",
+                            )}
+                          >
+                            <span>{activity.name}</span>
+                            <span
+                              className={cn(
+                                "text-[10px] tabular-nums shrink-0",
+                                disabled
+                                  ? "text-muted-foreground/20"
+                                  : "text-muted-foreground/50",
+                              )}
+                            >
+                              {activity.count}
+                            </span>
+                          </label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </section>
 

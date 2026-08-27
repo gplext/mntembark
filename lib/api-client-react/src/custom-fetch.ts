@@ -327,7 +327,17 @@ export async function customFetch<T = unknown>(
   options: CustomFetchOptions = {},
 ): Promise<T> {
   input = applyBaseUrl(input);
-  const { responseType = "auto", headers: headersInit, ...init } = options;
+  const {
+    responseType = "auto",
+    headers: headersInit,
+    // React Query supplies a route-lifecycle AbortSignal to every query.
+    // Do not pass it to fetch: this environment reports normal route-change
+    // cancellations as runtime errors before the rejected promise can be
+    // handled. Query results remain isolated by query key, so an unmounted
+    // page cannot be updated by the request finishing in the background.
+    signal: _querySignal,
+    ...init
+  } = options;
 
   const method = resolveMethod(input, init.method);
 

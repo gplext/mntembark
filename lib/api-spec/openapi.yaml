@@ -20,6 +20,8 @@ tags:
     description: Category operations
   - name: journals
     description: Travel journal operations
+  - name: enquiries
+    description: Customer enquiry operations
   - name: search
     description: AI-powered search
   - name: stats
@@ -803,6 +805,93 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  # ── Enquiries ─────────────────────────────────────────────────────────
+  /enquiries:
+    post:
+      operationId: createEnquiry
+      tags: [enquiries]
+      summary: Submit a customer enquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnquiryInput"
+      responses:
+        "201":
+          description: Enquiry received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enquiry"
+        "400":
+          description: Invalid enquiry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/enquiries:
+    get:
+      operationId: listEnquiries
+      tags: [enquiries]
+      summary: List customer enquiries for admins
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: Enquiries ordered newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Enquiry"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/enquiries/{id}/status:
+    patch:
+      operationId: updateEnquiryStatus
+      tags: [enquiries]
+      summary: Update an enquiry lifecycle status
+      security:
+        - adminSession: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnquiryStatusInput"
+      responses:
+        "200":
+          description: Updated enquiry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Enquiry"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Enquiry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   # ── Stats ─────────────────────────────────────────────────────────────
   /stats:
     get:
@@ -1336,6 +1425,111 @@ components:
           type: string
         publishedAt:
           type: string
+
+    # ── Enquiry ─────────────────────────────────────────────────────────
+    Enquiry:
+      type: object
+      properties:
+        id:
+          type: number
+        source:
+          type: string
+          enum: [tour, contact]
+        status:
+          type: string
+          enum: [new, handled]
+        title:
+          type: ["string", "null"]
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: ["string", "null"]
+        isTravelAdvisor:
+          type: ["boolean", "null"]
+        notes:
+          type: ["string", "null"]
+        acceptPrivacy:
+          type: boolean
+        receiveUpdates:
+          type: boolean
+        tourTitle:
+          type: ["string", "null"]
+        tourLocation:
+          type: ["string", "null"]
+        tourDurationDays:
+          type: ["number", "null"]
+        enquiryType:
+          type: ["string", "null"]
+        budget:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        handledAt:
+          type: ["string", "null"]
+      required: [id, source, status, firstName, lastName, email, acceptPrivacy, receiveUpdates, createdAt]
+
+    EnquiryInput:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [tour, contact]
+        title:
+          type: string
+          maxLength: 50
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        lastName:
+          type: string
+          minLength: 1
+          maxLength: 100
+        email:
+          type: string
+          pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$'
+          maxLength: 254
+        phone:
+          type: ["string", "null"]
+          maxLength: 50
+        isTravelAdvisor:
+          type: ["boolean", "null"]
+        notes:
+          type: ["string", "null"]
+          maxLength: 5000
+        acceptPrivacy:
+          type: boolean
+        receiveUpdates:
+          type: boolean
+        tourTitle:
+          type: string
+          maxLength: 200
+        tourLocation:
+          type: string
+          maxLength: 200
+        tourDurationDays:
+          type: number
+          minimum: 1
+          multipleOf: 1
+        enquiryType:
+          type: string
+          enum: [tour-booking, custom-journey, membership, corporate, general]
+        budget:
+          type: ["string", "null"]
+          maxLength: 100
+      required: [source, firstName, lastName, email, acceptPrivacy, receiveUpdates]
+
+    EnquiryStatusInput:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [new, handled]
+      required: [status]
 
     # ── Storage ───────────────────────────────────────────────────────
     UploadUrlRequest:

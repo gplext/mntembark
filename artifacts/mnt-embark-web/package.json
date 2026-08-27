@@ -10,8 +10,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@types/topojson-client": "^3.1.5",
     "@workspace/mnt-embark": "workspace:*",
-    "@workspace/object-storage-web": "workspace:*"
+    "@workspace/object-storage-web": "workspace:*",
+    "topojson-client": "^3.1.0",
+    "world-atlas": "^2.0.2"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

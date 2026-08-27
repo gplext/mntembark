@@ -8,6 +8,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/mnt-embark/components/ui/select";
 import { Separator } from "@workspace/mnt-embark/components/ui/separator";
 import { useToast } from "@workspace/mnt-embark/hooks/use-toast";
+import { useCreateEnquiry } from "@workspace/api-client-react";
+import type { EnquiryInputEnquiryType } from "@workspace/api-client-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -25,6 +27,7 @@ type EnquiryFormData = z.infer<typeof enquirySchema>;
 
 export default function ContactPage() {
   const { toast } = useToast();
+  const createEnquiry = useCreateEnquiry();
 
   const form = useForm<EnquiryFormData>({
     resolver: zodResolver(enquirySchema),
@@ -40,14 +43,40 @@ export default function ContactPage() {
   });
 
   const onSubmit = (data: EnquiryFormData) => {
-    // TODO: wire up when API exists
-    console.log("Enquiry submitted:", data);
-    toast({
-      title: "Enquiry Received",
-      description:
-        "Thank you for your interest. A member of our team will be in touch within 24 hours.",
-    });
-    form.reset();
+    createEnquiry.mutate(
+      {
+        data: {
+          source: "contact",
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          phone: data.phone?.trim() || null,
+          notes: data.message,
+          enquiryType: data.enquiryType as EnquiryInputEnquiryType,
+          budget: data.budget?.trim() || null,
+          // Contact form has no consent flow — default to false
+          acceptPrivacy: false,
+          receiveUpdates: false,
+        },
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: "Enquiry Received",
+            description:
+              "Thank you for your interest. A member of our team will be in touch within 24 hours.",
+          });
+          form.reset();
+        },
+        onError: () => {
+          toast({
+            title: "Submission Failed",
+            description: "We were unable to send your enquiry. Please try again or contact us directly.",
+            variant: "destructive",
+          });
+        },
+      }
+    );
   };
 
   return (
@@ -246,10 +275,10 @@ export default function ContactPage() {
                 <Button
                   type="submit"
                   data-testid="contact-submit"
-                  disabled={form.formState.isSubmitting}
+                  disabled={form.formState.isSubmitting || createEnquiry.isPending}
                   className="w-full font-sans text-xs uppercase tracking-widest h-12"
                 >
-                  Send Enquiry
+                  {createEnquiry.isPending ? "Sending..." : "Send Enquiry"}
                 </Button>
               </form>
             </Form>

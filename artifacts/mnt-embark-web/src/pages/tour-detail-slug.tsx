@@ -26,19 +26,10 @@ import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Badge } from "@workspace/mnt-embark/components/ui/badge";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { Separator } from "@workspace/mnt-embark/components/ui/separator";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@workspace/mnt-embark/components/ui/breadcrumb";
 import { cn } from "@workspace/mnt-embark/lib/utils";
 import {
   MapPin,
   Clock,
-  DollarSign,
   Plane,
   Hotel,
   Car,
@@ -46,7 +37,6 @@ import {
   Navigation,
   CreditCard,
   Anchor,
-  ArrowLeft,
 } from "lucide-react";
 import type { ItineraryStep, TourActivitySection } from "@workspace/api-client-react";
 import Navbar from "@/components/Navbar";
@@ -68,47 +58,6 @@ const stepIcons: Record<string, React.FC<{ className?: string }>> = {
 function ItineraryIcon({ type }: { type: string }) {
   const Icon = stepIcons[type] || Navigation;
   return <Icon className="h-4 w-4" />;
-}
-
-// ── Breadcrumb ────────────────────────────────────────────────────────────────
-
-interface CrumbLevel {
-  label: string;
-  /** Href makes the crumb a link; omit for informational text-only crumbs. */
-  href?: string;
-}
-
-function TourBreadcrumb({ levels }: { levels: CrumbLevel[] }) {
-  if (levels.length === 0) return null;
-  return (
-    <Breadcrumb className="mb-6">
-      <BreadcrumbList className="flex-wrap gap-1">
-        {levels.flatMap((level, i) => {
-          const isLast = i === levels.length - 1;
-          const crumb = (
-            <BreadcrumbItem key={`bi-${i}`}>
-              {isLast ? (
-                <BreadcrumbPage className="font-sans text-xs">
-                  {level.label}
-                </BreadcrumbPage>
-              ) : level.href ? (
-                <BreadcrumbLink asChild>
-                  <Link href={level.href} className="font-sans text-xs hover:text-foreground">
-                    {level.label}
-                  </Link>
-                </BreadcrumbLink>
-              ) : (
-                <span className="font-sans text-xs text-muted-foreground">
-                  {level.label}
-                </span>
-              )}
-            </BreadcrumbItem>
-          );
-          return isLast ? [crumb] : [crumb, <BreadcrumbSeparator key={`bs-${i}`} />];
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
 }
 
 // ── Activity sections ─────────────────────────────────────────────────────────
@@ -271,7 +220,6 @@ export default function TourDetailPage() {
   const coverImage    = hasTaxonomy ? tourBySlug!.coverImage    : tourById!.coverImage;
   const images        = hasTaxonomy ? tourBySlug!.images        : tourById!.images;
   const durationDays  = hasTaxonomy ? tourBySlug!.durationDays  : tourById!.durationDays;
-  const priceFrom     = hasTaxonomy ? tourBySlug!.priceFrom     : tourById!.priceFrom;
   const featured      = hasTaxonomy ? tourBySlug!.featured      : tourById!.featured;
   const classification = hasTaxonomy
     ? tourBySlug!.classification
@@ -288,22 +236,6 @@ export default function TourDetailPage() {
   // Taxonomy-only fields (empty / skipped when hasTaxonomy is false)
   const activitySections: TourActivitySection[] =
     hasTaxonomy ? tourBySlug!.activitySections : [];
-
-  const breadcrumbLevels: CrumbLevel[] = hasTaxonomy
-    ? ([
-        { label: "Home", href: "/" },
-        tourBySlug!.destination
-          ? { label: tourBySlug!.destination.name, href: "/destinations" }
-          : null,
-        tourBySlug!.country
-          ? { label: tourBySlug!.country.name }
-          : null,
-        tourBySlug!.location
-          ? { label: tourBySlug!.location.name }
-          : null,
-        { label: tourBySlug!.title },
-      ].filter((x): x is CrumbLevel => x !== null))
-    : [];
 
   const activeStep = steps[activeStepIndex];
   const currentImage = activeStep?.image || coverImage || "";
@@ -322,19 +254,6 @@ export default function TourDetailPage() {
           data-testid="itinerary-strip"
         >
           <div className="p-6">
-            {/* Back */}
-            <Link
-              href="/tours"
-              data-testid="tour-back-link"
-              className="flex items-center gap-2 font-sans text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest mb-6 transition-colors"
-            >
-              <ArrowLeft className="h-3 w-3" />
-              All Tours
-            </Link>
-
-            {/* Breadcrumb — only when taxonomy data is available */}
-            {hasTaxonomy && <TourBreadcrumb levels={breadcrumbLevels} />}
-
             {/* Tour name + meta */}
             <div className="mb-6">
               {featured && (
@@ -358,12 +277,6 @@ export default function TourDetailPage() {
                 <div className="flex items-center gap-2">
                   <Clock className="h-3 w-3 text-primary" />
                   <span className="font-sans text-xs">{durationDays} days</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-3 w-3 text-primary" />
-                  <span className="font-sans text-xs">
-                    From ${priceFrom.toLocaleString()}
-                  </span>
                 </div>
               </div>
             </div>
@@ -513,7 +426,6 @@ export default function TourDetailPage() {
           title,
           coverImage,
           durationDays,
-          priceFrom,
           location: locationDisplay,
           featured,
         }}

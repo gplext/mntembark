@@ -10,6 +10,7 @@ import destinationsRouter from "./destinations";
 import categoriesRouter from "./categories";
 import journalsRouter from "./journals";
 import statsRouter from "./stats";
+import enquiriesRouter from "./enquiries";
 
 const router: IRouter = Router();
 
@@ -23,6 +24,7 @@ router.use(countriesRouter);
 router.use(destinationsRouter);
 router.use(categoriesRouter);
 router.use(journalsRouter);
+router.use(enquiriesRouter);
 router.use(statsRouter);
 
 export default router;

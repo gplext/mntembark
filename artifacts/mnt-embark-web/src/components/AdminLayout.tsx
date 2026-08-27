@@ -1,12 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@workspace/mnt-embark/lib/utils";
-import { LayoutDashboard, Map, Tag, BookOpen, Globe, ArrowLeft } from "lucide-react";
+import { LayoutDashboard, Tag, BookOpen, Globe, ArrowLeft, Inbox } from "lucide-react";
 
 const navItems = [
   { href: "/admin/tours", label: "Tours", icon: LayoutDashboard },
   { href: "/admin/destinations", label: "Destinations", icon: Globe },
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/journals", label: "Journals", icon: BookOpen },
+  { href: "/admin/enquiries", label: "Enquiries", icon: Inbox },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

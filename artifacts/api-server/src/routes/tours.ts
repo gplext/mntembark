@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, eq, desc, ilike, inArray, or, sql, SQL, getTableColumns } from "drizzle-orm";
+import { and, eq, desc, inArray, SQL, getTableColumns } from "drizzle-orm";
 import { db, toursTable, locationsTable, countriesTable, MAX_ACTIVITIES_PER_TOUR } from "@workspace/db";
 import { findTours, getTourWithTaxonomy } from "@workspace/db/queries";
 import { serialize } from "../lib/serialize";
@@ -106,6 +106,105 @@ function toArray(v: unknown): string[] | undefined {
   return [String(v)];
 }
 
+/** Normalize text before comparing a natural-language search query. */
+function normalizeSearchText(value: unknown): string {
+  return String(value ?? "")
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+/** Small, dependency-free edit-distance implementation for typo-tolerant search. */
+function levenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+
+  let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const current = [i];
+    for (let j = 1; j <= b.length; j++) {
+      current[j] = Math.min(
+        current[j - 1] + 1,
+        previous[j] + 1,
+        previous[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+    }
+    previous = current;
+  }
+  return previous[b.length];
+}
+
+/**
+ * Score how closely a query's words match the searchable tour text.
+ * Exact words, prefixes, and small spelling errors all receive useful scores.
+ */
+function fuzzyTextScore(query: string, text: string): number {
+  const queryTokens = normalizeSearchText(query).split(/\s+/).filter(Boolean);
+  const textTokens = normalizeSearchText(text).split(/\s+/).filter(Boolean);
+  if (queryTokens.length === 0 || textTokens.length === 0) return 0;
+
+  const tokenScores = queryTokens.map((queryToken) => {
+    let best = 0;
+    for (const textToken of textTokens) {
+      if (textToken === queryToken) {
+        best = 1;
+        break;
+      }
+      if (textToken.startsWith(queryToken) || queryToken.startsWith(textToken)) {
+        best = Math.max(best, 0.9);
+        continue;
+      }
+      const maxLength = Math.max(queryToken.length, textToken.length);
+      if (maxLength >= 3) {
+        const similarity =
+          1 - levenshteinDistance(queryToken, textToken) / maxLength;
+        best = Math.max(best, similarity >= 0.65 ? similarity : 0);
+      }
+    }
+    return best;
+  });
+
+  const matchedTokens = tokenScores.filter((score) => score > 0).length;
+  const average =
+    tokenScores.reduce((sum, score) => sum + score, 0) / queryTokens.length;
+  const coverage = matchedTokens / queryTokens.length;
+  const normalizedQuery = normalizeSearchText(query);
+  const phraseBonus = normalizeSearchText(text).includes(normalizedQuery)
+    ? 0.15
+    : 0;
+
+  return Math.min(1, average * 0.7 + coverage * 0.3 + phraseBonus);
+}
+
+function tourSearchText(tour: {
+  title: string;
+  description: string;
+  location: string;
+  locationName?: string | null;
+  countryName?: string | null;
+  itinerarySteps: unknown;
+}): string {
+  const itineraryText = Array.isArray(tour.itinerarySteps)
+    ? (tour.itinerarySteps as Array<{ type?: string; title?: string; description?: string }>)
+        .map((step) => [step.type, step.title, step.description].filter(Boolean).join(" "))
+        .join(" ")
+    : "";
+
+  return [
+    tour.title,
+    tour.description,
+    tour.location,
+    tour.locationName,
+    tour.countryName,
+    itineraryText,
+  ]
+    .filter(Boolean)
+    .join(". ");
+}
+
 router.get("/tours", async (req, res): Promise<void> => {
   // Normalise repeatable params: Express gives a bare string for one value,
   // an array for multiple. Zod expects an array in both cases.
@@ -199,14 +298,22 @@ router.get("/tours/search", async (req, res): Promise<void> => {
           return true;
         });
 
-        // Score by cosine similarity; tours with no embedding float to the bottom
+        // Blend AI semantic similarity with typo-tolerant text matching. The
+        // description and itinerary are part of both signals, so searches such
+        // as "quiet desert stargazing" can find a tour without title overlap.
         const scored = filtered
           .map((tour) => ({
             tour,
-            score: tour.embedding
+            semanticScore: tour.embedding
               ? cosineSimilarity(queryEmbedding, tour.embedding)
-              : -1,
+              : 0,
+            fuzzyScore: fuzzyTextScore(params.data.q, tourSearchText(tour)),
           }))
+          .map((result) => ({
+            ...result,
+            score: result.semanticScore * 0.75 + result.fuzzyScore * 0.25,
+          }))
+          .filter((result) => result.score >= 0.18 || result.fuzzyScore >= 0.65)
           .sort((a, b) => b.score - a.score);
 
         res.json(SearchToursResponse.parse(serialize(scored.map((x) => x.tour))));
@@ -217,17 +324,10 @@ router.get("/tours/search", async (req, res): Promise<void> => {
     }
   }
 
-  // ── Keyword (ILIKE) fallback ──────────────────────────────────────────────
-  const q = `%${params.data.q}%`;
-  const conditions: SQL[] = [
-    or(
-      ilike(toursTable.title, q),
-      ilike(toursTable.description, q),
-      ilike(toursTable.location, q),
-      sql`${toursTable.itinerarySteps}::text ilike ${q}`
-    ) as SQL,
-  ];
-
+  // ── Fuzzy fallback ─────────────────────────────────────────────────────────
+  // Keep search useful even if the embedding model is unavailable. The catalog
+  // is intentionally small, so scoring the joined rows in memory is cheap.
+  const conditions: SQL[] = [];
   if (params.data.categoryId) {
     conditions.push(eq(toursTable.categoryId, params.data.categoryId));
   }
@@ -235,10 +335,22 @@ router.get("/tours/search", async (req, res): Promise<void> => {
     conditions.push(eq(toursTable.destinationId, params.data.destinationId));
   }
 
-  const rows = await selectToursWithPlace()
-    .where(and(...conditions))
-    .orderBy(desc(toursTable.featured), toursTable.title);
-  res.json(SearchToursResponse.parse(serialize(rows)));
+  const rows = await selectToursWithPlace().where(
+    conditions.length > 0 ? and(...conditions) : undefined,
+  );
+  const scored = rows
+    .map((tour) => ({
+      tour,
+      score: fuzzyTextScore(params.data.q, tourSearchText(tour)),
+    }))
+    .filter(({ score }) => score >= 0.35)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        Number(b.tour.featured) - Number(a.tour.featured) ||
+        a.tour.title.localeCompare(b.tour.title),
+    );
+  res.json(SearchToursResponse.parse(serialize(scored.map((x) => x.tour))));
 });
 
 router.get("/tours/slug/:slug", async (req, res): Promise<void> => {

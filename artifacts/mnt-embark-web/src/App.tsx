@@ -11,12 +11,15 @@ import CategoriesPage from '@/pages/categories';
 import JournalsPage from '@/pages/journals';
 import JournalDetailPage from '@/pages/journal-detail';
 import ActivityDetailPage from '@/pages/activity-detail';
+import ActivitiesPage from '@/pages/activities';
+import GuidePage from '@/pages/guide';
 import AboutPage from '@/pages/about';
 import ContactPage from '@/pages/contact';
 import AdminToursPage from '@/pages/admin/tours';
 import AdminDestinationsPage from '@/pages/admin/destinations';
 import AdminCategoriesPage from '@/pages/admin/categories';
 import AdminJournalsPage from '@/pages/admin/journals';
+import AdminEnquiriesPage from '@/pages/admin/enquiries';
 import AdminLoginPage from '@/pages/admin/login';
 import { AdminAuthProvider } from '@/context/AdminAuthContext';
 import { AdminGuard } from '@/components/AdminGuard';
@@ -40,7 +43,9 @@ function Router() {
       <Route path="/categories" component={CategoriesPage} />
       <Route path="/journals" component={JournalsPage} />
       <Route path="/journals/:id" component={JournalDetailPage} />
+      <Route path="/activities" component={ActivitiesPage} />
       <Route path="/activities/:slug" component={ActivityDetailPage} />
+      <Route path="/guide" component={GuidePage} />
       <Route path="/about" component={AboutPage} />
       <Route path="/contact" component={ContactPage} />
       <Route path="/admin/login" component={AdminLoginPage} />
@@ -58,6 +63,9 @@ function Router() {
       </Route>
       <Route path="/admin/journals">
         <AdminGuard><AdminJournalsPage /></AdminGuard>
+      </Route>
+      <Route path="/admin/enquiries">
+        <AdminGuard><AdminEnquiriesPage /></AdminGuard>
       </Route>
       <Route component={NotFound} />
     </Switch>

@@ -831,6 +831,135 @@ export const DeleteJournalEntryResponse = zod.void()
 
 
 /**
+ * @summary Submit a customer enquiry
+ */
+export const createEnquiryBodyTitleMax = 50;
+
+export const createEnquiryBodyFirstNameMax = 100;
+
+export const createEnquiryBodyLastNameMax = 100;
+
+export const createEnquiryBodyEmailMax = 254;
+
+
+export const createEnquiryBodyEmailRegExp = new RegExp('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+export const createEnquiryBodyPhoneMax = 50;
+
+export const createEnquiryBodyNotesMax = 5000;
+
+export const createEnquiryBodyTourTitleMax = 200;
+
+export const createEnquiryBodyTourLocationMax = 200;
+
+export const createEnquiryBodyTourDurationDaysMultipleOf = 1;
+
+export const createEnquiryBodyBudgetMax = 100;
+
+
+
+export const CreateEnquiryBody = zod.object({
+  "source": zod.enum(['tour', 'contact']),
+  "title": zod.string().max(createEnquiryBodyTitleMax).optional(),
+  "firstName": zod.string().min(1).max(createEnquiryBodyFirstNameMax),
+  "lastName": zod.string().min(1).max(createEnquiryBodyLastNameMax),
+  "email": zod.string().max(createEnquiryBodyEmailMax).regex(createEnquiryBodyEmailRegExp),
+  "phone": zod.string().max(createEnquiryBodyPhoneMax).nullish(),
+  "isTravelAdvisor": zod.boolean().nullish(),
+  "notes": zod.string().max(createEnquiryBodyNotesMax).nullish(),
+  "acceptPrivacy": zod.boolean(),
+  "receiveUpdates": zod.boolean(),
+  "tourTitle": zod.string().max(createEnquiryBodyTourTitleMax).optional(),
+  "tourLocation": zod.string().max(createEnquiryBodyTourLocationMax).optional(),
+  "tourDurationDays": zod.number().min(1).multipleOf(createEnquiryBodyTourDurationDaysMultipleOf).optional(),
+  "enquiryType": zod.enum(['tour-booking', 'custom-journey', 'membership', 'corporate', 'general']).optional(),
+  "budget": zod.string().max(createEnquiryBodyBudgetMax).nullish()
+})
+
+export const CreateEnquiryResponse = zod.object({
+  "id": zod.number(),
+  "source": zod.enum(['tour', 'contact']),
+  "status": zod.enum(['new', 'handled']),
+  "title": zod.string().nullish(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "isTravelAdvisor": zod.boolean().nullish(),
+  "notes": zod.string().nullish(),
+  "acceptPrivacy": zod.boolean(),
+  "receiveUpdates": zod.boolean(),
+  "tourTitle": zod.string().nullish(),
+  "tourLocation": zod.string().nullish(),
+  "tourDurationDays": zod.number().nullish(),
+  "enquiryType": zod.string().nullish(),
+  "budget": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "handledAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary List customer enquiries for admins
+ */
+export const ListEnquiriesResponseItem = zod.object({
+  "id": zod.number(),
+  "source": zod.enum(['tour', 'contact']),
+  "status": zod.enum(['new', 'handled']),
+  "title": zod.string().nullish(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "isTravelAdvisor": zod.boolean().nullish(),
+  "notes": zod.string().nullish(),
+  "acceptPrivacy": zod.boolean(),
+  "receiveUpdates": zod.boolean(),
+  "tourTitle": zod.string().nullish(),
+  "tourLocation": zod.string().nullish(),
+  "tourDurationDays": zod.number().nullish(),
+  "enquiryType": zod.string().nullish(),
+  "budget": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "handledAt": zod.string().nullish()
+})
+export const ListEnquiriesResponse = zod.array(ListEnquiriesResponseItem)
+
+
+/**
+ * @summary Update an enquiry lifecycle status
+ */
+export const UpdateEnquiryStatusParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateEnquiryStatusBody = zod.object({
+  "status": zod.enum(['new', 'handled'])
+})
+
+export const UpdateEnquiryStatusResponse = zod.object({
+  "id": zod.number(),
+  "source": zod.enum(['tour', 'contact']),
+  "status": zod.enum(['new', 'handled']),
+  "title": zod.string().nullish(),
+  "firstName": zod.string(),
+  "lastName": zod.string(),
+  "email": zod.string(),
+  "phone": zod.string().nullish(),
+  "isTravelAdvisor": zod.boolean().nullish(),
+  "notes": zod.string().nullish(),
+  "acceptPrivacy": zod.boolean(),
+  "receiveUpdates": zod.boolean(),
+  "tourTitle": zod.string().nullish(),
+  "tourLocation": zod.string().nullish(),
+  "tourDurationDays": zod.number().nullish(),
+  "enquiryType": zod.string().nullish(),
+  "budget": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "handledAt": zod.string().nullish()
+})
+
+
+/**
  * @summary Get dashboard summary statistics
  */
 export const GetStatsResponse = zod.object({

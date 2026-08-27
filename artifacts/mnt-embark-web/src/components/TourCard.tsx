@@ -110,16 +110,10 @@ export function TourCard({ tour }: { tour: Tour }) {
           <span className="font-sans text-xs">{tourPlace(tour)}</span>
         </div>
 
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <span className="font-sans text-xs text-muted-foreground">
             {tour.durationDays} days
           </span>
-          <p className="font-sans text-sm text-foreground">
-            From{" "}
-            <span className="text-primary font-medium">
-              ${tour.priceFrom.toLocaleString()}
-            </span>
-          </p>
         </div>
       </div>
 
@@ -153,19 +147,13 @@ export function TourRow({ tour }: { tour: Tour }) {
       {/* Content */}
       <div className="flex-1 py-6 pr-6 flex flex-col justify-between">
         <div>
-          <div className="flex items-start justify-between mb-2">
+          <div className="mb-2">
             <div>
               {/* Badge sits above the title when present */}
               <ClassificationBadge classification={classification} block />
               <h3 className="font-serif text-2xl font-light text-foreground leading-tight">
                 {tour.title}
               </h3>
-            </div>
-            <div className="text-right shrink-0 ml-4">
-              <p className="font-sans text-xs text-muted-foreground mb-1">From</p>
-              <p className="font-serif text-2xl font-light text-primary">
-                ${tour.priceFrom.toLocaleString()}
-              </p>
             </div>
           </div>
 
