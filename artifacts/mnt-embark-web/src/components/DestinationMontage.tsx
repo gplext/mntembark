@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@workspace/mnt-embark/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -91,12 +91,14 @@ function SceneVideo({
   isActive,
   isPrev,
   canPlay,
+  shouldLoad,
   onBuffered,
 }: {
   dest: Destination;
   isActive: boolean;
   isPrev: boolean;
   canPlay: boolean;
+  shouldLoad: boolean;
   onBuffered?: () => void;
 }) {
   const base = useBasePath();
@@ -105,11 +107,10 @@ function SceneVideo({
   useEffect(() => {
     const vid = videoRef.current;
     if (!vid) return;
-    if ((!isActive && !isPrev) || !canPlay) {
+    if (!isActive || !canPlay) {
       vid.pause();
       return;
     }
-    if (!isActive) return;
 
     let cancelled = false;
     const startPlayback = () => {
@@ -120,50 +121,78 @@ function SceneVideo({
       });
     };
 
-    if (vid.readyState >= HTMLMediaElement.HAVE_METADATA) {
+    if (vid.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
       startPlayback();
     } else {
+      /*
+       * Wait for data rather than calling vid.load(). load() resets the
+       * element and throws away everything already buffered, so calling it
+       * here restarted the download from zero every time a scene came back
+       * around — which is why the montage stalled worse on the second lap
+       * than the first.
+       */
       vid.addEventListener("canplay", startPlayback, { once: true });
-      vid.load();
     }
 
     return () => {
       cancelled = true;
       vid.removeEventListener("canplay", startPlayback);
     };
-  }, [canPlay, isActive, isPrev]);
+  }, [canPlay, isActive]);
+
+  /*
+   * Flipping the preload attribute from "none" to "auto" is enough to start a
+   * download in current browsers, but not every engine acts on the change on
+   * its own. Nudge it — guarded so this can only ever fire on an element that
+   * has buffered nothing and is not already fetching, since load() on a
+   * partially-buffered element would throw that buffer away.
+   */
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || !shouldLoad) return;
+    if (
+      vid.readyState === HTMLMediaElement.HAVE_NOTHING &&
+      vid.networkState !== HTMLMediaElement.NETWORK_LOADING
+    ) {
+      vid.load();
+    }
+  }, [shouldLoad]);
 
   return (
     <motion.div
-      key={dest.id}
       className="absolute inset-0"
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: isActive || isPrev ? 1 : 0 }}
-      exit={{ opacity: 0 }}
       transition={{ duration: FADE_DURATION / 1000, ease: "easeInOut" }}
-      style={{ willChange: "opacity" }}
+      style={{
+        willChange: "opacity",
+        // Keep inactive layers out of the hit-testing and paint path without
+        // unmounting them, so their buffered video survives.
+        pointerEvents: "none",
+        zIndex: isActive ? 2 : isPrev ? 1 : 0,
+      }}
     >
       <video
         ref={videoRef}
         data-testid="destination-scene-video"
         data-active={isActive ? "true" : "false"}
         poster={`${base}/${dest.poster}`}
-        autoPlay={isActive && canPlay}
         muted
         playsInline
         loop={false}
         /*
-         * Only the scene on screen downloads in full. The outgoing scene is
-         * mid-crossfade and already played, so it drops to metadata rather
-         * than continuing to pull data it will never use.
+         * One download per clip, ever. A scene starts fetching only when the
+         * rotation has decided it is next in line (shouldLoad), and once it has
+         * started it stays "auto" for the life of the page so the browser keeps
+         * what it buffered.
          *
-         * Previously every layer was preload="auto", so the active, previous
-         * and next clips all downloaded at once — up to 45 MB in parallel,
-         * which starved the page's images of bandwidth and left later scenes
-         * showing only their poster when their turn came.
+         * The element is also never unmounted — see the render block. Both
+         * halves matter: unmounting discards the buffer, and a separate hidden
+         * prefetch element does not share a buffer with the real one, so the
+         * old arrangement downloaded some clips three times over.
          */
-        preload={isActive ? "auto" : "metadata"}
-        onCanPlayThrough={isActive ? onBuffered : undefined}
+        preload={shouldLoad ? "auto" : "none"}
+        onCanPlayThrough={onBuffered}
         className="w-full h-full object-cover"
         style={{ display: "block" }}
       >
@@ -184,30 +213,15 @@ function SceneVideo({
   );
 }
 
-function ScenePreload({ dest }: { dest: Destination }) {
-  const base = useBasePath();
-
-  return (
-    <video
-      data-testid="destination-scene-preload"
-      aria-hidden="true"
-      tabIndex={-1}
-      muted
-      playsInline
-      /*
-       * Mounted only once the active scene has finished buffering, so the two
-       * downloads happen in sequence rather than competing. On a fast link
-       * that is imperceptible; on a slow one it is the difference between the
-       * current scene playing and everything stalling at once.
-       */
-      preload="auto"
-      className="absolute h-px w-px opacity-0 pointer-events-none"
-    >
-      <source src={`${base}/${dest.webm}`} type="video/webm" />
-      <source src={`${base}/${dest.video}`} type="video/mp4" />
-    </video>
-  );
-}
+/*
+ * There is deliberately no separate prefetch element here any more. A hidden
+ * <video> pointing at the same URL does not share a media buffer with the
+ * visible one — at best it warms the HTTP cache, and for range-requested media
+ * not even that reliably. The network panel showed some clips being fetched
+ * three times over: once by the hidden prefetcher, once when the real element
+ * mounted, and once more when its preload attribute changed. Prefetching now
+ * happens on the real elements, which are never unmounted.
+ */
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Animated word-by-word tagline reveal
@@ -251,9 +265,19 @@ export function DestinationMontage() {
   const [textVisible, setTextVisible] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [isInView, setIsInView] = useState(false);
-  // True once the on-screen clip has buffered enough to play through. Gates
-  // the preload of the following scene so the two never compete for bandwidth.
-  const [activeBuffered, setActiveBuffered] = useState(false);
+  /*
+   * Which scenes are allowed to download, by index. Starts as just the first
+   * one; a scene is added when the one before it has buffered, so the clips
+   * arrive one at a time instead of five at once. Membership is never revoked —
+   * a clip that has downloaded keeps preload="auto" so the browser holds on to
+   * what it has and the second lap of the rotation costs no network at all.
+   */
+  const [loadable, setLoadable] = useState<ReadonlySet<number>>(
+    () => new Set([0]),
+  );
+  const allowLoad = useCallback((i: number) => {
+    setLoadable((prev) => (prev.has(i) ? prev : new Set(prev).add(i)));
+  }, []);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -280,9 +304,6 @@ export function DestinationMontage() {
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
 
       setTextVisible(false);
-      // Close the preload gate again: the incoming scene has to buffer before
-      // the one after it is allowed to start downloading.
-      setActiveBuffered(false);
       setPrevIndex(activeIndex);
       setActiveIndex(nextIndex);
       setHasStarted(true);
@@ -300,19 +321,31 @@ export function DestinationMontage() {
     [activeIndex],
   );
 
-  const handleActiveBuffered = useCallback(() => setActiveBuffered(true), []);
+  // A scene that has buffered hands the baton to the one after it.
+  const handleBuffered = useCallback(
+    (i: number) => allowLoad((i + 1) % DESTINATIONS.length),
+    [allowLoad],
+  );
 
   /*
-   * Safety valve for the preload gate. canplaythrough is not guaranteed to
-   * fire — a browser that decides it has enough data, a video that errors, or
-   * a tab that was backgrounded can all skip it. Without this the gate would
-   * latch shut and no scene would ever prefetch, so open it on a timer that is
-   * comfortably shorter than the scene duration.
+   * Safety valve. canplaythrough is not guaranteed to fire — a browser that
+   * decides it already has enough, a clip that errors, or a backgrounded tab
+   * can all skip it, and then the chain would stop dead at whichever scene went
+   * quiet. Hand the baton on a timer as well, so the rotation always keeps
+   * fetching ahead of itself.
    */
   useEffect(() => {
-    const t = setTimeout(() => setActiveBuffered(true), PREFETCH_FALLBACK_DELAY);
+    const t = setTimeout(
+      () => allowLoad((activeIndex + 1) % DESTINATIONS.length),
+      PREFETCH_FALLBACK_DELAY,
+    );
     return () => clearTimeout(t);
-  }, [activeIndex]);
+  }, [activeIndex, allowLoad]);
+
+  // Whatever else happens, the scene actually on screen may always download.
+  useEffect(() => {
+    allowLoad(activeIndex);
+  }, [activeIndex, allowLoad]);
 
   const advance = useCallback(() => {
     transitionTo((activeIndex + 1) % DESTINATIONS.length);
@@ -344,7 +377,6 @@ export function DestinationMontage() {
   }, []);
 
   const active = DESTINATIONS[activeIndex];
-  const next = DESTINATIONS[(activeIndex + 1) % DESTINATIONS.length];
 
   return (
     <section
@@ -354,21 +386,21 @@ export function DestinationMontage() {
       className="relative w-full overflow-hidden bg-black"
       style={{ aspectRatio: "16/9", minHeight: "320px", maxHeight: "90vh" }}
     >
-      {activeBuffered && <ScenePreload dest={next} />}
-
-      {/* ── Video layers ─────────────────────────────────────────────── */}
+      {/* ── Video layers ─────────────────────────────────────────────────
+          Every layer stays mounted for the life of the section. They used to
+          mount and unmount with the rotation, which discarded each clip's
+          buffer the moment it left the screen and forced a fresh download
+          when it came back around. */}
       {DESTINATIONS.map((dest, i) => (
-        <AnimatePresence key={dest.id} mode="sync">
-          {(i === activeIndex || i === prevIndex) && (
-            <SceneVideo
-              dest={dest}
-              isActive={i === activeIndex}
-              isPrev={i === prevIndex}
-              canPlay={isInView}
-              onBuffered={handleActiveBuffered}
-            />
-          )}
-        </AnimatePresence>
+        <SceneVideo
+          key={dest.id}
+          dest={dest}
+          isActive={i === activeIndex}
+          isPrev={i === prevIndex}
+          canPlay={isInView}
+          shouldLoad={loadable.has(i)}
+          onBuffered={() => handleBuffered(i)}
+        />
       ))}
 
       {/* ── Persistent gold accent line — transforms across scenes ───── */}

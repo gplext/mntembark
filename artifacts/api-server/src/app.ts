@@ -93,10 +93,51 @@ app.use("/api", router);
 const publicDir = process.env["PUBLIC_DIR"] || path.resolve(process.cwd(), "public");
 
 if (fs.existsSync(publicDir)) {
-  app.use(express.static(publicDir));
+  /*
+   * Cache headers, which express.static does not set on its own — its default
+   * maxAge is 0, so every navigation revalidated every asset and re-downloaded
+   * media that had not changed in months. On a slow link that alone made each
+   * page load feel like a cold one.
+   *
+   * Vite writes a content hash into every filename under /assets, so those can
+   * be immutable for a year: a changed file is a new name and cannot be served
+   * stale. Videos, images and fonts are not hashed, so they get a long-but-
+   * revalidatable year instead. index.html must never be cached, or a redeploy
+   * would leave browsers pointing at asset names that no longer exist.
+   */
+  app.use(
+    express.static(publicDir, {
+      etag: true,
+      lastModified: true,
+      setHeaders(res, filePath) {
+        if (filePath.endsWith(".html")) {
+          res.setHeader("Cache-Control", "no-cache");
+          return;
+        }
+        if (/[\\/]assets[\\/]/.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+          return;
+        }
+        if (/\.(webm|mp4|jpe?g|png|webp|avif|svg|woff2?)$/i.test(filePath)) {
+          res.setHeader("Cache-Control", "public, max-age=31536000");
+        }
+      },
+    }),
+  );
   app.use((req, res, next) => {
     if (req.path.startsWith("/api")) return next();
-    res.sendFile(path.join(publicDir, "index.html"));
+    /*
+     * Same rule as the static index.html above: this shell names the hashed
+     * asset files, so a cached copy after a redeploy points at bundles that
+     * are no longer there.
+     *
+     * sendFile writes its own Cache-Control from its maxAge option (0 by
+     * default), and that write lands after both res.setHeader and the
+     * `headers` option — so the only way to keep ours is to switch sendFile's
+     * own header off with cacheControl: false.
+     */
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(publicDir, "index.html"), { cacheControl: false });
   });
 }
 
