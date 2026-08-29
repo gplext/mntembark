@@ -24,58 +24,11 @@ import {
   SetTourActivitiesParams,
   SetTourActivitiesBody,
 } from "@workspace/api-zod";
-import {
-  embeddingsEnabled,
-  getEmbedding,
-  cosineSimilarity,
-  tourToEmbeddingText,
-} from "../lib/embeddings";
 import { setTourActivities } from "@workspace/db/queries";
 
 const router: IRouter = Router();
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-/**
- * Generate and store an embedding for a tour in the background.
- * Never throws — errors are logged but do not affect the response.
- */
-async function embedTourAsync(tourId: number): Promise<void> {
-  if (!embeddingsEnabled()) return;
-  try {
-    const [tour] = await db
-      .select()
-      .from(toursTable)
-      .where(eq(toursTable.id, tourId));
-    if (!tour) return;
-    const text = tourToEmbeddingText(tour);
-    const embedding = await getEmbedding(text);
-    if (!embedding) return;
-    await db
-      .update(toursTable)
-      .set({ embedding })
-      .where(eq(toursTable.id, tourId));
-  } catch (err) {
-    logger.warn({ err, tourId }, "Failed to generate tour embedding");
-  }
-}
-
-/**
- * On server startup, generate embeddings for any tours that are missing one.
- * Runs concurrently but silently — search still works via ILIKE for un-embedded tours.
- */
-export async function backfillTourEmbeddings(): Promise<void> {
-  if (!embeddingsEnabled()) return;
-  const tours = await db.select().from(toursTable);
-  const missing = tours.filter((t) => !t.embedding);
-  if (missing.length === 0) return;
-  logger.info({ count: missing.length }, "Backfilling tour embeddings");
-  // Process in small batches to avoid hammering the OpenAI rate limit
-  for (const tour of missing) {
-    await embedTourAsync(tour.id);
-  }
-  logger.info("Tour embedding backfill complete");
-}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -278,55 +231,11 @@ router.get("/tours/search", async (req, res): Promise<void> => {
     return;
   }
 
-  // ── Vector search path ────────────────────────────────────────────────────
-  if (embeddingsEnabled()) {
-    try {
-      const queryEmbedding = await getEmbedding(params.data.q);
-      if (queryEmbedding) {
-        // Fetch all tours (small catalog — cosine similarity in JS is fine)
-        const allTours = await selectToursWithPlace();
-
-        // Apply hard filters
-        const filtered = allTours.filter((t) => {
-          if (params.data.categoryId && t.categoryId !== params.data.categoryId)
-            return false;
-          if (
-            params.data.destinationId &&
-            t.destinationId !== params.data.destinationId
-          )
-            return false;
-          return true;
-        });
-
-        // Blend AI semantic similarity with typo-tolerant text matching. The
-        // description and itinerary are part of both signals, so searches such
-        // as "quiet desert stargazing" can find a tour without title overlap.
-        const scored = filtered
-          .map((tour) => ({
-            tour,
-            semanticScore: tour.embedding
-              ? cosineSimilarity(queryEmbedding, tour.embedding)
-              : 0,
-            fuzzyScore: fuzzyTextScore(params.data.q, tourSearchText(tour)),
-          }))
-          .map((result) => ({
-            ...result,
-            score: result.semanticScore * 0.75 + result.fuzzyScore * 0.25,
-          }))
-          .filter((result) => result.score >= 0.18 || result.fuzzyScore >= 0.65)
-          .sort((a, b) => b.score - a.score);
-
-        res.json(SearchToursResponse.parse(serialize(scored.map((x) => x.tour))));
-        return;
-      }
-    } catch (err) {
-      logger.warn({ err }, "Vector search failed, falling back to keyword search");
-    }
-  }
-
-  // ── Fuzzy fallback ─────────────────────────────────────────────────────────
-  // Keep search useful even if the embedding model is unavailable. The catalog
-  // is intentionally small, so scoring the joined rows in memory is cheap.
+  // ── Fuzzy keyword search ───────────────────────────────────────────────────
+  // The catalogue is intentionally small, so scoring the joined rows in memory
+  // is cheap. This used to sit behind a vector-search path backed by a local
+  // embedding model; that was removed because the model runtime was roughly
+  // 355 MB — about half the production image — to rank a handful of tours.
   const conditions: SQL[] = [];
   if (params.data.categoryId) {
     conditions.push(eq(toursTable.categoryId, params.data.categoryId));
@@ -426,8 +335,6 @@ router.post("/tours", requireAdmin, async (req, res): Promise<void> => {
       itinerarySteps: parsed.data.itinerarySteps ?? [],
     })
     .returning();
-  // Fire-and-forget: embed in background so admin response is instant
-  embedTourAsync(row.id);
   res.status(201).json(CreateTourResponse.parse(serialize(row)));
 });
 
@@ -457,8 +364,6 @@ router.patch("/tours/:id", requireAdmin, async (req, res): Promise<void> => {
     res.status(404).json({ error: "Tour not found" });
     return;
   }
-  // Re-embed in background if semantic fields changed
-  embedTourAsync(row.id);
   res.json(UpdateTourResponse.parse(serialize(row)));
 });
 

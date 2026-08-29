@@ -41,6 +41,7 @@ artifacts/mnt-embark/docs
 *.7z
 *.rar
 *.mp4
+!artifacts/mnt-embark-web/public/videos/*.mp4
 *.mov
 *.psd
 *.ai

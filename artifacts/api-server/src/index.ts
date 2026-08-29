@@ -1,6 +1,5 @@
 import app from "./app";
 import { logger } from "./lib/logger";
-import { backfillTourEmbeddings } from "./routes/tours";
 import { seedInitialContent } from "./lib/seedInitialContent";
 
 const rawPort = process.env["PORT"];
@@ -27,12 +26,6 @@ async function startServer(): Promise<void> {
     }
 
     logger.info({ port }, "Server listening");
-
-    // Kick off embedding backfill in the background so tours already in the DB
-    // get their embeddings the first time the server runs with an OPENAI_API_KEY.
-    backfillTourEmbeddings().catch((err) =>
-      logger.warn({ err }, "Tour embedding backfill encountered an error"),
-    );
   });
 }
 

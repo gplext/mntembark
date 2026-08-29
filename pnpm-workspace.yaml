@@ -28,10 +28,8 @@
 minimumReleaseAge: 1440
 
 minimumReleaseAgeExclude:
-  # Exclude @replit scoped packages from the minimum release age check.
   # These are published by Replit and trusted — the supply-chain attack vector
   # this setting guards against does not apply to our own packages.
-  - '@replit/*'
   - stripe-replit-sync
 
 packages:
@@ -41,9 +39,6 @@ packages:
   - scripts
 
 catalog:
-  '@replit/vite-plugin-cartographer': ^0.5.21
-  '@replit/vite-plugin-dev-banner': ^0.1.1
-  '@replit/vite-plugin-runtime-error-modal': ^0.0.6
   '@tailwindcss/vite': ^4.1.14
   '@tanstack/react-query': ^5.90.21
   '@types/node': ^25.3.3
@@ -68,14 +63,60 @@ catalog:
 
 autoInstallPeers: false
 
-onlyBuiltDependencies:
-  - '@swc/core'
-  - esbuild
-  - msw
-  - unrs-resolver
-
+# Packages allowed to run install scripts. pnpm 11 calls this `allowBuilds`;
+# `onlyBuiltDependencies` was its pnpm 10 name and is no longer acted on, which
+# is how esbuild ended up blocked while apparently being listed.
+#
+# sharp needs its script to obtain the native libvips binary that does image
+# processing. onnxruntime-node needs its to fetch native runtime binaries, and
+# only matters when semantic search is enabled.
+allowBuilds:
+  # Every package in this workspace that has an install script, found by scanning
+  # node_modules rather than discovering them one failed install at a time.
+  esbuild: true           # fetches its native binary
+  sharp: true             # obtains libvips, which does the image processing
+  protobufjs: true        # generates its CLI helpers
 overrides:
-  # replit uses linux-x64 only, we can exclude all other platforms
+  # Version pins moved here from package.json's `pnpm.overrides`. pnpm 11 no
+  # longer reads that field, so from pnpm 11 onward they were silently not
+  # applied. This is the only place pnpm 11 looks.
+  react: 19.1.0
+  react-dom: 19.1.0
+  drizzle-orm: 0.45.2
+
+  # SECURITY — do not remove. drizzle-kit bundles an older esbuild with a known
+  # vulnerability; these force it up and replace the deprecated loader.
+  "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
+  esbuild: "0.27.3"
+
+  # Platform binaries for systems this project is never built on.
+  #
+  # These do not change what gets INSTALLED — pnpm already filters optional
+  # dependencies by os/cpu. What they save is RESOLUTION: without them pnpm
+  # requests registry metadata for all 82 of these, which on a slow link cost
+  # 30-50s of timeouts per build.
+  #
+  # Deliberately KEPT, because removing them breaks a real target:
+  #   linux-x64 and *-gnu   -> the Docker image
+  #   linuxmusl / *-musl    -> Alpine, which the Docker image is based on
+  #   win32-x64 and *-msvc  -> local development on Windows
+  #
+  # An earlier version of this block excluded win32 too, which left esbuild
+  # with no binary on Windows. If you add a platform (an arm64 Mac, say),
+  # remove its lines here first.
+  "@tailwindcss/oxide>@tailwindcss/oxide-android-arm64": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-darwin-arm64": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-darwin-x64": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-freebsd-x64": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-linux-arm-gnueabihf": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-linux-arm64-gnu": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-linux-arm64-musl": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-wasm32-wasi": "-"
+  "@tailwindcss/oxide>@tailwindcss/oxide-win32-arm64-msvc": "-"
+  "esbuild>@esbuild/aix-ppc64": "-"
+  "esbuild>@esbuild/android-arm": "-"
+  "esbuild>@esbuild/android-arm64": "-"
+  "esbuild>@esbuild/android-x64": "-"
   "esbuild>@esbuild/darwin-arm64": "-"
   "esbuild>@esbuild/darwin-x64": "-"
   "esbuild>@esbuild/freebsd-arm64": "-"
@@ -92,15 +133,10 @@ overrides:
   "esbuild>@esbuild/netbsd-x64": "-"
   "esbuild>@esbuild/openbsd-arm64": "-"
   "esbuild>@esbuild/openbsd-x64": "-"
+  "esbuild>@esbuild/openharmony-arm64": "-"
   "esbuild>@esbuild/sunos-x64": "-"
   "esbuild>@esbuild/win32-arm64": "-"
   "esbuild>@esbuild/win32-ia32": "-"
-  "esbuild>@esbuild/win32-x64": "-"
-  "esbuild>@esbuild/aix-ppc64": '-'
-  "esbuild>@esbuild/android-arm": '-'
-  "esbuild>@esbuild/android-arm64": '-'
-  "esbuild>@esbuild/android-x64": '-'
-  "esbuild>@esbuild/openharmony-arm64": '-'
   "lightningcss>lightningcss-android-arm64": "-"
   "lightningcss>lightningcss-darwin-arm64": "-"
   "lightningcss>lightningcss-darwin-x64": "-"
@@ -108,19 +144,7 @@ overrides:
   "lightningcss>lightningcss-linux-arm-gnueabihf": "-"
   "lightningcss>lightningcss-linux-arm64-gnu": "-"
   "lightningcss>lightningcss-linux-arm64-musl": "-"
-  "lightningcss>lightningcss-linux-x64-musl": "-"
   "lightningcss>lightningcss-win32-arm64-msvc": "-"
-  "lightningcss>lightningcss-win32-x64-msvc": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-android-arm64": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-darwin-arm64": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-darwin-x64": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-freebsd-x64": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-linux-arm-gnueabihf": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-linux-arm64-gnu": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-linux-arm64-musl": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-win32-arm64-msvc": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-win32-x64-msvc": "-"
-  "@tailwindcss/oxide>@tailwindcss/oxide-linux-x64-musl": "-"
   "rollup>@rollup/rollup-android-arm-eabi": "-"
   "rollup>@rollup/rollup-android-arm64": "-"
   "rollup>@rollup/rollup-darwin-arm64": "-"
@@ -138,23 +162,27 @@ overrides:
   "rollup>@rollup/rollup-linux-riscv64-gnu": "-"
   "rollup>@rollup/rollup-linux-riscv64-musl": "-"
   "rollup>@rollup/rollup-linux-s390x-gnu": "-"
-  "rollup>@rollup/rollup-linux-x64-musl": "-"
   "rollup>@rollup/rollup-openbsd-x64": "-"
   "rollup>@rollup/rollup-openharmony-arm64": "-"
   "rollup>@rollup/rollup-win32-arm64-msvc": "-"
   "rollup>@rollup/rollup-win32-ia32-msvc": "-"
-  "rollup>@rollup/rollup-win32-x64-gnu": "-"
-  "rollup>@rollup/rollup-win32-x64-msvc": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-darwin-arm64": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-darwin-x64": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-freebsd-ia32": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-freebsd-x64": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-linux-arm64": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-linux-arm": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-linux-ia32": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-sunos-x64": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-win32-ia32": "-"
-  "@expo/ngrok-bin>@expo/ngrok-bin-win32-x64": "-"
-  # drizzle-kit uses esbuild internally on an older version that's vulnerable, this overrides it
-  "@esbuild-kit/esm-loader": "npm:tsx@^4.21.0"
-  esbuild: "0.27.3"
+  "sharp>@img/sharp-darwin-arm64": "-"
+  "sharp>@img/sharp-darwin-x64": "-"
+  "sharp>@img/sharp-freebsd-wasm32": "-"
+  "sharp>@img/sharp-libvips-darwin-arm64": "-"
+  "sharp>@img/sharp-libvips-darwin-x64": "-"
+  "sharp>@img/sharp-libvips-linux-arm": "-"
+  "sharp>@img/sharp-libvips-linux-arm64": "-"
+  "sharp>@img/sharp-libvips-linux-ppc64": "-"
+  "sharp>@img/sharp-libvips-linux-riscv64": "-"
+  "sharp>@img/sharp-libvips-linux-s390x": "-"
+  "sharp>@img/sharp-libvips-linuxmusl-arm64": "-"
+  "sharp>@img/sharp-linux-arm": "-"
+  "sharp>@img/sharp-linux-arm64": "-"
+  "sharp>@img/sharp-linux-ppc64": "-"
+  "sharp>@img/sharp-linux-riscv64": "-"
+  "sharp>@img/sharp-linux-s390x": "-"
+  "sharp>@img/sharp-linuxmusl-arm64": "-"
+  "sharp>@img/sharp-webcontainers-wasm32": "-"
+  "sharp>@img/sharp-win32-arm64": "-"
+  "sharp>@img/sharp-win32-ia32": "-"

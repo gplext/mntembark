@@ -55,6 +55,11 @@ async function buildAll() {
       "typeorm",
       "protobufjs",
       "onnxruntime-node",
+      // Reads a table.sql file from inside its own package to create the
+      // session table. Bundling it leaves that file behind, the store fails
+      // silently at runtime, and every login appears to succeed while no
+      // session is ever saved.
+      "connect-pg-simple",
       "@tensorflow/*",
       "@prisma/client",
       "@mikro-orm/*",

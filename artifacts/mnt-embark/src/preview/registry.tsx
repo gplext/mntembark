@@ -11,7 +11,6 @@ import { ButtonGroupDemo } from './demos/button-group';
 import { CalendarDemo } from './demos/calendar';
 import { CardDemo } from './demos/card';
 import { CarouselDemo } from './demos/carousel';
-import { ChartDemo } from './demos/chart';
 import { CheckboxDemo } from './demos/checkbox';
 import { CollapsibleDemo } from './demos/collapsible';
 import { CommandDemo } from './demos/command';
@@ -465,17 +464,6 @@ export const NAV_GROUPS: NavGroup[] = [
         name: 'Resizable panels',
         description: 'Bounded split panes with draggable handles.',
         Page: ResizableDemo,
-      },
-    ],
-  },
-  {
-    name: 'Charts',
-    entries: [
-      {
-        id: 'chart',
-        name: 'Chart',
-        description: 'Gold-palette data visualization, tooltip, and legend.',
-        Page: ChartDemo,
       },
     ],
   },

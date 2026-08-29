@@ -18,7 +18,18 @@ In the project root, create a file named exactly `.env`:
 POSTGRES_PASSWORD=localdevpassword
 SESSION_SECRET=paste-a-long-random-string-here
 ADMIN_PASSWORD=choose-an-admin-password
+COMPOSE_PROFILES=with-db
 ```
+
+**Do not set `DATABASE_URL` here.** Inside Docker the database is reachable at
+`db:5432`, not `localhost` — compose already fills that in for you. Copying the
+`localhost` line out of `.env.example` gives you an app container that cannot
+find its database. That line is for path B, where you run on the host.
+
+`COMPOSE_PROFILES=with-db` is what actually starts Postgres. The `db` service
+is behind a profile so that Coolify, which uses its own database resource, does
+not start a second one. Without it, `docker compose up` brings up the app alone
+and it fails to connect.
 
 `SESSION_SECRET` can be any long random string. To generate one:
 
@@ -32,8 +43,8 @@ This file is gitignored — it will never be committed.
 ### 2. Build and start
 
 ```powershell
-cd C:\Users\lapify\Downloads\Elite-Traveler\Elite-Traveler
-docker compose up --build
+cd C:\Users\lapify\Downloads\mntembark-main-replit\mntembark-main
+docker compose --profile with-db up --build
 ```
 
 The first build takes several minutes (it downloads dependencies and native
@@ -47,18 +58,23 @@ The app starts before the tables exist, so create them once. In a **second**
 terminal:
 
 ```powershell
-cd C:\Users\lapify\Downloads\Elite-Traveler\Elite-Traveler
+cd C:\Users\lapify\Downloads\mntembark-main-replit\mntembark-main
 $env:DATABASE_URL="postgres://mnt:localdevpassword@localhost:5432/mnt_embark"
-pnpm install
-pnpm --filter @workspace/db run push
-pnpm --filter @workspace/db run seed
+pnpm install --frozen-lockfile
+pnpm --filter @workspace/db run push:unsafe
 ```
 
-(Use the same password you put in `.env`.)
+(Use the same password you put in `.env`. Here `localhost` is right — you are
+on the host, and compose publishes the database on port 5432.)
 
-`seed` fills the site with starter content — tours, destinations, categories
-and journals — so you have something to look at. Skip it if you would rather
-start empty and add everything through the admin panel.
+`push:unsafe` rather than `push`: `push` is deliberately disabled because
+`drizzle-kit push` drops columns to make a database match the schema, which is
+ruinous against real data. Against an empty local database there is nothing to
+lose, so the unsafe variant is the correct tool here — and only here.
+
+There is no `seed` script. The server seeds starter content itself on first
+start, so the site has tours, destinations, categories and journals as soon as
+the tables exist.
 
 ### 4. Open it
 
@@ -72,7 +88,7 @@ docker compose logs -f app     # follow app logs
 docker compose restart app     # restart just the app
 docker compose down            # stop everything (keeps data)
 docker compose down -v         # stop and DELETE the database + uploads
-docker compose up --build      # rebuild after code changes
+docker compose --profile with-db up --build   # rebuild after code changes
 ```
 
 ---
@@ -83,13 +99,16 @@ Requires Node 24+, pnpm 10, and a PostgreSQL database. The quickest way to get
 Postgres is to start just that container:
 
 ```powershell
-docker compose up -d db
+docker compose --profile with-db up -d db
 ```
+
+The `--profile with-db` is required — without it compose ignores the `db`
+service entirely and reports that there is nothing to do.
 
 ### 1. Install and configure
 
 ```powershell
-cd C:\Users\lapify\Downloads\Elite-Traveler\Elite-Traveler
+cd C:\Users\lapify\Downloads\mntembark-main-replit\mntembark-main
 pnpm install
 Copy-Item .env.example .env
 ```
@@ -105,8 +124,10 @@ ADMIN_PASSWORD=choose-an-admin-password
 ### 2. Create the schema
 
 ```powershell
-pnpm --filter @workspace/db run push
+pnpm --filter @workspace/db run push:unsafe
 ```
+
+(`push` is disabled on purpose — see the note in path A.)
 
 ### 3. Run both halves
 
@@ -150,17 +171,19 @@ pnpm --filter @workspace/db run check
 The schema was never pushed. Do step 3 above.
 
 **Site loads but every list is empty**
-The schema exists but there is no content. Run
-`pnpm --filter @workspace/db run seed`, or add entries via the admin panel.
+The schema exists but there is no content. Seeding runs automatically when the
+server starts, so restart the app (`docker compose restart app`) now that the
+tables exist, and check `docker compose logs app` for a seeding error. Failing
+that, add entries through the admin panel.
 
 **Port 8080 or 5432 already in use**
 Something else is using it. Either stop that program, or change the left-hand
 number in the `ports:` entry in `docker-compose.yml` (e.g. `'8081:8080'`).
 
 **Search returns fewer relevant results than expected**
-Semantic ranking is disabled by default (it needs ~400 MB of ML dependencies
-that are excluded from the image). Search falls back to keyword matching. See
-the README if you want to turn it on.
+Search is keyword matching over the tour title, description, location and
+itinerary. There is no semantic/vector ranking — it was removed along with the
+355 MB machine-learning runtime it required.
 
 **Uploaded images disappear after `docker compose down -v`**
 Expected — `-v` deletes the volumes. Use plain `docker compose down` to keep them.

@@ -25,7 +25,6 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-secret_key_change_me_in_production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       UPLOAD_DIR: /data/uploads
-      MODEL_CACHE_DIR: /data/model-cache
     volumes:
       - app-data:/data
     depends_on:

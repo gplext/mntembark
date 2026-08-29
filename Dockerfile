@@ -7,8 +7,15 @@
 # Build once, run anywhere. Designed for Coolify but is a plain Dockerfile.
 ###############################################################################
 
-ARG NODE_VERSION=24-bookworm-slim
-ARG PNPM_VERSION=10.18.0
+# Alpine rather than bookworm-slim: ~60 MB of base layers instead of ~200 MB.
+# sharp is the only native dependency and publishes a musl build
+# (@img/sharp-linuxmusl-x64), which pnpm selects automatically when installing
+# inside this image. esbuild's binary is statically linked, so it runs here too.
+ARG NODE_VERSION=24-alpine
+# Must match "packageManager" in package.json. When these drift, the image and
+# your laptop read settings from different places — pnpm 10 reads package.json's
+# `pnpm` field, pnpm 11 reads pnpm-workspace.yaml — and resolve different trees.
+ARG PNPM_VERSION=11.22.0
 
 ###############################################################################
 # Stage 1 — Base setup with pnpm
@@ -37,7 +44,7 @@ COPY lib/db/package.json                      lib/db/package.json
 COPY lib/object-storage-web/package.json      lib/object-storage-web/package.json
 
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --no-frozen-lockfile
+    pnpm install --frozen-lockfile
 
 ###############################################################################
 # Stage 3 — Build API bundle and React frontend SPA
@@ -69,8 +76,7 @@ FROM node:${NODE_VERSION} AS runtime
 ENV NODE_ENV=production \
     PORT=8080 \
     PUBLIC_DIR=/app/public \
-    UPLOAD_DIR=/data/uploads \
-    MODEL_CACHE_DIR=/data/model-cache
+    UPLOAD_DIR=/data/uploads
 
 WORKDIR /app
 
@@ -82,7 +88,7 @@ COPY --from=build --chown=node:node /app/artifacts/api-server/dist            ./
 COPY --from=build --chown=node:node /app/artifacts/mnt-embark-web/dist/public ./public
 
 # Create volume directories
-RUN mkdir -p /data/uploads /data/model-cache \
+RUN mkdir -p /data/uploads \
  && chown -R node:node /data
 
 USER node

@@ -3,8 +3,6 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
-import runtimeErrorOverlay from '@replit/vite-plugin-runtime-error-modal';
-
 const rawPort = process.env.PORT || '8080';
 const port = Number(rawPort) || 8080;
 const basePath = process.env.BASE_PATH || '/';
@@ -14,20 +12,6 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
-    runtimeErrorOverlay(),
-    ...(process.env.NODE_ENV !== 'production' &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import('@replit/vite-plugin-cartographer').then((m) =>
-            m.cartographer({
-              root: path.resolve(import.meta.dirname, '..'),
-            }),
-          ),
-          await import('@replit/vite-plugin-dev-banner').then((m) =>
-            m.devBanner(),
-          ),
-        ]
-      : []),
   ],
   resolve: {
     alias: {
@@ -45,6 +29,28 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, 'dist/public'),
     emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        /*
+         * Split the framework out of the app bundle.
+         *
+         * React, the router and the query client change only when we upgrade
+         * them, whereas app code changes on every deploy. Keeping them in
+         * separate files means a returning visitor re-downloads only what
+         * actually changed instead of the whole bundle.
+         */
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (/[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/.test(id)) {
+            return 'vendor-react';
+          }
+          if (/[\\/]node_modules[\\/](wouter|@tanstack)[\\/]/.test(id)) {
+            return 'vendor-router';
+          }
+          return undefined;
+        },
+      },
+    },
   },
   server: {
     port,
