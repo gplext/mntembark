@@ -73,6 +73,9 @@ const AUTOPLAY_DELAY = SCENE_DURATION - TRANSITION_SETTLE_DURATION;
 // Latest point in a scene at which the next scene may start prefetching, even
 // if the current one never reported that it had buffered.
 const PREFETCH_FALLBACK_DELAY = 3000;
+// Longest the montage will wait for the page's load event before fetching
+// video anyway.
+const PAGE_READY_TIMEOUT = 5000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -89,14 +92,12 @@ function useBasePath() {
 function SceneVideo({
   dest,
   isActive,
-  isPrev,
   canPlay,
   shouldLoad,
   onBuffered,
 }: {
   dest: Destination;
   isActive: boolean;
-  isPrev: boolean;
   canPlay: boolean;
   shouldLoad: boolean;
   onBuffered?: () => void;
@@ -162,14 +163,25 @@ function SceneVideo({
     <motion.div
       className="absolute inset-0"
       initial={false}
-      animate={{ opacity: isActive || isPrev ? 1 : 0 }}
+      /*
+       * Only the active layer is opaque. The outgoing layer is still rendered
+       * (every layer is permanently mounted) but animates down
+       * to 0, so the two cross-fade. Holding both at 1 — as this briefly did —
+       * meant no fade at all and the layer later in the DOM simply winning.
+       */
+      animate={{ opacity: isActive ? 1 : 0 }}
       transition={{ duration: FADE_DURATION / 1000, ease: "easeInOut" }}
       style={{
         willChange: "opacity",
-        // Keep inactive layers out of the hit-testing and paint path without
-        // unmounting them, so their buffered video survives.
+        // Inactive layers stay mounted, so keep them out of hit-testing.
         pointerEvents: "none",
-        zIndex: isActive ? 2 : isPrev ? 1 : 0,
+        /*
+         * Deliberately no z-index. These layers are absolutely positioned, and
+         * a positive z-index here paints them above every later sibling that
+         * has none — which is all of the montage's captions and titles. That
+         * is what made the text disappear. DOM order alone gives the right
+         * stacking: videos first, overlays after.
+         */
       }}
     >
       <video
@@ -266,17 +278,46 @@ export function DestinationMontage() {
   const [hasStarted, setHasStarted] = useState(false);
   const [isInView, setIsInView] = useState(false);
   /*
-   * Which scenes are allowed to download, by index. Starts as just the first
-   * one; a scene is added when the one before it has buffered, so the clips
-   * arrive one at a time instead of five at once. Membership is never revoked —
-   * a clip that has downloaded keeps preload="auto" so the browser holds on to
-   * what it has and the second lap of the rotation costs no network at all.
+   * Which scenes are allowed to download, by index. Starts EMPTY, and a scene
+   * is added only when the one before it has buffered, so the clips arrive one
+   * at a time instead of five at once. Membership is never revoked — a clip
+   * that has downloaded keeps preload="auto" so the browser holds on to what it
+   * has and the second lap of the rotation costs no network at all.
+   *
+   * Empty rather than {0} because video is the heaviest thing on the page and
+   * the least urgent: starting the first clip at mount put megabytes of video
+   * ahead of the logo and the carousel images in the queue, and those are what
+   * the visitor actually sees first. Nothing downloads until pageReady below.
    */
   const [loadable, setLoadable] = useState<ReadonlySet<number>>(
-    () => new Set([0]),
+    () => new Set<number>(),
   );
   const allowLoad = useCallback((i: number) => {
     setLoadable((prev) => (prev.has(i) ? prev : new Set(prev).add(i)));
+  }, []);
+
+  /*
+   * True once the page's own load event has fired — i.e. the logo, the
+   * carousel images and the stylesheets are in. Only then does the montage
+   * start pulling video, so it competes with nothing above it.
+   */
+  const [pageReady, setPageReady] = useState(false);
+  useEffect(() => {
+    if (document.readyState === "complete") {
+      setPageReady(true);
+      return;
+    }
+    const onLoad = () => setPageReady(true);
+    window.addEventListener("load", onLoad, { once: true });
+    /*
+     * A stalled third-party request can hold the load event open indefinitely.
+     * Cap the wait so the montage is never held hostage by something unrelated.
+     */
+    const cap = setTimeout(() => setPageReady(true), PAGE_READY_TIMEOUT);
+    return () => {
+      window.removeEventListener("load", onLoad);
+      clearTimeout(cap);
+    };
   }, []);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -335,17 +376,21 @@ export function DestinationMontage() {
    * fetching ahead of itself.
    */
   useEffect(() => {
+    if (!pageReady) return;
     const t = setTimeout(
       () => allowLoad((activeIndex + 1) % DESTINATIONS.length),
       PREFETCH_FALLBACK_DELAY,
     );
     return () => clearTimeout(t);
-  }, [activeIndex, allowLoad]);
+  }, [activeIndex, allowLoad, pageReady]);
 
-  // Whatever else happens, the scene actually on screen may always download.
+  // Once the page itself has loaded, the scene on screen may always download —
+  // this is what starts the chain, and what recovers it if the visitor jumps
+  // ahead with the dots to a clip nothing had queued.
   useEffect(() => {
+    if (!pageReady) return;
     allowLoad(activeIndex);
-  }, [activeIndex, allowLoad]);
+  }, [activeIndex, allowLoad, pageReady]);
 
   const advance = useCallback(() => {
     transitionTo((activeIndex + 1) % DESTINATIONS.length);
@@ -396,7 +441,6 @@ export function DestinationMontage() {
           key={dest.id}
           dest={dest}
           isActive={i === activeIndex}
-          isPrev={i === prevIndex}
           canPlay={isInView}
           shouldLoad={loadable.has(i)}
           onBuffered={() => handleBuffered(i)}
