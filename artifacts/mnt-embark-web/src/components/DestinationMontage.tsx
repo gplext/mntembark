@@ -70,6 +70,9 @@ const SCENE_DURATION = 8000;
 const FADE_DURATION = 1200;
 const TRANSITION_SETTLE_DURATION = FADE_DURATION + 200;
 const AUTOPLAY_DELAY = SCENE_DURATION - TRANSITION_SETTLE_DURATION;
+// Latest point in a scene at which the next scene may start prefetching, even
+// if the current one never reported that it had buffered.
+const PREFETCH_FALLBACK_DELAY = 3000;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -88,11 +91,13 @@ function SceneVideo({
   isActive,
   isPrev,
   canPlay,
+  onBuffered,
 }: {
   dest: Destination;
   isActive: boolean;
   isPrev: boolean;
   canPlay: boolean;
+  onBuffered?: () => void;
 }) {
   const base = useBasePath();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -147,7 +152,18 @@ function SceneVideo({
         muted
         playsInline
         loop={false}
-        preload="auto"
+        /*
+         * Only the scene on screen downloads in full. The outgoing scene is
+         * mid-crossfade and already played, so it drops to metadata rather
+         * than continuing to pull data it will never use.
+         *
+         * Previously every layer was preload="auto", so the active, previous
+         * and next clips all downloaded at once — up to 45 MB in parallel,
+         * which starved the page's images of bandwidth and left later scenes
+         * showing only their poster when their turn came.
+         */
+        preload={isActive ? "auto" : "metadata"}
+        onCanPlayThrough={isActive ? onBuffered : undefined}
         className="w-full h-full object-cover"
         style={{ display: "block" }}
       >
@@ -178,6 +194,12 @@ function ScenePreload({ dest }: { dest: Destination }) {
       tabIndex={-1}
       muted
       playsInline
+      /*
+       * Mounted only once the active scene has finished buffering, so the two
+       * downloads happen in sequence rather than competing. On a fast link
+       * that is imperceptible; on a slow one it is the difference between the
+       * current scene playing and everything stalling at once.
+       */
       preload="auto"
       className="absolute h-px w-px opacity-0 pointer-events-none"
     >
@@ -229,6 +251,9 @@ export function DestinationMontage() {
   const [textVisible, setTextVisible] = useState(true);
   const [hasStarted, setHasStarted] = useState(false);
   const [isInView, setIsInView] = useState(false);
+  // True once the on-screen clip has buffered enough to play through. Gates
+  // the preload of the following scene so the two never compete for bandwidth.
+  const [activeBuffered, setActiveBuffered] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -255,6 +280,9 @@ export function DestinationMontage() {
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
 
       setTextVisible(false);
+      // Close the preload gate again: the incoming scene has to buffer before
+      // the one after it is allowed to start downloading.
+      setActiveBuffered(false);
       setPrevIndex(activeIndex);
       setActiveIndex(nextIndex);
       setHasStarted(true);
@@ -271,6 +299,20 @@ export function DestinationMontage() {
     },
     [activeIndex],
   );
+
+  const handleActiveBuffered = useCallback(() => setActiveBuffered(true), []);
+
+  /*
+   * Safety valve for the preload gate. canplaythrough is not guaranteed to
+   * fire — a browser that decides it has enough data, a video that errors, or
+   * a tab that was backgrounded can all skip it. Without this the gate would
+   * latch shut and no scene would ever prefetch, so open it on a timer that is
+   * comfortably shorter than the scene duration.
+   */
+  useEffect(() => {
+    const t = setTimeout(() => setActiveBuffered(true), PREFETCH_FALLBACK_DELAY);
+    return () => clearTimeout(t);
+  }, [activeIndex]);
 
   const advance = useCallback(() => {
     transitionTo((activeIndex + 1) % DESTINATIONS.length);
@@ -312,7 +354,7 @@ export function DestinationMontage() {
       className="relative w-full overflow-hidden bg-black"
       style={{ aspectRatio: "16/9", minHeight: "320px", maxHeight: "90vh" }}
     >
-      <ScenePreload dest={next} />
+      {activeBuffered && <ScenePreload dest={next} />}
 
       {/* ── Video layers ─────────────────────────────────────────────── */}
       {DESTINATIONS.map((dest, i) => (
@@ -323,6 +365,7 @@ export function DestinationMontage() {
               isActive={i === activeIndex}
               isPrev={i === prevIndex}
               canPlay={isInView}
+              onBuffered={handleActiveBuffered}
             />
           )}
         </AnimatePresence>
