@@ -1,4 +1,7 @@
 import { Readable } from 'stream';
+import fs from 'fs';
+import path from 'path';
+import { randomUUID } from 'crypto';
 import {
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
@@ -13,10 +16,30 @@ import {
 const router: IRouter = Router();
 const objectStorageService = new ObjectStorageService();
 
+const uploadDir = process.env['UPLOAD_DIR'] || path.resolve(process.cwd(), 'data/uploads');
+if (!fs.existsSync(uploadDir)) {
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  } catch {
+    // Directory might already exist or will be created on container boot
+  }
+}
+
+const MIME_TYPES: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.avif': 'image/avif',
+  '.mp4': 'video/mp4',
+};
+
 /**
  * POST /storage/uploads/request-url
  *
- * Request a presigned URL for file upload.
+ * Request an upload URL for file upload.
  * Protected by admin session — only authenticated admins can mint upload URLs.
  */
 router.post(
@@ -31,8 +54,23 @@ router.post(
 
     try {
       const { name, size, contentType } = parsed.data;
-      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+      let uploadURL: string;
+      let objectPath: string;
+
+      if (process.env.PRIVATE_OBJECT_DIR) {
+        try {
+          uploadURL = await objectStorageService.getObjectEntityUploadURL();
+          objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
+        } catch {
+          const fileId = `${randomUUID()}-${name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+          uploadURL = `/api/storage/local-upload/${fileId}`;
+          objectPath = `/objects/uploads/${fileId}`;
+        }
+      } else {
+        const fileId = `${randomUUID()}-${name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        uploadURL = `/api/storage/local-upload/${fileId}`;
+        objectPath = `/objects/uploads/${fileId}`;
+      }
 
       res.json(
         RequestUploadUrlResponse.parse({
@@ -45,6 +83,33 @@ router.post(
       req.log.error({ err: error }, 'Error generating upload URL');
       res.status(500).json({ error: 'Failed to generate upload URL' });
     }
+  },
+);
+
+/**
+ * PUT /storage/local-upload/:fileId
+ * Handles raw stream uploads for local disk storage.
+ */
+router.put(
+  '/storage/local-upload/:fileId',
+  requireAdmin,
+  (req: Request, res: Response) => {
+    const raw = req.params.fileId;
+    const fileId = Array.isArray(raw) ? raw[0] : raw;
+    const safeFilename = path.basename(fileId);
+    const targetPath = path.join(uploadDir, safeFilename);
+
+    const writeStream = fs.createWriteStream(targetPath);
+    req.pipe(writeStream);
+
+    writeStream.on('finish', () => {
+      res.status(200).json({ ok: true });
+    });
+
+    writeStream.on('error', (err) => {
+      req.log.error({ err }, 'Error writing uploaded file to disk');
+      res.status(500).json({ error: 'Failed to save file' });
+    });
   },
 );
 
@@ -87,6 +152,23 @@ router.get('/storage/objects/*path', async (req: Request, res: Response) => {
   try {
     const raw = req.params.path;
     const wildcardPath = Array.isArray(raw) ? raw.join('/') : raw;
+
+    // Check local disk storage first (e.g. /data/uploads)
+    const localFilename = path.basename(wildcardPath);
+    const localFilePath = path.join(uploadDir, localFilename);
+
+    if (fs.existsSync(localFilePath)) {
+      const ext = path.extname(localFilePath).toLowerCase();
+      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+      const stat = fs.statSync(localFilePath);
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      fs.createReadStream(localFilePath).pipe(res);
+      return;
+    }
+
     const objectPath = `/objects/${wildcardPath}`;
     const objectFile = await objectStorageService.getObjectEntityFile(objectPath);
     const response = await objectStorageService.downloadObject(objectFile);
