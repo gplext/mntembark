@@ -205,6 +205,60 @@ export async function seedInitialContent(): Promise<void> {
       ON enquiries (status, created_at DESC);
     CREATE INDEX IF NOT EXISTS enquiries_created_idx
       ON enquiries (created_at DESC);
+
+    -- Auto-migrate pre-existing tables if any columns are missing from earlier schema versions
+    ALTER TABLE categories ADD COLUMN IF NOT EXISTS slug TEXT;
+    ALTER TABLE categories ADD COLUMN IF NOT EXISTS icon TEXT;
+    ALTER TABLE categories ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE destinations ADD COLUMN IF NOT EXISTS slug TEXT;
+    ALTER TABLE destinations ADD COLUMN IF NOT EXISTS cover_image TEXT;
+    ALTER TABLE destinations ADD COLUMN IF NOT EXISTS country TEXT;
+    ALTER TABLE destinations ADD COLUMN IF NOT EXISTS region TEXT;
+    ALTER TABLE destinations ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE destinations ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE destinations ALTER COLUMN country DROP NOT NULL;
+    ALTER TABLE destinations ALTER COLUMN description DROP NOT NULL;
+    ALTER TABLE destinations ALTER COLUMN cover_image DROP NOT NULL;
+
+    ALTER TABLE countries ADD COLUMN IF NOT EXISTS slug TEXT;
+    ALTER TABLE countries ADD COLUMN IF NOT EXISTS code TEXT;
+    ALTER TABLE countries ADD COLUMN IF NOT EXISTS image TEXT;
+    ALTER TABLE countries ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE countries ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE locations ADD COLUMN IF NOT EXISTS slug TEXT;
+    ALTER TABLE locations ADD COLUMN IF NOT EXISTS image TEXT;
+    ALTER TABLE locations ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE locations ADD COLUMN IF NOT EXISTS country_id INTEGER REFERENCES countries(id) ON DELETE SET NULL;
+    ALTER TABLE locations ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE destination_countries ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE destination_locations ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS slug TEXT;
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS classification tour_classification NOT NULL DEFAULT 'standard';
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL;
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS destination_id INTEGER REFERENCES destinations(id) ON DELETE SET NULL;
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS location_id INTEGER REFERENCES locations(id) ON DELETE SET NULL;
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS itinerary_steps JSONB NOT NULL DEFAULT '[]';
+    ALTER TABLE tours ADD COLUMN IF NOT EXISTS embedding JSONB;
+
+    ALTER TABLE activity_groups ADD COLUMN IF NOT EXISTS selection_mode TEXT NOT NULL DEFAULT 'multiple';
+    ALTER TABLE activity_groups ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS aliases TEXT[] NOT NULL DEFAULT '{}';
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS usage_count INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_filterable BOOLEAN NOT NULL DEFAULT TRUE;
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS redirect_to_id INTEGER REFERENCES activities(id) ON DELETE SET NULL;
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE tour_activities ADD COLUMN IF NOT EXISTS display_order SMALLINT NOT NULL DEFAULT 0;
+
+    CREATE INDEX IF NOT EXISTS activity_groups_order_idx ON activity_groups (display_order);
+    CREATE INDEX IF NOT EXISTS activities_group_idx ON activities (group_id, display_order);
+    CREATE INDEX IF NOT EXISTS activities_filterable_idx ON activities (is_filterable);
+    CREATE INDEX IF NOT EXISTS activities_redirect_idx ON activities (redirect_to_id);
   `);
 
   // 3. Seed Categories if empty
