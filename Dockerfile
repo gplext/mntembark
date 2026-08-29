@@ -11,24 +11,21 @@ ARG NODE_VERSION=24-bookworm-slim
 ARG PNPM_VERSION=10.18.0
 
 ###############################################################################
-# Stage 1 — install every workspace dependency (including dev) so we can build
+# Stage 1 — Base setup with pnpm
 ###############################################################################
-FROM node:${NODE_VERSION} AS deps
+FROM node:${NODE_VERSION} AS base
 ARG PNPM_VERSION
-# npm_config_package_import_method=copy: the pnpm store lives on a BuildKit
-# cache mount that is not part of the final image. Copying (rather than
-# hardlinking) guarantees node_modules contains real files that survive into
-# the runtime stage.
 ENV PNPM_HOME="/pnpm" \
     PATH="/pnpm:$PATH" \
-    CI=true \
-    npm_config_package_import_method=copy
+    CI=true
 RUN corepack enable && corepack prepare pnpm@${PNPM_VERSION} --activate
 
+###############################################################################
+# Stage 2 — Install all workspace dependencies (including dev) for build
+###############################################################################
+FROM base AS deps
 WORKDIR /app
 
-# Copy only the manifests first so this layer is cached until a dependency
-# actually changes.
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY artifacts/api-server/package.json        artifacts/api-server/package.json
 COPY artifacts/mnt-embark/package.json        artifacts/mnt-embark/package.json
@@ -43,7 +40,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --no-frozen-lockfile
 
 ###############################################################################
-# Stage 2 — build the API bundle and the frontend
+# Stage 3 — Build API bundle and React frontend SPA
 ###############################################################################
 FROM deps AS build
 ENV NODE_ENV=production \
@@ -51,26 +48,21 @@ ENV NODE_ENV=production \
 
 COPY . .
 
-# Frontend -> artifacts/mnt-embark-web/dist/public
-# API      -> artifacts/api-server/dist/index.mjs
 RUN pnpm --filter @workspace/mnt-embark-web run build \
  && pnpm --filter @workspace/api-server   run build
 
 ###############################################################################
-# Stage 3 — production dependencies only (no devDependencies)
+# Stage 4 — Isolated production dependencies only (using pnpm deploy)
 ###############################################################################
 FROM deps AS prod-deps
 ENV NODE_ENV=production
-# --no-optional skips @huggingface/transformers and onnxruntime-node (~400 MB of
-# native ML runtime). Tour search falls back to keyword matching without them.
-# To enable semantic search: drop --no-optional here and set
-# ENABLE_SEMANTIC_SEARCH=true on the container.
+
+# pnpm deploy isolates only production dependencies into /prod/app (--legacy flag required for pnpm v10 monorepos)
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
-    pnpm install --no-frozen-lockfile --prod --no-optional \
-      --filter @workspace/api-server...
+    pnpm --filter @workspace/api-server deploy --legacy --prod /prod/app
 
 ###############################################################################
-# Stage 4 — slim runtime
+# Stage 5 — Slim runtime
 ###############################################################################
 FROM node:${NODE_VERSION} AS runtime
 
@@ -82,20 +74,14 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# pnpm uses a symlinked (isolated) node_modules layout, so the directory tree
-# must be copied wholesale and kept at the same paths or the links break.
-# The prod-deps stage contains only manifests + pruned node_modules — no source.
-#
-# Ownership is set with --chown during the copy. Do NOT follow this with a
-# `chown -R /app`: that rewrites every file into a second layer and roughly
-# doubles the image size, which is enough to exhaust disk on a small host.
-COPY --from=prod-deps --chown=node:node /app ./
+# Copy pruned production runtime directory (node_modules + package.json)
+COPY --from=prod-deps --chown=node:node /prod/app ./
 
-# The bundled server and the compiled frontend.
+# Copy compiled API ESM bundle and static web assets from build stage
 COPY --from=build --chown=node:node /app/artifacts/api-server/dist            ./artifacts/api-server/dist
 COPY --from=build --chown=node:node /app/artifacts/mnt-embark-web/dist/public ./public
 
-# Uploads and the embedding-model cache live on a persistent volume.
+# Create volume directories
 RUN mkdir -p /data/uploads /data/model-cache \
  && chown -R node:node /data
 
@@ -107,3 +93,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "--enable-source-maps", "artifacts/api-server/dist/index.mjs"]
+
