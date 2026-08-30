@@ -90,6 +90,40 @@ app.use(
 
 app.use("/api", router);
 
+/*
+ * Every unhandled API error answers as JSON.
+ *
+ * Without this, express's default handler renders an HTML page — in production
+ * just "Internal Server Error". The admin screens read the server's own
+ * sentence out of a JSON body and show it to the person, so an HTML body left
+ * them with nothing to say but "Please try again", which tells the person
+ * nothing and leaves whoever is debugging with no clue either.
+ *
+ * The message goes to the log at error level and only a reference reaches the
+ * browser: a stack trace or a raw driver message is not something to hand to a
+ * client, but the person does need something they can quote when reporting it.
+ */
+app.use(
+  (
+    err: unknown,
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    if (res.headersSent) return next(err);
+
+    const ref = Math.random().toString(36).slice(2, 8).toUpperCase();
+    logger.error(
+      { err, ref, method: req.method, url: req.originalUrl },
+      "unhandled API error",
+    );
+
+    res.status(500).json({
+      error: `Something went wrong on the server (reference ${ref}). The details are in the server log.`,
+    });
+  },
+);
+
 const publicDir = process.env["PUBLIC_DIR"] || path.resolve(process.cwd(), "public");
 
 if (fs.existsSync(publicDir)) {

@@ -257,8 +257,27 @@ export async function seedInitialContent(): Promise<void> {
     ALTER TABLE tours ADD COLUMN IF NOT EXISTS itinerary_steps JSONB NOT NULL DEFAULT '[]';
     ALTER TABLE tours ADD COLUMN IF NOT EXISTS embedding JSONB;
 
+    /*
+     * The activity tables were not created by this file originally — they came
+     * from drizzle push against an earlier schema — and CREATE TABLE IF NOT
+     * EXISTS above is a no-op on a database that already has them. So every
+     * column and every nullability difference has to be reconciled here, or the
+     * shape in production stays whatever it happened to be years ago while the
+     * code assumes the current schema.
+     *
+     * The DROP NOT NULL lines matter as much as the ADD COLUMN ones: an older
+     * activity_groups made description and cover_image required, and an INSERT
+     * that leaves them out then fails with a constraint violation — a 500 on
+     * saving a group, with nothing wrong in the request.
+     */
     ALTER TABLE activity_groups ADD COLUMN IF NOT EXISTS selection_mode TEXT NOT NULL DEFAULT 'multiple';
     ALTER TABLE activity_groups ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE activity_groups ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE activity_groups ADD COLUMN IF NOT EXISTS cover_image TEXT;
+    ALTER TABLE activity_groups ADD COLUMN IF NOT EXISTS icon TEXT;
+    ALTER TABLE activity_groups ALTER COLUMN description DROP NOT NULL;
+    ALTER TABLE activity_groups ALTER COLUMN cover_image DROP NOT NULL;
+    ALTER TABLE activity_groups ALTER COLUMN icon DROP NOT NULL;
 
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS aliases TEXT[] NOT NULL DEFAULT '{}';
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS usage_count INTEGER NOT NULL DEFAULT 0;
@@ -271,6 +290,14 @@ export async function seedInitialContent(): Promise<void> {
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_indexable BOOLEAN NOT NULL DEFAULT FALSE;
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS redirect_to_id INTEGER REFERENCES activities(id) ON DELETE SET NULL;
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS description TEXT;
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS cover_image TEXT;
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS icon TEXT;
+    -- Same reasoning as activity_groups: the schema documents these as nullable
+    -- precisely so an activity can be added without commissioning a photograph.
+    ALTER TABLE activities ALTER COLUMN description DROP NOT NULL;
+    ALTER TABLE activities ALTER COLUMN cover_image DROP NOT NULL;
+    ALTER TABLE activities ALTER COLUMN icon DROP NOT NULL;
 
     ALTER TABLE tour_activities ADD COLUMN IF NOT EXISTS display_order SMALLINT NOT NULL DEFAULT 0;
 
@@ -477,6 +504,83 @@ export async function seedInitialContent(): Promise<void> {
       WHERE activities.id = sub.id;
     `);
     logger.info("Seeded starter activities and tour tags");
+  }
+
+  /*
+   * Report any column the code selects that the database does not actually
+   * have.
+   *
+   * The tables here predate this file — they were created by drizzle push
+   * against whatever the schema looked like at the time — so a database that
+   * has been through several schema versions can be missing a column while
+   * every CREATE TABLE IF NOT EXISTS above quietly does nothing. The symptom is
+   * a 500 on a plain SELECT, with no indication of which column is at fault and
+   * nothing reproducible on a freshly built database.
+   *
+   * One line at boot naming the missing columns turns that into a five-second
+   * diagnosis. Reports rather than repairs: a surprise here means the migration
+   * block above is incomplete, and silently patching it would hide that.
+   */
+  const EXPECTED_COLUMNS: Record<string, string[]> = {
+    activity_groups: [
+      "id",
+      "slug",
+      "name",
+      "description",
+      "cover_image",
+      "icon",
+      "selection_mode",
+      "display_order",
+      "created_at",
+    ],
+    activities: [
+      "id",
+      "group_id",
+      "slug",
+      "name",
+      "description",
+      "cover_image",
+      "icon",
+      "aliases",
+      "redirect_to_id",
+      "is_filterable",
+      "is_indexable",
+      "usage_count",
+      "display_order",
+      "created_at",
+    ],
+    tour_guides: [
+      "tour_id",
+      "opener",
+      "body",
+      "closer",
+      "guide_name",
+      "guide_role",
+      "guide_note",
+      "is_published",
+      "updated_at",
+    ],
+  };
+
+  for (const [table, expected] of Object.entries(EXPECTED_COLUMNS)) {
+    const { rows } = await pool.query<{ column_name: string }>(
+      "SELECT column_name FROM information_schema.columns WHERE table_name = $1",
+      [table],
+    );
+    const actual = new Set(rows.map((r) => r.column_name));
+
+    if (actual.size === 0) {
+      logger.error({ table }, "Table is missing entirely — queries on it will fail");
+      continue;
+    }
+
+    const missing = expected.filter((c) => !actual.has(c));
+    if (missing.length > 0) {
+      logger.error(
+        { table, missing },
+        "Table is missing columns the code selects — queries on it will fail with a 500",
+      );
+    }
   }
 
   logger.info("Database schema and catalog verified");
