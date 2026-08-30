@@ -10,5 +10,7 @@ import type { ActivityFilterItem } from './activityFilterItem';
 export interface ActivityFilterGroup {
   groupSlug: string;
   groupName: string;
+  /** @nullable */
+  groupDescription: string | null;
   activities: ActivityFilterItem[];
 }

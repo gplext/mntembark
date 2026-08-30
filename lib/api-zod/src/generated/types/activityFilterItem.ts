@@ -11,6 +11,10 @@ export interface ActivityFilterItem {
   slug: string;
   name: string;
   /** @nullable */
+  description: string | null;
+  /** @nullable */
+  coverImage: string | null;
+  /** @nullable */
   icon: string | null;
   aliases: string[];
   count: number;

@@ -199,10 +199,14 @@ function GroupForm({
         <Textarea
           value={form.description}
           onChange={(e) => setForm({ ...form, description: e.target.value })}
-          rows={2}
+          rows={6}
           data-testid="group-form-description"
           className={`${fieldInput} resize-none`}
         />
+        <p className="font-sans text-[11px] text-muted-foreground mt-1">
+          The intro paragraph beside this section's heading on the Activities
+          page. Leave empty to print no intro.
+        </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

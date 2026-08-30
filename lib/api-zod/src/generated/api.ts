@@ -63,10 +63,13 @@ export const HealthCheckResponse = zod.object({
 export const ListActivityFiltersResponseItem = zod.object({
   "groupSlug": zod.string(),
   "groupName": zod.string(),
+  "groupDescription": zod.string().nullable(),
   "activities": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
   "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
   "icon": zod.string().nullable(),
   "aliases": zod.array(zod.string()),
   "count": zod.number()

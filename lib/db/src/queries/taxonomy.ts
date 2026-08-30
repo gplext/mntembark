@@ -116,6 +116,17 @@ export interface ActivityFilterItem {
   id: number;
   slug: string;
   name: string;
+  /**
+   * Both nullable, and both carried here rather than left to the caller.
+   *
+   * The public /activities index used to render a hardcoded title, blurb and
+   * photograph per slug, because this query returned neither — so what an admin
+   * wrote was invisible on the card and only appeared once you opened the
+   * activity. Anything not yet written comes back null and the page decides how
+   * to handle the gap; it does not invent one.
+   */
+  description: string | null;
+  coverImage: string | null;
   icon: string | null;
   aliases: string[];
   count: number;
@@ -124,6 +135,15 @@ export interface ActivityFilterItem {
 export interface ActivityFilterGroup {
   groupSlug: string;
   groupName: string;
+  /**
+   * The section's intro paragraph on /activities, as stored.
+   *
+   * Nullable, and null means the section prints no intro. The page used to hold
+   * this text in a hardcoded map keyed by slug, so the copy could not be edited
+   * and a group added through the admin panel silently got somebody else's
+   * fallback paragraph.
+   */
+  groupDescription: string | null;
   activities: ActivityFilterItem[];
 }
 
@@ -142,10 +162,13 @@ export async function getActivityFilters(): Promise<ActivityFilterGroup[]> {
     .select({
       groupSlug: activityGroupsTable.slug,
       groupName: activityGroupsTable.name,
+      groupDescription: activityGroupsTable.description,
       groupOrder: activityGroupsTable.displayOrder,
       activityId: activitiesTable.id,
       activitySlug: activitiesTable.slug,
       activityName: activitiesTable.name,
+      activityDescription: activitiesTable.description,
+      activityCoverImage: activitiesTable.coverImage,
       activityIcon: activitiesTable.icon,
       activityAliases: activitiesTable.aliases,
       activityOrder: activitiesTable.displayOrder,
@@ -170,10 +193,13 @@ export async function getActivityFilters(): Promise<ActivityFilterGroup[]> {
       activityGroupsTable.id,
       activityGroupsTable.slug,
       activityGroupsTable.name,
+      activityGroupsTable.description,
       activityGroupsTable.displayOrder,
       activitiesTable.id,
       activitiesTable.slug,
       activitiesTable.name,
+      activitiesTable.description,
+      activitiesTable.coverImage,
       activitiesTable.icon,
       activitiesTable.aliases,
       activitiesTable.displayOrder,
@@ -190,6 +216,7 @@ export async function getActivityFilters(): Promise<ActivityFilterGroup[]> {
       map.set(r.groupSlug, {
         groupSlug: r.groupSlug,
         groupName: r.groupName,
+        groupDescription: r.groupDescription,
         activities: [],
       });
     }
@@ -197,6 +224,8 @@ export async function getActivityFilters(): Promise<ActivityFilterGroup[]> {
       id: r.activityId,
       slug: r.activitySlug,
       name: r.activityName,
+      description: r.activityDescription,
+      coverImage: r.activityCoverImage,
       icon: r.activityIcon,
       aliases: r.activityAliases,
       count: Number(r.tourCount),

@@ -122,6 +122,10 @@ export interface ActivityFilterItem {
   slug: string;
   name: string;
   /** @nullable */
+  description: string | null;
+  /** @nullable */
+  coverImage: string | null;
+  /** @nullable */
   icon: string | null;
   aliases: string[];
   count: number;
@@ -130,6 +134,8 @@ export interface ActivityFilterItem {
 export interface ActivityFilterGroup {
   groupSlug: string;
   groupName: string;
+  /** @nullable */
+  groupDescription: string | null;
   activities: ActivityFilterItem[];
 }
 

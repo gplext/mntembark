@@ -1391,6 +1391,10 @@ components:
           type: string
         name:
           type: string
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
         icon:
           type: ["string", "null"]
         aliases:
@@ -1399,7 +1403,8 @@ components:
             type: string
         count:
           type: number
-      required: [id, slug, name, icon, aliases, count]
+      required:
+        [id, slug, name, description, coverImage, icon, aliases, count]
 
     ActivityFilterGroup:
       type: object
@@ -1408,11 +1413,13 @@ components:
           type: string
         groupName:
           type: string
+        groupDescription:
+          type: ["string", "null"]
         activities:
           type: array
           items:
             $ref: "#/components/schemas/ActivityFilterItem"
-      required: [groupSlug, groupName, activities]
+      required: [groupSlug, groupName, groupDescription, activities]
 
     # ── Activity administration ───────────────────────────────────────
     AdminActivityGroup:
