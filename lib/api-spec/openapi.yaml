@@ -144,6 +144,218 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  # ── Activity administration ───────────────────────────────────────────
+  # Separate from GET /activities, which returns filter groups shaped for the
+  # public sidebar: only filterable activities, with live tour counts and no
+  # editing fields. These return the rows as stored.
+  /admin/activity-groups:
+    get:
+      operationId: listActivityGroups
+      tags: [activities]
+      summary: List every activity group, including empty ones
+      responses:
+        "200":
+          description: Activity groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminActivityGroup"
+    post:
+      operationId: createActivityGroup
+      tags: [activities]
+      summary: Create an activity group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityGroupInput"
+      responses:
+        "201":
+          description: Created group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminActivityGroup"
+        "409":
+          description: Slug already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/activity-groups/{id}:
+    patch:
+      operationId: updateActivityGroup
+      tags: [activities]
+      summary: Update an activity group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityGroupUpdate"
+      responses:
+        "200":
+          description: Updated group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminActivityGroup"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Slug already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteActivityGroup
+      tags: [activities]
+      summary: Delete an activity group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Group still has activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/activities:
+    get:
+      operationId: listAllActivities
+      tags: [activities]
+      summary: List every activity as stored, filterable or not
+      responses:
+        "200":
+          description: Activities
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminActivity"
+    post:
+      operationId: createActivity
+      tags: [activities]
+      summary: Create an activity
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityInput"
+      responses:
+        "201":
+          description: Created activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminActivity"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Slug already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/activities/{id}:
+    patch:
+      operationId: updateActivity
+      tags: [activities]
+      summary: Update an activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityUpdate"
+      responses:
+        "200":
+          description: Updated activity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminActivity"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Slug already in use
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteActivity
+      tags: [activities]
+      summary: Delete an activity
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "409":
+          description: Activity is still attached to tours
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   # ── Tours ─────────────────────────────────────────────────────────────
   /tours:
     get:
@@ -381,6 +593,121 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+
+  # ── Tour guide copy ───────────────────────────────────────────────────
+  /tours/{id}/guide:
+    get:
+      operationId: getTourGuide
+      tags: [tours]
+      summary: Authored guide copy for a tour
+      description: >
+        404 when no copy has been written for this tour. That is an ordinary
+        state, not an error condition — the public page falls back to its
+        generated text.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Guide copy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TourGuide"
+        "404":
+          description: No guide copy written for this tour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    put:
+      operationId: setTourGuide
+      tags: [tours]
+      summary: Create or replace a tour's guide copy
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TourGuideInput"
+      responses:
+        "200":
+          description: Saved guide copy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TourGuide"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Tour not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    delete:
+      operationId: deleteTourGuide
+      tags: [tours]
+      summary: Discard a tour's guide copy and revert to generated text
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: No guide copy written for this tour
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /guides:
+    get:
+      operationId: listTourGuides
+      tags: [tours]
+      summary: Published guide entries, for the public guide page
+      responses:
+        "200":
+          description: Guide entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TourGuide"
+
+  /admin/guides:
+    get:
+      operationId: listAllTourGuides
+      tags: [tours]
+      summary: Every guide entry including unpublished drafts
+      description: >
+        The admin editor needs this rather than /guides: an unpublished draft is
+        absent from the public list, so a screen built on that list would show a
+        drafted tour as unwritten and open its editor empty.
+      responses:
+        "200":
+          description: Guide entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TourGuide"
 
   # ── Destinations ──────────────────────────────────────────────────────
   /destinations:
@@ -1086,6 +1413,247 @@ components:
           items:
             $ref: "#/components/schemas/ActivityFilterItem"
       required: [groupSlug, groupName, activities]
+
+    # ── Activity administration ───────────────────────────────────────
+    AdminActivityGroup:
+      type: object
+      properties:
+        id:
+          type: number
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        selectionMode:
+          type: string
+          enum: [single, multiple]
+        displayOrder:
+          type: number
+        activityCount:
+          type: number
+      required:
+        [
+          id,
+          slug,
+          name,
+          description,
+          coverImage,
+          icon,
+          selectionMode,
+          displayOrder,
+          activityCount,
+        ]
+
+    ActivityGroupInput:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 2
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        selectionMode:
+          type: string
+          enum: [single, multiple]
+        displayOrder:
+          type: number
+      required: [slug, name]
+
+    ActivityGroupUpdate:
+      type: object
+      properties:
+        slug:
+          type: string
+          minLength: 2
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        selectionMode:
+          type: string
+          enum: [single, multiple]
+        displayOrder:
+          type: number
+
+    AdminActivity:
+      type: object
+      properties:
+        id:
+          type: number
+        groupId:
+          type: number
+        groupName:
+          type: string
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        aliases:
+          type: array
+          items:
+            type: string
+        isFilterable:
+          type: boolean
+        isIndexable:
+          type: boolean
+        displayOrder:
+          type: number
+        tourCount:
+          type: number
+      required:
+        [
+          id,
+          groupId,
+          groupName,
+          slug,
+          name,
+          description,
+          coverImage,
+          icon,
+          aliases,
+          isFilterable,
+          isIndexable,
+          displayOrder,
+          tourCount,
+        ]
+
+    ActivityInput:
+      type: object
+      properties:
+        groupId:
+          type: number
+        slug:
+          type: string
+          minLength: 2
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        aliases:
+          type: array
+          items:
+            type: string
+        isFilterable:
+          type: boolean
+        isIndexable:
+          type: boolean
+        displayOrder:
+          type: number
+      required: [groupId, slug, name]
+
+    ActivityUpdate:
+      type: object
+      properties:
+        groupId:
+          type: number
+        slug:
+          type: string
+          minLength: 2
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: ["string", "null"]
+        coverImage:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        aliases:
+          type: array
+          items:
+            type: string
+        isFilterable:
+          type: boolean
+        isIndexable:
+          type: boolean
+        displayOrder:
+          type: number
+
+    # ── Tour guide copy ───────────────────────────────────────────────
+    TourGuide:
+      type: object
+      properties:
+        tourId:
+          type: number
+        opener:
+          type: string
+        body:
+          type: string
+        closer:
+          type: string
+        guideName:
+          type: ["string", "null"]
+        guideRole:
+          type: ["string", "null"]
+        guideNote:
+          type: ["string", "null"]
+        isPublished:
+          type: boolean
+        updatedAt:
+          type: string
+      required:
+        [
+          tourId,
+          opener,
+          body,
+          closer,
+          guideName,
+          guideRole,
+          guideNote,
+          isPublished,
+          updatedAt,
+        ]
+
+    TourGuideInput:
+      type: object
+      properties:
+        opener:
+          type: string
+          minLength: 1
+        body:
+          type: string
+          minLength: 1
+        closer:
+          type: string
+          minLength: 1
+        guideName:
+          type: ["string", "null"]
+        guideRole:
+          type: ["string", "null"]
+        guideNote:
+          type: ["string", "null"]
+        isPublished:
+          type: boolean
+      required: [opener, body, closer]
 
     TourActivitiesInput:
       type: object

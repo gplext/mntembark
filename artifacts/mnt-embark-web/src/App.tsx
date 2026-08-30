@@ -10,7 +10,7 @@ import { AdminGuard } from '@/components/AdminGuard';
  * Route-level code splitting.
  *
  * Every page used to be imported eagerly, so a visitor landing on the homepage
- * downloaded the entire site — including all six admin screens they can never
+ * downloaded the entire site — including every admin screen they can never
  * open — before anything rendered.
  *
  * Home stays eager: it is the most common entry point and lazy-loading it would
@@ -38,6 +38,8 @@ const AdminDestinationsPage = lazy(() => import('@/pages/admin/destinations'));
 const AdminCategoriesPage = lazy(() => import('@/pages/admin/categories'));
 const AdminJournalsPage = lazy(() => import('@/pages/admin/journals'));
 const AdminEnquiriesPage = lazy(() => import('@/pages/admin/enquiries'));
+const AdminActivitiesPage = lazy(() => import('@/pages/admin/activities'));
+const AdminGuidesPage = lazy(() => import('@/pages/admin/guides'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -85,6 +87,12 @@ function Router() {
         </Route>
         <Route path="/admin/categories">
           <AdminGuard><AdminCategoriesPage /></AdminGuard>
+        </Route>
+        <Route path="/admin/activities">
+          <AdminGuard><AdminActivitiesPage /></AdminGuard>
+        </Route>
+        <Route path="/admin/guides">
+          <AdminGuard><AdminGuidesPage /></AdminGuard>
         </Route>
         <Route path="/admin/journals">
           <AdminGuard><AdminJournalsPage /></AdminGuard>

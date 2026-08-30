@@ -1,11 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { cn } from "@workspace/mnt-embark/lib/utils";
-import { LayoutDashboard, Tag, BookOpen, Globe, ArrowLeft, Inbox } from "lucide-react";
+import { LayoutDashboard, Tag, BookOpen, Globe, ArrowLeft, Inbox, Compass, PenLine } from "lucide-react";
 
 const navItems = [
   { href: "/admin/tours", label: "Tours", icon: LayoutDashboard },
   { href: "/admin/destinations", label: "Destinations", icon: Globe },
   { href: "/admin/categories", label: "Categories", icon: Tag },
+  { href: "/admin/activities", label: "Activities", icon: Compass },
+  { href: "/admin/guides", label: "Guides", icon: PenLine },
   { href: "/admin/journals", label: "Journals", icon: BookOpen },
   { href: "/admin/enquiries", label: "Enquiries", icon: Inbox },
 ];

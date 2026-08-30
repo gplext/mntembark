@@ -10,8 +10,9 @@ import { Link } from "wouter";
 import {
   useListTours,
   getListToursQueryKey,
+  useListTourGuides,
 } from "@workspace/api-client-react";
-import type { Tour } from "@workspace/api-client-react";
+import type { Tour, TourGuide } from "@workspace/api-client-react";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { Separator } from "@workspace/mnt-embark/components/ui/separator";
 import { Badge } from "@workspace/mnt-embark/components/ui/badge";
@@ -83,7 +84,21 @@ function seededPick<T>(arr: T[], id: number, offset: number = 0): T {
   return arr[(id + offset) % arr.length];
 }
 
-function getEditorialCopy(tour: Tour): { opener: string; middle: string; closer: string } {
+/**
+ * Authored copy where it exists, generated copy where it does not.
+ *
+ * Both arms return the same shape so the page never has to branch on which it
+ * got. The generated arrays stay because a tour added this morning still has to
+ * render this afternoon — writing every entry is a slow job, and the site
+ * cannot show a hole in the meantime.
+ */
+function getEditorialCopy(
+  tour: Tour,
+  guide?: TourGuide,
+): { opener: string; middle: string; closer: string } {
+  if (guide) {
+    return { opener: guide.opener, middle: guide.body, closer: guide.closer };
+  }
   return {
     opener: seededPick(EDITORIAL_OPENERS, tour.id, 0),
     middle: seededPick(EDITORIAL_MIDDLES, tour.id, 1),
@@ -91,7 +106,24 @@ function getEditorialCopy(tour: Tour): { opener: string; middle: string; closer:
   };
 }
 
-function getGuideProfile(tour: Tour) {
+/**
+ * The credited guide. An authored entry may name nobody — the name is optional
+ * on purpose — and in that case the credit block is dropped entirely rather
+ * than falling back to one of the invented profiles, which would attribute
+ * real copy to a person who does not exist.
+ */
+function getGuideProfile(
+  tour: Tour,
+  guide?: TourGuide,
+): { name: string; role: string; note: string } | null {
+  if (guide) {
+    if (!guide.guideName) return null;
+    return {
+      name: guide.guideName,
+      role: guide.guideRole ?? "",
+      note: guide.guideNote ?? "",
+    };
+  }
   return GUIDE_PROFILES[tour.id % GUIDE_PROFILES.length];
 }
 
@@ -142,12 +174,13 @@ function PageSkeleton() {
 interface GuideEntryProps {
   tour: Tour;
   index: number;
+  entry?: TourGuide;
 }
 
-function GuideEntry({ tour, index }: GuideEntryProps) {
+function GuideEntry({ tour, index, entry }: GuideEntryProps) {
   const [imgError, setImgError] = useState(false);
-  const copy = getEditorialCopy(tour);
-  const guide = getGuideProfile(tour);
+  const copy = getEditorialCopy(tour, entry);
+  const guide = getGuideProfile(tour, entry);
   const place = tourPlace(tour);
   const classification = (tour as { classification?: string | null }).classification;
 
@@ -224,14 +257,18 @@ function GuideEntry({ tour, index }: GuideEntryProps) {
               </h2>
             </Link>
 
-            <div className="border-l-2 border-primary/50 pl-4 mb-6">
-              <p className="font-sans text-[10px] uppercase tracking-widest text-primary mb-1">
-                Your guide · {guide.name}
-              </p>
-              <p className="font-sans text-xs text-muted-foreground leading-relaxed">
-                {guide.role} — {guide.note}
-              </p>
-            </div>
+            {guide && (
+              <div className="border-l-2 border-primary/50 pl-4 mb-6">
+                <p className="font-sans text-[10px] uppercase tracking-widest text-primary mb-1">
+                  Your guide · {guide.name}
+                </p>
+                {(guide.role || guide.note) && (
+                  <p className="font-sans text-xs text-muted-foreground leading-relaxed">
+                    {[guide.role, guide.note].filter(Boolean).join(" — ")}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Editorial copy */}
             <p className="font-sans text-sm text-muted-foreground leading-relaxed mb-4">
@@ -277,6 +314,15 @@ export default function GuidePage() {
       queryKey: getListToursQueryKey(),
     },
   });
+
+  /*
+   * Authored guide copy, keyed by tour. Deliberately not blocking: if this
+   * request is slow or fails the page still renders every tour with generated
+   * copy, because an outage in the copy service is not a reason to take the
+   * guide off the site.
+   */
+  const { data: guideEntries } = useListTourGuides();
+  const guideByTour = new Map((guideEntries ?? []).map((g) => [g.tourId, g]));
 
   if (isLoading) return <PageSkeleton />;
 
@@ -356,7 +402,11 @@ export default function GuidePage() {
             <div className="space-y-0">
               {list.map((tour, idx) => (
                 <div key={tour.id}>
-                  <GuideEntry tour={tour} index={idx} />
+                  <GuideEntry
+                    tour={tour}
+                    index={idx}
+                    entry={guideByTour.get(tour.id)}
+                  />
                   {idx < list.length - 1 && (
                     <Separator className="my-20 bg-border/30" />
                   )}

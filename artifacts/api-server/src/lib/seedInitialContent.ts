@@ -168,6 +168,7 @@ export async function seedInitialContent(): Promise<void> {
       display_order INTEGER NOT NULL DEFAULT 0,
       usage_count INTEGER NOT NULL DEFAULT 0,
       is_filterable BOOLEAN NOT NULL DEFAULT TRUE,
+      is_indexable BOOLEAN NOT NULL DEFAULT FALSE,
       redirect_to_id INTEGER REFERENCES activities(id) ON DELETE SET NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
@@ -177,6 +178,18 @@ export async function seedInitialContent(): Promise<void> {
       activity_id INTEGER NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
       display_order INTEGER NOT NULL DEFAULT 0,
       PRIMARY KEY (tour_id, activity_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS tour_guides (
+      tour_id INTEGER PRIMARY KEY REFERENCES tours(id) ON DELETE CASCADE,
+      opener TEXT NOT NULL,
+      body TEXT NOT NULL,
+      closer TEXT NOT NULL,
+      guide_name TEXT,
+      guide_role TEXT,
+      guide_note TEXT,
+      is_published BOOLEAN NOT NULL DEFAULT TRUE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS enquiries (
@@ -250,6 +263,12 @@ export async function seedInitialContent(): Promise<void> {
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS aliases TEXT[] NOT NULL DEFAULT '{}';
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS usage_count INTEGER NOT NULL DEFAULT 0;
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_filterable BOOLEAN NOT NULL DEFAULT TRUE;
+    -- The drizzle schema has carried is_indexable since activities were added,
+    -- but neither the CREATE TABLE above nor this block ever created it, so the
+    -- column existed only in TypeScript. Every query selecting it failed:
+    -- GET /api/activities/:slug has been answering 500 on any database built
+    -- from this file. Default FALSE matches the schema — indexing is earned.
+    ALTER TABLE activities ADD COLUMN IF NOT EXISTS is_indexable BOOLEAN NOT NULL DEFAULT FALSE;
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS redirect_to_id INTEGER REFERENCES activities(id) ON DELETE SET NULL;
     ALTER TABLE activities ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
 

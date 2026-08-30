@@ -96,6 +96,210 @@ export const GetActivityBySlugResponse = zod.object({
 
 
 /**
+ * @summary List every activity group, including empty ones
+ */
+export const ListActivityGroupsResponseItem = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
+  "icon": zod.string().nullable(),
+  "selectionMode": zod.enum(['single', 'multiple']),
+  "displayOrder": zod.number(),
+  "activityCount": zod.number()
+})
+export const ListActivityGroupsResponse = zod.array(ListActivityGroupsResponseItem)
+
+
+/**
+ * @summary Create an activity group
+ */
+export const createActivityGroupBodySlugMin = 2;
+
+
+
+
+export const CreateActivityGroupBody = zod.object({
+  "slug": zod.string().min(createActivityGroupBodySlugMin),
+  "name": zod.string().min(1),
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "icon": zod.string().nullish(),
+  "selectionMode": zod.enum(['single', 'multiple']).optional(),
+  "displayOrder": zod.number().optional()
+})
+
+export const CreateActivityGroupResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
+  "icon": zod.string().nullable(),
+  "selectionMode": zod.enum(['single', 'multiple']),
+  "displayOrder": zod.number(),
+  "activityCount": zod.number()
+})
+
+
+/**
+ * @summary Update an activity group
+ */
+export const UpdateActivityGroupParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateActivityGroupBodySlugMin = 2;
+
+
+
+
+export const UpdateActivityGroupBody = zod.object({
+  "slug": zod.string().min(updateActivityGroupBodySlugMin).optional(),
+  "name": zod.string().min(1).optional(),
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "icon": zod.string().nullish(),
+  "selectionMode": zod.enum(['single', 'multiple']).optional(),
+  "displayOrder": zod.number().optional()
+})
+
+export const UpdateActivityGroupResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
+  "icon": zod.string().nullable(),
+  "selectionMode": zod.enum(['single', 'multiple']),
+  "displayOrder": zod.number(),
+  "activityCount": zod.number()
+})
+
+
+/**
+ * @summary Delete an activity group
+ */
+export const DeleteActivityGroupParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteActivityGroupResponse = zod.void()
+
+
+/**
+ * @summary List every activity as stored, filterable or not
+ */
+export const ListAllActivitiesResponseItem = zod.object({
+  "id": zod.number(),
+  "groupId": zod.number(),
+  "groupName": zod.string(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
+  "icon": zod.string().nullable(),
+  "aliases": zod.array(zod.string()),
+  "isFilterable": zod.boolean(),
+  "isIndexable": zod.boolean(),
+  "displayOrder": zod.number(),
+  "tourCount": zod.number()
+})
+export const ListAllActivitiesResponse = zod.array(ListAllActivitiesResponseItem)
+
+
+/**
+ * @summary Create an activity
+ */
+export const createActivityBodySlugMin = 2;
+
+
+
+
+export const CreateActivityBody = zod.object({
+  "groupId": zod.number(),
+  "slug": zod.string().min(createActivityBodySlugMin),
+  "name": zod.string().min(1),
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "icon": zod.string().nullish(),
+  "aliases": zod.array(zod.string()).optional(),
+  "isFilterable": zod.boolean().optional(),
+  "isIndexable": zod.boolean().optional(),
+  "displayOrder": zod.number().optional()
+})
+
+export const CreateActivityResponse = zod.object({
+  "id": zod.number(),
+  "groupId": zod.number(),
+  "groupName": zod.string(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
+  "icon": zod.string().nullable(),
+  "aliases": zod.array(zod.string()),
+  "isFilterable": zod.boolean(),
+  "isIndexable": zod.boolean(),
+  "displayOrder": zod.number(),
+  "tourCount": zod.number()
+})
+
+
+/**
+ * @summary Update an activity
+ */
+export const UpdateActivityParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const updateActivityBodySlugMin = 2;
+
+
+
+
+export const UpdateActivityBody = zod.object({
+  "groupId": zod.number().optional(),
+  "slug": zod.string().min(updateActivityBodySlugMin).optional(),
+  "name": zod.string().min(1).optional(),
+  "description": zod.string().nullish(),
+  "coverImage": zod.string().nullish(),
+  "icon": zod.string().nullish(),
+  "aliases": zod.array(zod.string()).optional(),
+  "isFilterable": zod.boolean().optional(),
+  "isIndexable": zod.boolean().optional(),
+  "displayOrder": zod.number().optional()
+})
+
+export const UpdateActivityResponse = zod.object({
+  "id": zod.number(),
+  "groupId": zod.number(),
+  "groupName": zod.string(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "description": zod.string().nullable(),
+  "coverImage": zod.string().nullable(),
+  "icon": zod.string().nullable(),
+  "aliases": zod.array(zod.string()),
+  "isFilterable": zod.boolean(),
+  "isIndexable": zod.boolean(),
+  "displayOrder": zod.number(),
+  "tourCount": zod.number()
+})
+
+
+/**
+ * @summary Delete an activity
+ */
+export const DeleteActivityParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteActivityResponse = zod.void()
+
+
+/**
  * @summary List all tours
  */
 export const ListToursQueryParams = zod.object({
@@ -437,6 +641,107 @@ export const SetTourActivitiesBody = zod.object({
 })
 
 export const SetTourActivitiesResponse = zod.void()
+
+
+/**
+ * 404 when no copy has been written for this tour. That is an ordinary state, not an error condition — the public page falls back to its generated text.
+ * @summary Authored guide copy for a tour
+ */
+export const GetTourGuideParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetTourGuideResponse = zod.object({
+  "tourId": zod.number(),
+  "opener": zod.string(),
+  "body": zod.string(),
+  "closer": zod.string(),
+  "guideName": zod.string().nullable(),
+  "guideRole": zod.string().nullable(),
+  "guideNote": zod.string().nullable(),
+  "isPublished": zod.boolean(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Create or replace a tour's guide copy
+ */
+export const SetTourGuideParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
+
+
+
+
+export const SetTourGuideBody = zod.object({
+  "opener": zod.string().min(1),
+  "body": zod.string().min(1),
+  "closer": zod.string().min(1),
+  "guideName": zod.string().nullish(),
+  "guideRole": zod.string().nullish(),
+  "guideNote": zod.string().nullish(),
+  "isPublished": zod.boolean().optional()
+})
+
+export const SetTourGuideResponse = zod.object({
+  "tourId": zod.number(),
+  "opener": zod.string(),
+  "body": zod.string(),
+  "closer": zod.string(),
+  "guideName": zod.string().nullable(),
+  "guideRole": zod.string().nullable(),
+  "guideNote": zod.string().nullable(),
+  "isPublished": zod.boolean(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Discard a tour's guide copy and revert to generated text
+ */
+export const DeleteTourGuideParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteTourGuideResponse = zod.void()
+
+
+/**
+ * @summary Published guide entries, for the public guide page
+ */
+export const ListTourGuidesResponseItem = zod.object({
+  "tourId": zod.number(),
+  "opener": zod.string(),
+  "body": zod.string(),
+  "closer": zod.string(),
+  "guideName": zod.string().nullable(),
+  "guideRole": zod.string().nullable(),
+  "guideNote": zod.string().nullable(),
+  "isPublished": zod.boolean(),
+  "updatedAt": zod.string()
+})
+export const ListTourGuidesResponse = zod.array(ListTourGuidesResponseItem)
+
+
+/**
+ * The admin editor needs this rather than /guides: an unpublished draft is absent from the public list, so a screen built on that list would show a drafted tour as unwritten and open its editor empty.
+ * @summary Every guide entry including unpublished drafts
+ */
+export const ListAllTourGuidesResponseItem = zod.object({
+  "tourId": zod.number(),
+  "opener": zod.string(),
+  "body": zod.string(),
+  "closer": zod.string(),
+  "guideName": zod.string().nullable(),
+  "guideRole": zod.string().nullable(),
+  "guideNote": zod.string().nullable(),
+  "isPublished": zod.boolean(),
+  "updatedAt": zod.string()
+})
+export const ListAllTourGuidesResponse = zod.array(ListAllTourGuidesResponseItem)
 
 
 /**

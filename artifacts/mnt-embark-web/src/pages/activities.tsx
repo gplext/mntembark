@@ -35,6 +35,31 @@ const GROUP_INTROS: Record<string, string> = {
 const FALLBACK_INTRO =
   "A curated selection of experiences assembled for travelers who seek something beyond the conventional itinerary.";
 
+/*
+ * Small gold kicker sitting above each group's serif heading, mirroring the
+ * page header's "Curated Experiences" / "Activities" pairing. Keyed by slug and
+ * kept alongside GROUP_INTROS so a group's copy lives in one place.
+ *
+ * A group with no entry here falls back to its size rather than to a guessed
+ * phrase — see groupKicker below.
+ */
+const GROUP_KICKERS: Record<string, string> = {
+  "water": "Ocean, Reef & River",
+  "land-adventure": "Terrain & Wilderness",
+  "culture": "Traditions & Craft",
+  "culture-entertainment": "Traditions & Craft",
+  "food-drink": "Table & Vineyard",
+  "wellness": "Thermal & Restorative",
+  "in-air": "Flight & Altitude",
+};
+
+function groupKicker(group: ActivityFilterGroup): string {
+  const kicker = GROUP_KICKERS[group.groupSlug];
+  if (kicker) return kicker;
+  const n = group.activities.length;
+  return `${n} ${n === 1 ? "Experience" : "Experiences"}`;
+}
+
 interface ActivityEditorial {
   title: string;
   description: string;
@@ -221,8 +246,14 @@ function ActivityGroup({ group }: { group: ActivityFilterGroup }) {
     >
       <div className="flex flex-col md:flex-row md:items-start md:gap-12 mb-8">
         <div className="md:w-64 shrink-0 mb-4 md:mb-0">
+          {/*
+            The gold eyebrow is a kicker above the name, the way the page
+            header pairs "Curated Experiences" with "Activities". It used to
+            render group.groupName as well, so every section showed its title
+            twice — "WATER" over "Water".
+          */}
           <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-primary mb-2">
-            {group.groupName}
+            {groupKicker(group)}
           </p>
           <h2
             id={`group-${group.groupSlug}`}

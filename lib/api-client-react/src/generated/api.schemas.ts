@@ -133,6 +133,161 @@ export interface ActivityFilterGroup {
   activities: ActivityFilterItem[];
 }
 
+export type AdminActivityGroupSelectionMode = typeof AdminActivityGroupSelectionMode[keyof typeof AdminActivityGroupSelectionMode];
+
+
+export const AdminActivityGroupSelectionMode = {
+  single: 'single',
+  multiple: 'multiple',
+} as const;
+
+export interface AdminActivityGroup {
+  id: number;
+  slug: string;
+  name: string;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  coverImage: string | null;
+  /** @nullable */
+  icon: string | null;
+  selectionMode: AdminActivityGroupSelectionMode;
+  displayOrder: number;
+  activityCount: number;
+}
+
+export type ActivityGroupInputSelectionMode = typeof ActivityGroupInputSelectionMode[keyof typeof ActivityGroupInputSelectionMode];
+
+
+export const ActivityGroupInputSelectionMode = {
+  single: 'single',
+  multiple: 'multiple',
+} as const;
+
+export interface ActivityGroupInput {
+  /** @minLength 2 */
+  slug: string;
+  /** @minLength 1 */
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  coverImage?: string | null;
+  /** @nullable */
+  icon?: string | null;
+  selectionMode?: ActivityGroupInputSelectionMode;
+  displayOrder?: number;
+}
+
+export type ActivityGroupUpdateSelectionMode = typeof ActivityGroupUpdateSelectionMode[keyof typeof ActivityGroupUpdateSelectionMode];
+
+
+export const ActivityGroupUpdateSelectionMode = {
+  single: 'single',
+  multiple: 'multiple',
+} as const;
+
+export interface ActivityGroupUpdate {
+  /** @minLength 2 */
+  slug?: string;
+  /** @minLength 1 */
+  name?: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  coverImage?: string | null;
+  /** @nullable */
+  icon?: string | null;
+  selectionMode?: ActivityGroupUpdateSelectionMode;
+  displayOrder?: number;
+}
+
+export interface AdminActivity {
+  id: number;
+  groupId: number;
+  groupName: string;
+  slug: string;
+  name: string;
+  /** @nullable */
+  description: string | null;
+  /** @nullable */
+  coverImage: string | null;
+  /** @nullable */
+  icon: string | null;
+  aliases: string[];
+  isFilterable: boolean;
+  isIndexable: boolean;
+  displayOrder: number;
+  tourCount: number;
+}
+
+export interface ActivityInput {
+  groupId: number;
+  /** @minLength 2 */
+  slug: string;
+  /** @minLength 1 */
+  name: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  coverImage?: string | null;
+  /** @nullable */
+  icon?: string | null;
+  aliases?: string[];
+  isFilterable?: boolean;
+  isIndexable?: boolean;
+  displayOrder?: number;
+}
+
+export interface ActivityUpdate {
+  groupId?: number;
+  /** @minLength 2 */
+  slug?: string;
+  /** @minLength 1 */
+  name?: string;
+  /** @nullable */
+  description?: string | null;
+  /** @nullable */
+  coverImage?: string | null;
+  /** @nullable */
+  icon?: string | null;
+  aliases?: string[];
+  isFilterable?: boolean;
+  isIndexable?: boolean;
+  displayOrder?: number;
+}
+
+export interface TourGuide {
+  tourId: number;
+  opener: string;
+  body: string;
+  closer: string;
+  /** @nullable */
+  guideName: string | null;
+  /** @nullable */
+  guideRole: string | null;
+  /** @nullable */
+  guideNote: string | null;
+  isPublished: boolean;
+  updatedAt: string;
+}
+
+export interface TourGuideInput {
+  /** @minLength 1 */
+  opener: string;
+  /** @minLength 1 */
+  body: string;
+  /** @minLength 1 */
+  closer: string;
+  /** @nullable */
+  guideName?: string | null;
+  /** @nullable */
+  guideRole?: string | null;
+  /** @nullable */
+  guideNote?: string | null;
+  isPublished?: boolean;
+}
+
 export interface TourActivitiesInput {
   activityIds: number[];
 }

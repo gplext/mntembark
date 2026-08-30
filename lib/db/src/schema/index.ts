@@ -5,5 +5,6 @@ export * from "./categories";
 export * from "./destinations";
 export * from "./tours";
 export * from "./activities";
+export * from "./guides";
 export * from "./journals";
 export * from "./enquiries";

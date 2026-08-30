@@ -22,6 +22,12 @@ import type {
 import type {
   ActivityDetail,
   ActivityFilterGroup,
+  ActivityGroupInput,
+  ActivityGroupUpdate,
+  ActivityInput,
+  ActivityUpdate,
+  AdminActivity,
+  AdminActivityGroup,
   ApiError,
   Category,
   CategoryInput,
@@ -48,6 +54,8 @@ import type {
   Stats,
   Tour,
   TourActivitiesInput,
+  TourGuide,
+  TourGuideInput,
   TourInput,
   TourUpdate,
   TourWithTaxonomy,
@@ -461,6 +469,588 @@ export function useGetActivityBySlug<TData = Awaited<ReturnType<typeof getActivi
 
 
 
+
+export const getListActivityGroupsUrl = () => {
+
+
+
+
+  return `/api/admin/activity-groups`
+}
+
+/**
+ * @summary List every activity group, including empty ones
+ */
+export const listActivityGroups = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminActivityGroup[]> => {
+
+  return customFetch<AdminActivityGroup[]>(getListActivityGroupsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListActivityGroupsQueryKey = () => {
+    return [
+    `/api/admin/activity-groups`
+    ] as const;
+    }
+
+
+export const getListActivityGroupsQueryOptions = <TData = Awaited<ReturnType<typeof listActivityGroups>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listActivityGroups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListActivityGroupsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listActivityGroups>>> = ({ signal }) => listActivityGroups({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listActivityGroups>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListActivityGroupsQueryResult = NonNullable<Awaited<ReturnType<typeof listActivityGroups>>>
+export type ListActivityGroupsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List every activity group, including empty ones
+ */
+
+export function useListActivityGroups<TData = Awaited<ReturnType<typeof listActivityGroups>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listActivityGroups>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListActivityGroupsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateActivityGroupUrl = () => {
+
+
+
+
+  return `/api/admin/activity-groups`
+}
+
+/**
+ * @summary Create an activity group
+ */
+export const createActivityGroup = async (activityGroupInput: ActivityGroupInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminActivityGroup> => {
+
+  return customFetch<AdminActivityGroup>(getCreateActivityGroupUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(activityGroupInput)
+  }
+);}
+
+
+
+
+
+export const getCreateActivityGroupMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createActivityGroup>>, TError,{data: BodyType<ActivityGroupInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createActivityGroup>>, TError,{data: BodyType<ActivityGroupInput>}, TContext> => {
+
+const mutationKey = ['createActivityGroup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createActivityGroup>>, {data: BodyType<ActivityGroupInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createActivityGroup(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateActivityGroupMutationResult = NonNullable<Awaited<ReturnType<typeof createActivityGroup>>>
+    export type CreateActivityGroupMutationBody = BodyType<ActivityGroupInput>
+    export type CreateActivityGroupMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Create an activity group
+ */
+export const useCreateActivityGroup = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createActivityGroup>>, TError,{data: BodyType<ActivityGroupInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createActivityGroup>>,
+        TError,
+        {data: BodyType<ActivityGroupInput>},
+        TContext
+      > => {
+      return useMutation(getCreateActivityGroupMutationOptions(options));
+    }
+
+export const getUpdateActivityGroupUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/activity-groups/${id}`
+}
+
+/**
+ * @summary Update an activity group
+ */
+export const updateActivityGroup = async (id: number,
+    activityGroupUpdate: ActivityGroupUpdate, options?: Parameters<typeof customFetch>[1]): Promise<AdminActivityGroup> => {
+
+  return customFetch<AdminActivityGroup>(getUpdateActivityGroupUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(activityGroupUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateActivityGroupMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateActivityGroup>>, TError,{id: number;data: BodyType<ActivityGroupUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateActivityGroup>>, TError,{id: number;data: BodyType<ActivityGroupUpdate>}, TContext> => {
+
+const mutationKey = ['updateActivityGroup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateActivityGroup>>, {id: number;data: BodyType<ActivityGroupUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateActivityGroup(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateActivityGroupMutationResult = NonNullable<Awaited<ReturnType<typeof updateActivityGroup>>>
+    export type UpdateActivityGroupMutationBody = BodyType<ActivityGroupUpdate>
+    export type UpdateActivityGroupMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update an activity group
+ */
+export const useUpdateActivityGroup = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateActivityGroup>>, TError,{id: number;data: BodyType<ActivityGroupUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateActivityGroup>>,
+        TError,
+        {id: number;data: BodyType<ActivityGroupUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateActivityGroupMutationOptions(options));
+    }
+
+export const getDeleteActivityGroupUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/activity-groups/${id}`
+}
+
+/**
+ * @summary Delete an activity group
+ */
+export const deleteActivityGroup = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteActivityGroupUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteActivityGroupMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteActivityGroup>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteActivityGroup>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteActivityGroup'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteActivityGroup>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteActivityGroup(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteActivityGroupMutationResult = NonNullable<Awaited<ReturnType<typeof deleteActivityGroup>>>
+
+    export type DeleteActivityGroupMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Delete an activity group
+ */
+export const useDeleteActivityGroup = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteActivityGroup>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteActivityGroup>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteActivityGroupMutationOptions(options));
+    }
+
+export const getListAllActivitiesUrl = () => {
+
+
+
+
+  return `/api/admin/activities`
+}
+
+/**
+ * @summary List every activity as stored, filterable or not
+ */
+export const listAllActivities = async ( options?: Parameters<typeof customFetch>[1]): Promise<AdminActivity[]> => {
+
+  return customFetch<AdminActivity[]>(getListAllActivitiesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAllActivitiesQueryKey = () => {
+    return [
+    `/api/admin/activities`
+    ] as const;
+    }
+
+
+export const getListAllActivitiesQueryOptions = <TData = Awaited<ReturnType<typeof listAllActivities>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAllActivities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAllActivitiesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAllActivities>>> = ({ signal }) => listAllActivities({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAllActivities>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAllActivitiesQueryResult = NonNullable<Awaited<ReturnType<typeof listAllActivities>>>
+export type ListAllActivitiesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List every activity as stored, filterable or not
+ */
+
+export function useListAllActivities<TData = Awaited<ReturnType<typeof listAllActivities>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAllActivities>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAllActivitiesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateActivityUrl = () => {
+
+
+
+
+  return `/api/admin/activities`
+}
+
+/**
+ * @summary Create an activity
+ */
+export const createActivity = async (activityInput: ActivityInput, options?: Parameters<typeof customFetch>[1]): Promise<AdminActivity> => {
+
+  return customFetch<AdminActivity>(getCreateActivityUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(activityInput)
+  }
+);}
+
+
+
+
+
+export const getCreateActivityMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createActivity>>, TError,{data: BodyType<ActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createActivity>>, TError,{data: BodyType<ActivityInput>}, TContext> => {
+
+const mutationKey = ['createActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createActivity>>, {data: BodyType<ActivityInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createActivity(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateActivityMutationResult = NonNullable<Awaited<ReturnType<typeof createActivity>>>
+    export type CreateActivityMutationBody = BodyType<ActivityInput>
+    export type CreateActivityMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Create an activity
+ */
+export const useCreateActivity = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createActivity>>, TError,{data: BodyType<ActivityInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createActivity>>,
+        TError,
+        {data: BodyType<ActivityInput>},
+        TContext
+      > => {
+      return useMutation(getCreateActivityMutationOptions(options));
+    }
+
+export const getUpdateActivityUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/activities/${id}`
+}
+
+/**
+ * @summary Update an activity
+ */
+export const updateActivity = async (id: number,
+    activityUpdate: ActivityUpdate, options?: Parameters<typeof customFetch>[1]): Promise<AdminActivity> => {
+
+  return customFetch<AdminActivity>(getUpdateActivityUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(activityUpdate)
+  }
+);}
+
+
+
+
+
+export const getUpdateActivityMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateActivity>>, TError,{id: number;data: BodyType<ActivityUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateActivity>>, TError,{id: number;data: BodyType<ActivityUpdate>}, TContext> => {
+
+const mutationKey = ['updateActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateActivity>>, {id: number;data: BodyType<ActivityUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateActivity(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateActivityMutationResult = NonNullable<Awaited<ReturnType<typeof updateActivity>>>
+    export type UpdateActivityMutationBody = BodyType<ActivityUpdate>
+    export type UpdateActivityMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Update an activity
+ */
+export const useUpdateActivity = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateActivity>>, TError,{id: number;data: BodyType<ActivityUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateActivity>>,
+        TError,
+        {id: number;data: BodyType<ActivityUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateActivityMutationOptions(options));
+    }
+
+export const getDeleteActivityUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/activities/${id}`
+}
+
+/**
+ * @summary Delete an activity
+ */
+export const deleteActivity = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteActivityUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteActivityMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteActivity>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteActivity>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteActivity'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteActivity>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteActivity(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteActivityMutationResult = NonNullable<Awaited<ReturnType<typeof deleteActivity>>>
+
+    export type DeleteActivityMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Delete an activity
+ */
+export const useDeleteActivity = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteActivity>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteActivity>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteActivityMutationOptions(options));
+    }
 
 export const getListToursUrl = (params?: ListToursParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -1154,6 +1744,382 @@ export const useSetTourActivities = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getSetTourActivitiesMutationOptions(options));
     }
+
+export const getGetTourGuideUrl = (id: number,) => {
+
+
+
+
+  return `/api/tours/${id}/guide`
+}
+
+/**
+ * 404 when no copy has been written for this tour. That is an ordinary state, not an error condition — the public page falls back to its generated text.
+ * @summary Authored guide copy for a tour
+ */
+export const getTourGuide = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<TourGuide> => {
+
+  return customFetch<TourGuide>(getGetTourGuideUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTourGuideQueryKey = (id: number,) => {
+    return [
+    `/api/tours/${id}/guide`
+    ] as const;
+    }
+
+
+export const getGetTourGuideQueryOptions = <TData = Awaited<ReturnType<typeof getTourGuide>>, TError = ErrorType<ApiError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTourGuide>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTourGuideQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTourGuide>>> = ({ signal }) => getTourGuide(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTourGuide>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTourGuideQueryResult = NonNullable<Awaited<ReturnType<typeof getTourGuide>>>
+export type GetTourGuideQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Authored guide copy for a tour
+ */
+
+export function useGetTourGuide<TData = Awaited<ReturnType<typeof getTourGuide>>, TError = ErrorType<ApiError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTourGuide>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTourGuideQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSetTourGuideUrl = (id: number,) => {
+
+
+
+
+  return `/api/tours/${id}/guide`
+}
+
+/**
+ * @summary Create or replace a tour's guide copy
+ */
+export const setTourGuide = async (id: number,
+    tourGuideInput: TourGuideInput, options?: Parameters<typeof customFetch>[1]): Promise<TourGuide> => {
+
+  return customFetch<TourGuide>(getSetTourGuideUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(tourGuideInput)
+  }
+);}
+
+
+
+
+
+export const getSetTourGuideMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setTourGuide>>, TError,{id: number;data: BodyType<TourGuideInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setTourGuide>>, TError,{id: number;data: BodyType<TourGuideInput>}, TContext> => {
+
+const mutationKey = ['setTourGuide'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setTourGuide>>, {id: number;data: BodyType<TourGuideInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setTourGuide(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetTourGuideMutationResult = NonNullable<Awaited<ReturnType<typeof setTourGuide>>>
+    export type SetTourGuideMutationBody = BodyType<TourGuideInput>
+    export type SetTourGuideMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Create or replace a tour's guide copy
+ */
+export const useSetTourGuide = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setTourGuide>>, TError,{id: number;data: BodyType<TourGuideInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setTourGuide>>,
+        TError,
+        {id: number;data: BodyType<TourGuideInput>},
+        TContext
+      > => {
+      return useMutation(getSetTourGuideMutationOptions(options));
+    }
+
+export const getDeleteTourGuideUrl = (id: number,) => {
+
+
+
+
+  return `/api/tours/${id}/guide`
+}
+
+/**
+ * @summary Discard a tour's guide copy and revert to generated text
+ */
+export const deleteTourGuide = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteTourGuideUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteTourGuideMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTourGuide>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteTourGuide>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteTourGuide'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteTourGuide>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteTourGuide(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteTourGuideMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTourGuide>>>
+
+    export type DeleteTourGuideMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Discard a tour's guide copy and revert to generated text
+ */
+export const useDeleteTourGuide = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteTourGuide>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteTourGuide>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteTourGuideMutationOptions(options));
+    }
+
+export const getListTourGuidesUrl = () => {
+
+
+
+
+  return `/api/guides`
+}
+
+/**
+ * @summary Published guide entries, for the public guide page
+ */
+export const listTourGuides = async ( options?: Parameters<typeof customFetch>[1]): Promise<TourGuide[]> => {
+
+  return customFetch<TourGuide[]>(getListTourGuidesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListTourGuidesQueryKey = () => {
+    return [
+    `/api/guides`
+    ] as const;
+    }
+
+
+export const getListTourGuidesQueryOptions = <TData = Awaited<ReturnType<typeof listTourGuides>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTourGuides>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListTourGuidesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listTourGuides>>> = ({ signal }) => listTourGuides({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listTourGuides>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListTourGuidesQueryResult = NonNullable<Awaited<ReturnType<typeof listTourGuides>>>
+export type ListTourGuidesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Published guide entries, for the public guide page
+ */
+
+export function useListTourGuides<TData = Awaited<ReturnType<typeof listTourGuides>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listTourGuides>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListTourGuidesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListAllTourGuidesUrl = () => {
+
+
+
+
+  return `/api/admin/guides`
+}
+
+/**
+ * The admin editor needs this rather than /guides: an unpublished draft is absent from the public list, so a screen built on that list would show a drafted tour as unwritten and open its editor empty.
+ * @summary Every guide entry including unpublished drafts
+ */
+export const listAllTourGuides = async ( options?: Parameters<typeof customFetch>[1]): Promise<TourGuide[]> => {
+
+  return customFetch<TourGuide[]>(getListAllTourGuidesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAllTourGuidesQueryKey = () => {
+    return [
+    `/api/admin/guides`
+    ] as const;
+    }
+
+
+export const getListAllTourGuidesQueryOptions = <TData = Awaited<ReturnType<typeof listAllTourGuides>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAllTourGuides>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAllTourGuidesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAllTourGuides>>> = ({ signal }) => listAllTourGuides({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAllTourGuides>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAllTourGuidesQueryResult = NonNullable<Awaited<ReturnType<typeof listAllTourGuides>>>
+export type ListAllTourGuidesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Every guide entry including unpublished drafts
+ */
+
+export function useListAllTourGuides<TData = Awaited<ReturnType<typeof listAllTourGuides>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAllTourGuides>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAllTourGuidesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getListDestinationsUrl = () => {
 
