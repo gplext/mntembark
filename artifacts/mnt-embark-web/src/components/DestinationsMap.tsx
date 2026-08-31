@@ -109,16 +109,6 @@ function p(lat: number, lng: number) {
   const [x, y] = proj(lat, lng);
   return `${x.toFixed(1)},${y.toFixed(1)}`;
 }
-function mv(lat: number, lng: number) { return `M ${p(lat, lng)}`; }
-function lv(lat: number, lng: number) { return `L ${p(lat, lng)}`; }
-// Quadratic bezier with lat/lng control point
-function qv(clat: number, clng: number, lat: number, lng: number) {
-  return `Q ${p(clat, clng)} ${p(lat, lng)}`;
-}
-// Cubic bezier with lat/lng control points
-function cv(c1lat: number, c1lng: number, c2lat: number, c2lng: number, lat: number, lng: number) {
-  return `C ${p(c1lat, c1lng)} ${p(c2lat, c2lng)} ${p(lat, lng)}`;
-}
 
 // ─── Geographic base map ─────────────────────────────────────────────────────
 //
@@ -132,18 +122,56 @@ type GeoGeometry = {
 } | null | undefined;
 
 function ringToPath(ring: unknown): string {
-  if (!Array.isArray(ring) || ring.length === 0) return "";
+  if (!Array.isArray(ring) || ring.length < 3) return "";
 
-  const points = ring as unknown[][];
-  const commands = points
-    .filter((point): point is [number, number] =>
+  const points = ring.filter(
+    (point): point is [number, number] =>
       Array.isArray(point) &&
       typeof point[0] === "number" &&
       typeof point[1] === "number"
-    )
-    .map(([lng, lat], index) => `${index === 0 ? "M" : "L"} ${p(lat, lng)}`);
+  );
 
-  return commands.length > 0 ? `${commands.join(" ")} Z` : "";
+  if (points.length < 3) return "";
+
+  // Unwrap longitudes so adjacent vertices never jump by > 180 degrees
+  // This preserves the natural, continuous curvature of eastern Russia / Chukotka
+  const unwrapped: [number, number][] = [points[0]];
+  let currentOffset = 0;
+
+  for (let i = 1; i < points.length; i++) {
+    const prevRawLng = points[i - 1][0];
+    const currRawLng = points[i][0];
+    const dLng = currRawLng - prevRawLng;
+
+    if (dLng < -180) {
+      currentOffset += 360;
+    } else if (dLng > 180) {
+      currentOffset -= 360;
+    }
+
+    const unwrappedLng = currRawLng + currentOffset;
+    unwrapped.push([unwrappedLng, points[i][1]]);
+  }
+
+  const lngs = unwrapped.map((pt) => pt[0]);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+
+  if (maxLng - minLng <= 360) {
+    const avgLng = (minLng + maxLng) / 2;
+    let shift = 0;
+    if (avgLng < -180) shift = 360;
+    else if (avgLng > 360) shift = -360;
+
+    const commands = unwrapped.map(([lng, lat], idx) => {
+      return `${idx === 0 ? "M" : "L"} ${p(lat, lng + shift)}`;
+    });
+    return `${commands.join(" ")} Z`;
+  }
+
+  // Fallback for global wrapping polygons
+  const commands = points.map(([lng, lat], index) => `${index === 0 ? "M" : "L"} ${p(lat, lng)}`);
+  return `${commands.join(" ")} Z`;
 }
 
 function geometryToPath(geometry: GeoGeometry): string {
@@ -183,280 +211,16 @@ const DESTINATION_COORDS: Record<string, [number, number]> = {
   morocco: [31.7917, -7.0926],
   patagonia: [-45.5, -69.0],
   "the-maldives": [3.2028, 73.2207],
+  maldives: [3.2028, 73.2207],
+  japan: [36.2048, 138.2529],
+  chile: [-35.6751, -71.5430],
+  argentina: [-38.4161, -63.6167],
 };
 
 function getCoords(slug: string | null | undefined): [number, number] | null {
   if (!slug) return null;
   return DESTINATION_COORDS[slug.toLowerCase()] ?? null;
 }
-
-// ─── Continent geography ──────────────────────────────────────────────────────
-//
-// Paths are constructed by tracing real lat/lng boundary points through the
-// equirectangular projection so shapes are geographically accurate and
-// recognisable — not artistic blobs.
-//
-// Each path uses M/L/C/Q in projected coordinates. The hand-drawn filter
-// adds only a VERY subtle waver (scale=1.5) so shapes stay recognisable.
-
-const CONTINENTS: { id: string; d: string; label: string; tint?: string }[] = [
-  // ── North America (including Alaska peninsula as part of path) ───────────
-  {
-    id: "na",
-    label: "North America",
-    d: [
-      // Start Alaska tip, trace west coast down then east coast up
-      mv(72, -141), lv(68, -166), lv(60, -162), lv(55, -160),   // Alaska
-      lv(58, -137), lv(60, -140), lv(57, -135), lv(52, -128),   // BC coast
-      lv(48, -124), lv(45, -124), lv(37, -122), lv(32, -117),   // US west coast
-      lv(29, -110), lv(23, -106), lv(16, -90),  lv(10, -84),    // Mexico/CA
-      lv(10, -76),  lv(15, -84),  lv(22, -90),  lv(24, -82),    // Caribbean coast
-      lv(25, -80),  lv(35, -75),  lv(41, -70),  lv(44, -66),    // US east coast
-      lv(47, -60),  lv(51, -55),  lv(57, -60),  lv(60, -65),    // Maritimes/Labrador
-      lv(64, -64),  lv(66, -82),  lv(70, -90),  lv(72, -90),    // Hudson Bay
-      lv(74, -80),  lv(78, -74),  lv(82, -62),  lv(83, -50),    // Baffin
-      lv(80, -68),  lv(76, -72),  lv(72, -141),                  // close
-      "Z",
-    ].join(" "),
-  },
-  // ── Greenland ────────────────────────────────────────────────────────────
-  {
-    id: "greenland",
-    label: "Greenland",
-    d: [
-      mv(83, -28), lv(82, -12), lv(75, -18), lv(70, -22),
-      lv(60, -44), lv(63, -52), lv(68, -52), lv(75, -56),
-      lv(76, -68), lv(80, -58), lv(83, -40), lv(83, -28), "Z",
-    ].join(" "),
-  },
-  // ── South America ────────────────────────────────────────────────────────
-  {
-    id: "sa",
-    label: "South America",
-    d: [
-      mv(12, -72), lv(11, -63), lv(10, -62), lv(7, -60),
-      lv(4, -52),  lv(0, -50),  lv(-5, -36), lv(-10, -38),
-      lv(-15, -39), lv(-20, -41), lv(-23, -42), lv(-28, -50),
-      lv(-34, -58), lv(-40, -62), lv(-45, -66), lv(-52, -68),
-      lv(-55, -66), lv(-54, -64), lv(-50, -72), lv(-46, -74),
-      lv(-40, -72), lv(-35, -72), lv(-30, -72), lv(-24, -70),
-      lv(-18, -70), lv(-12, -76), lv(-4, -80),
-      lv(-2, -78),  lv(2, -76),  lv(6, -75),
-      lv(8, -77),  lv(10, -75),  lv(12, -72), "Z",
-    ].join(" "),
-  },
-  // ── Europe (main body + Iberia) ───────────────────────────────────────────
-  {
-    id: "eu",
-    label: "Europe",
-    d: [
-      // Iberian SW corner, trace coastal outline
-      mv(36, -10), lv(43, -9), lv(44, -1), lv(51, 2), lv(51, 5),
-      lv(54, 8),  lv(55, 12), lv(57, 10), lv(60, 5),  lv(60, 12),
-      lv(58, 16), lv(55, 14), lv(54, 18), lv(57, 22), lv(55, 24),
-      lv(58, 28), lv(60, 25), lv(65, 26), lv(70, 26), lv(70, 30),
-      lv(68, 34), lv(64, 30), lv(60, 28), lv(58, 24), lv(54, 20),
-      lv(50, 14), lv(48, 18), lv(46, 14), lv(44, 12), lv(42, 14),
-      lv(38, 16), lv(38, 26), lv(40, 28), lv(42, 28), lv(40, 22),
-      lv(36, 22), lv(36, 14), lv(38, 6),  lv(36, 2),
-      lv(36, -6), lv(36, -10), "Z",
-    ].join(" "),
-  },
-  // ── Scandinavia ───────────────────────────────────────────────────────────
-  {
-    id: "scandinavia",
-    label: "Scandinavia",
-    d: [
-      mv(56, 8),  lv(58, 6),  lv(60, 5),  lv(62, 6),  lv(64, 14),
-      lv(66, 16), lv(68, 16), lv(70, 22), lv(70, 26), lv(66, 26),
-      lv(64, 24), lv(62, 22), lv(60, 24), lv(60, 28), lv(58, 26),
-      lv(56, 22), lv(55, 18), lv(56, 14), lv(58, 10), lv(56, 8), "Z",
-    ].join(" "),
-  },
-  // ── British Isles ─────────────────────────────────────────────────────────
-  {
-    id: "uk",
-    label: "British Isles",
-    d: [
-      mv(50, -5),  lv(52, -4), lv(53, -3), lv(54, -2), lv(56, -2),
-      lv(58, -4),  lv(58, -5), lv(56, -6), lv(56, -4), lv(54, -5),
-      lv(52, -6),  lv(51, -5), lv(50, -5), "Z",
-    ].join(" "),
-  },
-  // ── Iceland land mass ─────────────────────────────────────────────────────
-  {
-    id: "iceland-land",
-    label: "Iceland",
-    d: [
-      mv(63, -25), lv(65, -24), lv(66, -22), lv(66, -18), lv(65, -14),
-      lv(64, -13), lv(63, -16), lv(63, -20), lv(63, -24), lv(63, -25), "Z",
-    ].join(" "),
-  },
-  // ── Africa ───────────────────────────────────────────────────────────────
-  {
-    id: "africa",
-    label: "Africa",
-    tint: "hsl(var(--primary) / 0.08)",
-    d: [
-      // NW corner Morocco/Algeria, trace clockwise
-      mv(37, -6),  lv(37, 10),  lv(36, 14),  lv(34, 14),
-      lv(33, 12),  lv(32, 14),  lv(30, 32),  lv(22, 38),
-      lv(12, 44),  lv(11, 42),  lv(8, 40),   lv(4, 40),
-      lv(4, 34),   lv(-2, 40),  lv(-10, 40), lv(-16, 36),
-      lv(-22, 36), lv(-26, 32), lv(-30, 30), lv(-34, 26),
-      lv(-34, 20), lv(-34, 18), lv(-32, 18), lv(-30, 16),
-      lv(-26, 14), lv(-22, 14), lv(-18, 12), lv(-14, 12),
-      lv(-10, 14), lv(-4, 14),  lv(-4, 8),   lv(-4, 2),
-      lv(0, 2),    lv(4, 2),    lv(4, -6),   lv(8, -16),
-      lv(10, -16), lv(14, -18), lv(16, -16), lv(18, -14),
-      lv(22, -18), lv(24, -15), lv(26, -14),
-      lv(30, -10), lv(34, -8),  lv(37, -6),  "Z",
-    ].join(" "),
-  },
-  // ── Madagascar ───────────────────────────────────────────────────────────
-  {
-    id: "madagascar",
-    label: "Madagascar",
-    d: [
-      mv(-13, 50), lv(-16, 44), lv(-20, 44), lv(-24, 46),
-      lv(-25, 48), lv(-22, 50), lv(-18, 50), lv(-13, 50), "Z",
-    ].join(" "),
-  },
-  // ── Russia/Eurasia north band ─────────────────────────────────────────────
-  {
-    id: "russia",
-    label: "Russia",
-    d: [
-      mv(72, 24),  lv(74, 36),  lv(74, 52),  lv(72, 62),
-      lv(74, 74),  lv(72, 90),  lv(68, 104), lv(68, 120),
-      lv(64, 140), lv(60, 150), lv(56, 142), lv(52, 142),
-      lv(52, 136), lv(56, 130), lv(60, 122), lv(58, 112),
-      lv(54, 100), lv(52, 80),  lv(54, 62),  lv(54, 50),
-      lv(50, 40),  lv(48, 46),  lv(42, 46),  lv(36, 42),
-      lv(38, 36),  lv(40, 28),  lv(44, 22),  lv(48, 18),
-      lv(54, 18),  lv(58, 24),  lv(64, 26),  lv(66, 30),
-      lv(70, 26),  lv(70, 22),  lv(72, 24),  "Z",
-    ].join(" "),
-  },
-  // ── Siberia / Far East extension ──────────────────────────────────────────
-  {
-    id: "siberia",
-    label: "Siberia",
-    d: [
-      mv(72, 90),  lv(74, 110), lv(76, 130), lv(74, 150), lv(70, 160),
-      lv(64, 168), lv(60, 172), lv(64, 140), lv(68, 120), lv(68, 104),
-      lv(72, 90),  "Z",
-    ].join(" "),
-  },
-  // ── Kamchatka ─────────────────────────────────────────────────────────────
-  {
-    id: "kamchatka",
-    label: "Kamchatka",
-    d: [
-      mv(60, 162), lv(56, 160), lv(52, 160), lv(52, 163),
-      lv(56, 163), lv(58, 165), lv(60, 162), "Z",
-    ].join(" "),
-  },
-  // ── Asia (Middle East / South / SE Asia connected) ────────────────────────
-  {
-    id: "asia",
-    label: "Asia",
-    d: [
-      // Arabian peninsula
-      mv(30, 32),  lv(28, 34),  lv(24, 38),  lv(22, 60),
-      lv(16, 54),  lv(14, 42),  lv(12, 44),
-      // Indian subcontinent
-      lv(22, 68),  lv(22, 72),  lv(18, 72),  lv(8, 78),
-      lv(8, 80),   lv(14, 80),  lv(22, 88),  lv(22, 92),
-      lv(20, 92),  lv(16, 80),  lv(22, 80),
-      // Bay of Bengal / SE Asia
-      lv(22, 92),  lv(20, 100), lv(16, 100), lv(10, 104),
-      lv(2, 104),  lv(2, 108),  lv(6, 108),  lv(8, 104),
-      lv(14, 106), lv(18, 104), lv(22, 114), lv(22, 120),
-      // China coast / Korea
-      lv(24, 122), lv(28, 122), lv(32, 122), lv(36, 122),
-      lv(38, 122), lv(36, 120), lv(36, 116), lv(38, 114),
-      lv(40, 116), lv(42, 132), lv(44, 136), lv(40, 132),
-      // back through Manchuria
-      lv(44, 124), lv(48, 136), lv(52, 142),
-      lv(50, 40),  lv(42, 46),  lv(36, 42),  lv(30, 32), "Z",
-    ].join(" "),
-  },
-  // ── Japan ─────────────────────────────────────────────────────────────────
-  {
-    id: "japan",
-    label: "Japan",
-    d: [
-      mv(40, 140), lv(38, 141), lv(36, 140), lv(34, 136),
-      lv(34, 131), lv(35, 130), lv(36, 132), lv(37, 137),
-      lv(38, 140), lv(40, 142), lv(43, 142), lv(44, 144),
-      lv(43, 146), lv(42, 144), lv(40, 142), lv(40, 140), "Z",
-    ].join(" "),
-  },
-  // ── Indonesia / Malaysia (simplified) ────────────────────────────────────
-  {
-    id: "indonesia",
-    label: "Indonesia",
-    d: [
-      mv(2, 104),  lv(0, 108),  lv(-2, 110), lv(-6, 108), lv(-8, 112),
-      lv(-8, 116), lv(-6, 116), lv(-4, 112), lv(-2, 114), lv(-2, 118),
-      lv(0, 118),  lv(2, 112),  lv(2, 108),  lv(2, 104), "Z",
-      mv(2, 118),  lv(-2, 124), lv(-4, 128), lv(-2, 132), lv(0, 130),
-      lv(2, 126),  lv(4, 124),  lv(2, 118), "Z",
-    ].join(" "),
-  },
-  // ── Philippines ───────────────────────────────────────────────────────────
-  {
-    id: "philippines",
-    label: "Philippines",
-    d: [
-      mv(18, 122), lv(16, 120), lv(10, 124), lv(8, 126),
-      lv(10, 124), lv(14, 122), lv(18, 122), "Z",
-    ].join(" "),
-  },
-  // ── Australia ─────────────────────────────────────────────────────────────
-  {
-    id: "australia",
-    label: "Australia",
-    d: [
-      mv(-14, 130), lv(-14, 136), lv(-12, 136), lv(-10, 142),
-      lv(-14, 146), lv(-18, 148), lv(-24, 152), lv(-28, 154),
-      lv(-32, 152), lv(-36, 150), lv(-38, 146), lv(-36, 138),
-      lv(-34, 136), lv(-32, 132), lv(-32, 124), lv(-28, 114),
-      lv(-24, 114), lv(-20, 116), lv(-18, 122), lv(-16, 128),
-      lv(-14, 130), "Z",
-    ].join(" "),
-  },
-  // ── New Zealand ───────────────────────────────────────────────────────────
-  {
-    id: "nz",
-    label: "New Zealand",
-    d: [
-      mv(-36, 175), lv(-38, 176), lv(-40, 176), lv(-44, 172),
-      lv(-44, 170), lv(-42, 170), lv(-36, 174), lv(-36, 175), "Z",
-      mv(-44, 170), lv(-46, 168), lv(-46, 170), lv(-44, 172),
-      lv(-44, 170), "Z",
-    ].join(" "),
-  },
-];
-
-// ─── Small island dots ────────────────────────────────────────────────────────
-
-const ISLAND_DOTS: { id: string; lat: number; lng: number; r: number }[] = [
-  { id: "azores",    lat: 38,  lng: -28, r: 2.5 },
-  { id: "canary",    lat: 28,  lng: -15, r: 2.5 },
-  { id: "cape-verde",lat: 16,  lng: -24, r: 2.0 },
-  { id: "maldives1", lat: 4,   lng: 73,  r: 2.0 },
-  { id: "maldives2", lat: 2,   lng: 73,  r: 1.8 },
-  { id: "maldives3", lat: 0,   lng: 73,  r: 1.6 },
-  { id: "srilanka",  lat: 8,   lng: 81,  r: 2.5 },
-  { id: "reunion",   lat: -21, lng: 56,  r: 2.0 },
-  { id: "hawaii",    lat: 20,  lng: -157, r: 2.5 },
-  { id: "cuba",      lat: 22,  lng: -80, r: 2.5 },
-  { id: "svalbard",  lat: 78,  lng: 16,  r: 2.2 },
-  { id: "faroe",     lat: 62,  lng: -7,  r: 1.8 },
-  { id: "cyprus",    lat: 35,  lng: 33,  r: 1.8 },
-];
 
 // ─── Graticule ────────────────────────────────────────────────────────────────
 
