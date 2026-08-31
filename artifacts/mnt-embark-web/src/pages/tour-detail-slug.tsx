@@ -138,12 +138,12 @@ export default function TourDetailPage() {
   }, [isNumeric, tourById?.slug, navigate]);
 
   // ── Shared state ──────────────────────────────────────────────────────────
-  const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [imageVisible, setImageVisible] = useState(true);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
 
-  const handleStepChange = (idx: number) => {
+  const handleStepChange = (idx: number | null) => {
     setImageVisible(false);
     setTimeout(() => {
       setActiveStepIndex(idx);
@@ -153,7 +153,7 @@ export default function TourDetailPage() {
   };
 
   useEffect(() => {
-    setActiveStepIndex(0);
+    setActiveStepIndex(null);
     setCarouselIndex(0);
     setImageVisible(true);
   }, [slugOrId]);
@@ -183,15 +183,24 @@ export default function TourDetailPage() {
   const activitySections: TourActivitySection[] =
     hasTaxonomy ? (tourBySlug?.activitySections ?? []) : [];
 
-  const activeStep = steps[activeStepIndex];
-  const stepImages: string[] =
-    activeStep?.images && activeStep.images.length > 0
-      ? activeStep.images
-      : activeStep?.image
-      ? [activeStep.image]
+  const tourMainImages =
+    images && images.length > 0
+      ? images
       : coverImage
       ? [coverImage]
       : [];
+
+  const activeStep = activeStepIndex !== null ? steps[activeStepIndex] : null;
+
+  const stepImages: string[] = activeStep
+    ? activeStep.images && activeStep.images.length > 0
+      ? activeStep.images
+      : activeStep.image
+      ? [activeStep.image]
+      : coverImage
+      ? [coverImage]
+      : []
+    : tourMainImages;
 
   const validCarouselIndex =
     stepImages.length > 0 ? Math.min(carouselIndex, stepImages.length - 1) : 0;
@@ -322,10 +331,25 @@ export default function TourDetailPage() {
 
             <Separator className="bg-border/40 mb-6" />
 
-            {/* Itinerary label */}
-            <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-4">
-              Exclusive Itinerary
-            </p>
+            {/* Itinerary label & Overview button */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary">
+                Exclusive Itinerary
+              </p>
+              <button
+                type="button"
+                data-testid="tour-overview-btn"
+                onClick={() => handleStepChange(null)}
+                className={cn(
+                  "font-sans text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 rounded transition-all duration-200 border",
+                  activeStepIndex === null
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground border-border/60 hover:border-primary/40 bg-card/50"
+                )}
+              >
+                Overview
+              </button>
+            </div>
 
             {/* Itinerary steps */}
             {steps.length === 0 ? (
@@ -438,7 +462,7 @@ export default function TourDetailPage() {
               )}
             >
               <img
-                key={`${activeStepIndex}-${validCarouselIndex}`}
+                key={`${activeStepIndex ?? "overview"}-${validCarouselIndex}`}
                 src={currentImage}
                 alt={activeStep?.title || title}
                 className="w-full h-full object-cover"
@@ -463,7 +487,7 @@ export default function TourDetailPage() {
                 <button
                   type="button"
                   data-testid="itinerary-carousel-prev"
-                  aria-label="Previous step image"
+                  aria-label="Previous image"
                   onClick={handlePrevImage}
                   className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 text-white/90 hover:text-white border border-white/20 hover:border-primary/60 flex items-center justify-center backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-95 shadow-xl group/btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
@@ -474,7 +498,7 @@ export default function TourDetailPage() {
                 <button
                   type="button"
                   data-testid="itinerary-carousel-next"
-                  aria-label="Next step image"
+                  aria-label="Next image"
                   onClick={handleNextImage}
                   className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 text-white/90 hover:text-white border border-white/20 hover:border-primary/60 flex items-center justify-center backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-95 shadow-xl group/btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
@@ -490,57 +514,53 @@ export default function TourDetailPage() {
                 imageVisible ? "opacity-100" : "opacity-0"
               )}
             >
-              {activeStep && (
-                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-                  <div>
-                    <p className="font-sans text-xs uppercase tracking-widest text-accent mb-1">
-                      {activeStep.type}
-                    </p>
-                    <h2 className="font-serif text-3xl font-light text-white">
-                      {activeStep.title}
-                    </h2>
-                  </div>
-
-                  {/* Carousel Progress Dots (when > 1 image) */}
-                  {stepImages.length > 1 && (
-                    <div
-                      className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 self-start md:self-auto"
-                      data-testid="itinerary-carousel-dots"
-                    >
-                      {stepImages.map((_, imgIdx) => (
-                        <button
-                          key={imgIdx}
-                          type="button"
-                          onClick={() => setCarouselIndex(imgIdx)}
-                          aria-label={`Go to image ${imgIdx + 1}`}
-                          className={cn(
-                            "h-1.5 rounded-full transition-all duration-300",
-                            imgIdx === validCarouselIndex
-                              ? "w-7 bg-primary shadow-sm"
-                              : "w-2 bg-white/40 hover:bg-white/70"
-                          )}
-                        />
-                      ))}
-                    </div>
-                  )}
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                <div>
+                  <p className="font-sans text-xs uppercase tracking-widest text-accent mb-1">
+                    {activeStep ? activeStep.type : (locationDisplay || "EXPEDITION OVERVIEW")}
+                  </p>
+                  <h2 className="font-serif text-3xl font-light text-white">
+                    {activeStep ? activeStep.title : title}
+                  </h2>
                 </div>
-              )}
+
+                {/* Carousel Progress Dots (when > 1 image) */}
+                {stepImages.length > 1 && (
+                  <div
+                    className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 self-start md:self-auto"
+                    data-testid="itinerary-carousel-dots"
+                  >
+                    {stepImages.map((_, imgIdx) => (
+                      <button
+                        key={imgIdx}
+                        type="button"
+                        onClick={() => setCarouselIndex(imgIdx)}
+                        aria-label={`Go to image ${imgIdx + 1}`}
+                        className={cn(
+                          "h-1.5 rounded-full transition-all duration-300",
+                          imgIdx === validCarouselIndex
+                            ? "w-7 bg-primary shadow-sm"
+                            : "w-2 bg-white/40 hover:bg-white/70"
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Step description */}
-          {activeStep && (
-            <div
-              className={cn(
-                "bg-background border-t border-border/40 p-8 transition-opacity duration-500",
-                imageVisible ? "opacity-100" : "opacity-0"
-              )}
-            >
-              <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-3xl">
-                {activeStep.description}
-              </p>
-            </div>
-          )}
+          {/* Step or Tour description */}
+          <div
+            className={cn(
+              "bg-background border-t border-border/40 p-8 transition-opacity duration-500",
+              imageVisible ? "opacity-100" : "opacity-0"
+            )}
+          >
+            <p className="font-sans text-sm text-muted-foreground leading-relaxed max-w-3xl">
+              {activeStep ? activeStep.description : description}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -551,11 +571,11 @@ export default function TourDetailPage() {
         open={enquiryOpen}
         onClose={() => setEnquiryOpen(false)}
         tour={{
-          title,
-          coverImage,
-          durationDays,
-          location: locationDisplay,
-          featured,
+          title: title || "",
+          coverImage: coverImage || "",
+          durationDays: durationDays || 0,
+          location: locationDisplay || "",
+          featured: featured ?? false,
         }}
       />
     </div>
