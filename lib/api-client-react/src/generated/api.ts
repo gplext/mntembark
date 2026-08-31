@@ -32,7 +32,11 @@ import type {
   Category,
   CategoryInput,
   CategoryUpdate,
+  CountryInput,
   CountrySummary,
+  CountryUpdateInput,
+  DeleteCountry200,
+  DeleteLocation200,
   Destination,
   DestinationInput,
   DestinationListItem,
@@ -49,7 +53,9 @@ import type {
   JournalEntryInput,
   JournalEntryUpdate,
   ListToursParams,
+  LocationInput,
   LocationSummary,
+  LocationUpdateInput,
   SearchToursParams,
   Stats,
   Tour,
@@ -2792,6 +2798,220 @@ export function useListLocations<TData = Awaited<ReturnType<typeof listLocations
 
 
 
+export const getCreateLocationUrl = () => {
+
+
+
+
+  return `/api/locations`
+}
+
+/**
+ * @summary Create a new location
+ */
+export const createLocation = async (locationInput: LocationInput, options?: Parameters<typeof customFetch>[1]): Promise<LocationSummary> => {
+
+  return customFetch<LocationSummary>(getCreateLocationUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(locationInput)
+  }
+);}
+
+
+
+
+
+export const getCreateLocationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLocation>>, TError,{data: BodyType<LocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createLocation>>, TError,{data: BodyType<LocationInput>}, TContext> => {
+
+const mutationKey = ['createLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createLocation>>, {data: BodyType<LocationInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createLocation(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateLocationMutationResult = NonNullable<Awaited<ReturnType<typeof createLocation>>>
+    export type CreateLocationMutationBody = BodyType<LocationInput>
+    export type CreateLocationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new location
+ */
+export const useCreateLocation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createLocation>>, TError,{data: BodyType<LocationInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createLocation>>,
+        TError,
+        {data: BodyType<LocationInput>},
+        TContext
+      > => {
+      return useMutation(getCreateLocationMutationOptions(options));
+    }
+
+export const getUpdateLocationUrl = (id: number,) => {
+
+
+
+
+  return `/api/locations/${id}`
+}
+
+/**
+ * @summary Update a location
+ */
+export const updateLocation = async (id: number,
+    locationUpdateInput: LocationUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<LocationSummary> => {
+
+  return customFetch<LocationSummary>(getUpdateLocationUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(locationUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateLocationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLocation>>, TError,{id: number;data: BodyType<LocationUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateLocation>>, TError,{id: number;data: BodyType<LocationUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateLocation>>, {id: number;data: BodyType<LocationUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateLocation(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateLocationMutationResult = NonNullable<Awaited<ReturnType<typeof updateLocation>>>
+    export type UpdateLocationMutationBody = BodyType<LocationUpdateInput>
+    export type UpdateLocationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a location
+ */
+export const useUpdateLocation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateLocation>>, TError,{id: number;data: BodyType<LocationUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateLocation>>,
+        TError,
+        {id: number;data: BodyType<LocationUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateLocationMutationOptions(options));
+    }
+
+export const getDeleteLocationUrl = (id: number,) => {
+
+
+
+
+  return `/api/locations/${id}`
+}
+
+/**
+ * @summary Delete a location
+ */
+export const deleteLocation = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<DeleteLocation200> => {
+
+  return customFetch<DeleteLocation200>(getDeleteLocationUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteLocationMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLocation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteLocation>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteLocation>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteLocation(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteLocationMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLocation>>>
+
+    export type DeleteLocationMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a location
+ */
+export const useDeleteLocation = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteLocation>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteLocation>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteLocationMutationOptions(options));
+    }
+
 export const getListCountriesUrl = () => {
 
 
@@ -2868,6 +3088,220 @@ export function useListCountries<TData = Awaited<ReturnType<typeof listCountries
 
 
 
+
+export const getCreateCountryUrl = () => {
+
+
+
+
+  return `/api/countries`
+}
+
+/**
+ * @summary Create a new country
+ */
+export const createCountry = async (countryInput: CountryInput, options?: Parameters<typeof customFetch>[1]): Promise<CountrySummary> => {
+
+  return customFetch<CountrySummary>(getCreateCountryUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(countryInput)
+  }
+);}
+
+
+
+
+
+export const getCreateCountryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCountry>>, TError,{data: BodyType<CountryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createCountry>>, TError,{data: BodyType<CountryInput>}, TContext> => {
+
+const mutationKey = ['createCountry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createCountry>>, {data: BodyType<CountryInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createCountry(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateCountryMutationResult = NonNullable<Awaited<ReturnType<typeof createCountry>>>
+    export type CreateCountryMutationBody = BodyType<CountryInput>
+    export type CreateCountryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create a new country
+ */
+export const useCreateCountry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createCountry>>, TError,{data: BodyType<CountryInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createCountry>>,
+        TError,
+        {data: BodyType<CountryInput>},
+        TContext
+      > => {
+      return useMutation(getCreateCountryMutationOptions(options));
+    }
+
+export const getUpdateCountryUrl = (id: number,) => {
+
+
+
+
+  return `/api/countries/${id}`
+}
+
+/**
+ * @summary Update a country
+ */
+export const updateCountry = async (id: number,
+    countryUpdateInput: CountryUpdateInput, options?: Parameters<typeof customFetch>[1]): Promise<CountrySummary> => {
+
+  return customFetch<CountrySummary>(getUpdateCountryUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(countryUpdateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateCountryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCountry>>, TError,{id: number;data: BodyType<CountryUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateCountry>>, TError,{id: number;data: BodyType<CountryUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateCountry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateCountry>>, {id: number;data: BodyType<CountryUpdateInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateCountry(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateCountryMutationResult = NonNullable<Awaited<ReturnType<typeof updateCountry>>>
+    export type UpdateCountryMutationBody = BodyType<CountryUpdateInput>
+    export type UpdateCountryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update a country
+ */
+export const useUpdateCountry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateCountry>>, TError,{id: number;data: BodyType<CountryUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateCountry>>,
+        TError,
+        {id: number;data: BodyType<CountryUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateCountryMutationOptions(options));
+    }
+
+export const getDeleteCountryUrl = (id: number,) => {
+
+
+
+
+  return `/api/countries/${id}`
+}
+
+/**
+ * @summary Delete a country
+ */
+export const deleteCountry = async (id: number, options?: Parameters<typeof customFetch>[1]): Promise<DeleteCountry200> => {
+
+  return customFetch<DeleteCountry200>(getDeleteCountryUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteCountryMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCountry>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteCountry>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteCountry'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteCountry>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteCountry(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteCountryMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCountry>>>
+
+    export type DeleteCountryMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete a country
+ */
+export const useDeleteCountry = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteCountry>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteCountry>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteCountryMutationOptions(options));
+    }
 
 export const getListCategoriesUrl = () => {
 

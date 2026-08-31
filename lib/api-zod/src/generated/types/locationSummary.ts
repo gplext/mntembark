@@ -11,5 +11,12 @@ export interface LocationSummary {
   slug: string;
   name: string;
   /** @nullable */
-  countryName: string | null;
+  countryId?: number | null;
+  /** @nullable */
+  countryName?: string | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  description?: string | null;
+  displayOrder?: number;
 }

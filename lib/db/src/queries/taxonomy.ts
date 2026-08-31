@@ -316,14 +316,15 @@ export interface LocationSummary {
   id: number;
   slug: string;
   name: string;
+  countryId: number | null;
   countryName: string | null;
+  image: string | null;
+  description: string | null;
+  displayOrder: number;
 }
 
 /**
- * All locations joined to their country name, ordered alphabetically.
- * Used by admin location selects so the admin can distinguish two
- * cities with the same name (e.g. "Springfield, Illinois" vs "Springfield,
- * Missouri").
+ * All locations joined to their country name, ordered by displayOrder then alphabetically.
  */
 export async function getLocations(): Promise<LocationSummary[]> {
   return db
@@ -331,11 +332,122 @@ export async function getLocations(): Promise<LocationSummary[]> {
       id: locationsTable.id,
       slug: locationsTable.slug,
       name: locationsTable.name,
+      countryId: locationsTable.countryId,
       countryName: countriesTable.name,
+      image: locationsTable.image,
+      description: locationsTable.description,
+      displayOrder: locationsTable.displayOrder,
     })
     .from(locationsTable)
     .leftJoin(countriesTable, eq(countriesTable.id, locationsTable.countryId))
-    .orderBy(asc(locationsTable.name));
+    .orderBy(asc(locationsTable.displayOrder), asc(locationsTable.name));
+}
+
+export async function createLocation(data: {
+  name: string;
+  slug?: string | null;
+  countryId?: number | null;
+  image?: string | null;
+  description?: string | null;
+  displayOrder?: number | null;
+}): Promise<LocationSummary> {
+  const name = data.name.trim();
+  const slug = (data.slug?.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) || "location";
+
+  const [inserted] = await db
+    .insert(locationsTable)
+    .values({
+      name,
+      slug,
+      countryId: data.countryId ?? null,
+      image: data.image ?? null,
+      description: data.description ?? null,
+      displayOrder: data.displayOrder ?? 0,
+    })
+    .returning();
+
+  let countryName: string | null = null;
+  if (inserted.countryId) {
+    const [c] = await db
+      .select({ name: countriesTable.name })
+      .from(countriesTable)
+      .where(eq(countriesTable.id, inserted.countryId));
+    countryName = c?.name ?? null;
+  }
+
+  return {
+    id: inserted.id,
+    slug: inserted.slug,
+    name: inserted.name,
+    countryId: inserted.countryId,
+    countryName,
+    image: inserted.image,
+    description: inserted.description,
+    displayOrder: inserted.displayOrder,
+  };
+}
+
+export async function updateLocation(
+  id: number,
+  data: Partial<{
+    name: string;
+    slug?: string | null;
+    countryId?: number | null;
+    image?: string | null;
+    description?: string | null;
+    displayOrder?: number | null;
+  }>,
+): Promise<LocationSummary | null> {
+  const updates: Record<string, unknown> = {};
+  if (data.name !== undefined) updates.name = data.name.trim();
+  if (data.slug !== undefined && data.slug !== null) {
+    updates.slug = data.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+  if (data.countryId !== undefined) updates.countryId = data.countryId;
+  if (data.image !== undefined) updates.image = data.image;
+  if (data.description !== undefined) updates.description = data.description;
+  if (data.displayOrder !== undefined && data.displayOrder !== null) updates.displayOrder = data.displayOrder;
+
+  if (Object.keys(updates).length === 0) {
+    const locs = await getLocations();
+    return locs.find((l) => l.id === id) ?? null;
+  }
+
+  const [updated] = await db
+    .update(locationsTable)
+    .set(updates)
+    .where(eq(locationsTable.id, id))
+    .returning();
+
+  if (!updated) return null;
+
+  let countryName: string | null = null;
+  if (updated.countryId) {
+    const [c] = await db
+      .select({ name: countriesTable.name })
+      .from(countriesTable)
+      .where(eq(countriesTable.id, updated.countryId));
+    countryName = c?.name ?? null;
+  }
+
+  return {
+    id: updated.id,
+    slug: updated.slug,
+    name: updated.name,
+    countryId: updated.countryId,
+    countryName,
+    image: updated.image,
+    description: updated.description,
+    displayOrder: updated.displayOrder,
+  };
+}
+
+export async function deleteLocation(id: number): Promise<boolean> {
+  const result = await db
+    .delete(locationsTable)
+    .where(eq(locationsTable.id, id))
+    .returning({ id: locationsTable.id });
+  return result.length > 0;
 }
 
 /* ================================================================== *
@@ -655,6 +767,8 @@ export interface CountrySummary {
   name: string;
   code: string | null;
   image: string | null;
+  description: string | null;
+  displayOrder: number;
 }
 
 /**
@@ -669,9 +783,99 @@ export async function getCountries(): Promise<CountrySummary[]> {
       name: countriesTable.name,
       code: countriesTable.code,
       image: countriesTable.image,
+      description: countriesTable.description,
+      displayOrder: countriesTable.displayOrder,
     })
     .from(countriesTable)
     .orderBy(asc(countriesTable.displayOrder), asc(countriesTable.name));
+}
+
+export async function createCountry(data: {
+  name: string;
+  slug?: string | null;
+  code?: string | null;
+  image?: string | null;
+  description?: string | null;
+  displayOrder?: number | null;
+}): Promise<CountrySummary> {
+  const name = data.name.trim();
+  const slug = (data.slug?.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) || "country";
+  const code = data.code?.trim().toUpperCase() || null;
+
+  const [inserted] = await db
+    .insert(countriesTable)
+    .values({
+      name,
+      slug,
+      code,
+      image: data.image ?? null,
+      description: data.description ?? null,
+      displayOrder: data.displayOrder ?? 0,
+    })
+    .returning();
+
+  return {
+    id: inserted.id,
+    slug: inserted.slug,
+    name: inserted.name,
+    code: inserted.code,
+    image: inserted.image,
+    description: inserted.description,
+    displayOrder: inserted.displayOrder,
+  };
+}
+
+export async function updateCountry(
+  id: number,
+  data: Partial<{
+    name: string;
+    slug?: string | null;
+    code?: string | null;
+    image?: string | null;
+    description?: string | null;
+    displayOrder?: number | null;
+  }>,
+): Promise<CountrySummary | null> {
+  const updates: Record<string, unknown> = {};
+  if (data.name !== undefined) updates.name = data.name.trim();
+  if (data.slug !== undefined && data.slug !== null) {
+    updates.slug = data.slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  }
+  if (data.code !== undefined) updates.code = data.code?.trim().toUpperCase() || null;
+  if (data.image !== undefined) updates.image = data.image;
+  if (data.description !== undefined) updates.description = data.description;
+  if (data.displayOrder !== undefined && data.displayOrder !== null) updates.displayOrder = data.displayOrder;
+
+  if (Object.keys(updates).length === 0) {
+    const all = await getCountries();
+    return all.find((c) => c.id === id) ?? null;
+  }
+
+  const [updated] = await db
+    .update(countriesTable)
+    .set(updates)
+    .where(eq(countriesTable.id, id))
+    .returning();
+
+  if (!updated) return null;
+
+  return {
+    id: updated.id,
+    slug: updated.slug,
+    name: updated.name,
+    code: updated.code,
+    image: updated.image,
+    description: updated.description,
+    displayOrder: updated.displayOrder,
+  };
+}
+
+export async function deleteCountry(id: number): Promise<boolean> {
+  const result = await db
+    .delete(countriesTable)
+    .where(eq(countriesTable.id, id))
+    .returning({ id: countriesTable.id });
+  return result.length > 0;
 }
 
 /* ================================================================== *

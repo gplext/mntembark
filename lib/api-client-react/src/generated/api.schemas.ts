@@ -319,7 +319,41 @@ export interface LocationSummary {
   slug: string;
   name: string;
   /** @nullable */
-  countryName: string | null;
+  countryId?: number | null;
+  /** @nullable */
+  countryName?: string | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  description?: string | null;
+  displayOrder?: number;
+}
+
+export interface LocationInput {
+  /** @minLength 1 */
+  name: string;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  countryId?: number | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  description?: string | null;
+  displayOrder?: number;
+}
+
+export interface LocationUpdateInput {
+  name?: string;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  countryId?: number | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  description?: string | null;
+  displayOrder?: number;
 }
 
 export interface CountrySummary {
@@ -327,9 +361,39 @@ export interface CountrySummary {
   slug: string;
   name: string;
   /** @nullable */
-  code: string | null;
+  code?: string | null;
   /** @nullable */
-  image: string | null;
+  image?: string | null;
+  /** @nullable */
+  description?: string | null;
+  displayOrder?: number;
+}
+
+export interface CountryInput {
+  /** @minLength 1 */
+  name: string;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  description?: string | null;
+  displayOrder?: number;
+}
+
+export interface CountryUpdateInput {
+  name?: string;
+  /** @nullable */
+  slug?: string | null;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  description?: string | null;
+  displayOrder?: number;
 }
 
 export interface Destination {
@@ -741,5 +805,13 @@ export type SearchToursParams = {
 q: string;
 categoryId?: number;
 destinationId?: number;
+};
+
+export type DeleteLocation200 = {
+  success: boolean;
+};
+
+export type DeleteCountry200 = {
+  success: boolean;
 };
 

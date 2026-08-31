@@ -6,12 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CountrySummary {
-  id: number;
-  slug: string;
-  name: string;
+export interface LocationUpdateInput {
+  name?: string;
   /** @nullable */
-  code?: string | null;
+  slug?: string | null;
+  /** @nullable */
+  countryId?: number | null;
   /** @nullable */
   image?: string | null;
   /** @nullable */

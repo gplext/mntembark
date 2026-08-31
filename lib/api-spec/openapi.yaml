@@ -909,6 +909,69 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/LocationSummary"
+    post:
+      operationId: createLocation
+      tags: [locations]
+      summary: Create a new location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationInput"
+      responses:
+        "201":
+          description: Created location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationSummary"
+
+  /locations/{id}:
+    patch:
+      operationId: updateLocation
+      tags: [locations]
+      summary: Update a location
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocationUpdateInput"
+      responses:
+        "200":
+          description: Updated location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LocationSummary"
+    delete:
+      operationId: deleteLocation
+      tags: [locations]
+      summary: Delete a location
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required: [success]
 
   # ── Countries ─────────────────────────────────────────────────────────
   /countries:
@@ -925,6 +988,69 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CountrySummary"
+    post:
+      operationId: createCountry
+      tags: [countries]
+      summary: Create a new country
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CountryInput"
+      responses:
+        "201":
+          description: Created country
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CountrySummary"
+
+  /countries/{id}:
+    patch:
+      operationId: updateCountry
+      tags: [countries]
+      summary: Update a country
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CountryUpdateInput"
+      responses:
+        "200":
+          description: Updated country
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CountrySummary"
+    delete:
+      operationId: deleteCountry
+      tags: [countries]
+      summary: Delete a country
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Delete result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                required: [success]
 
   # ── Categories ────────────────────────────────────────────────────────
   /categories:
@@ -1703,9 +1829,51 @@ components:
           type: string
         name:
           type: string
+        countryId:
+          type: ["number", "null"]
         countryName:
           type: ["string", "null"]
-      required: [id, slug, name, countryName]
+        image:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        displayOrder:
+          type: number
+      required: [id, slug, name]
+
+    LocationInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: ["string", "null"]
+        countryId:
+          type: ["number", "null"]
+        image:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        displayOrder:
+          type: number
+      required: [name]
+
+    LocationUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: ["string", "null"]
+        countryId:
+          type: ["number", "null"]
+        image:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        displayOrder:
+          type: number
 
     CountrySummary:
       type: object
@@ -1720,7 +1888,45 @@ components:
           type: ["string", "null"]
         image:
           type: ["string", "null"]
-      required: [id, slug, name, code, image]
+        description:
+          type: ["string", "null"]
+        displayOrder:
+          type: number
+      required: [id, slug, name]
+
+    CountryInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: ["string", "null"]
+        code:
+          type: ["string", "null"]
+        image:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        displayOrder:
+          type: number
+      required: [name]
+
+    CountryUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+        slug:
+          type: ["string", "null"]
+        code:
+          type: ["string", "null"]
+        image:
+          type: ["string", "null"]
+        description:
+          type: ["string", "null"]
+        displayOrder:
+          type: number
 
     # ── Destination ───────────────────────────────────────────────────
     Destination:

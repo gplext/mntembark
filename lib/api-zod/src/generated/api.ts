@@ -918,9 +918,80 @@ export const ListLocationsResponseItem = zod.object({
   "id": zod.number(),
   "slug": zod.string(),
   "name": zod.string(),
-  "countryName": zod.string().nullable()
+  "countryId": zod.number().nullish(),
+  "countryName": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
 })
 export const ListLocationsResponse = zod.array(ListLocationsResponseItem)
+
+
+/**
+ * @summary Create a new location
+ */
+
+
+
+export const CreateLocationBody = zod.object({
+  "name": zod.string().min(1),
+  "slug": zod.string().nullish(),
+  "countryId": zod.number().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+export const CreateLocationResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "countryId": zod.number().nullish(),
+  "countryName": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Update a location
+ */
+export const UpdateLocationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateLocationBody = zod.object({
+  "name": zod.string().optional(),
+  "slug": zod.string().nullish(),
+  "countryId": zod.number().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+export const UpdateLocationResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "countryId": zod.number().nullish(),
+  "countryName": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Delete a location
+ */
+export const DeleteLocationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteLocationResponse = zod.object({
+  "success": zod.boolean()
+})
 
 
 /**
@@ -930,10 +1001,77 @@ export const ListCountriesResponseItem = zod.object({
   "id": zod.number(),
   "slug": zod.string(),
   "name": zod.string(),
-  "code": zod.string().nullable(),
-  "image": zod.string().nullable()
+  "code": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
 })
 export const ListCountriesResponse = zod.array(ListCountriesResponseItem)
+
+
+/**
+ * @summary Create a new country
+ */
+
+
+
+export const CreateCountryBody = zod.object({
+  "name": zod.string().min(1),
+  "slug": zod.string().nullish(),
+  "code": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+export const CreateCountryResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "code": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Update a country
+ */
+export const UpdateCountryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateCountryBody = zod.object({
+  "name": zod.string().optional(),
+  "slug": zod.string().nullish(),
+  "code": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+export const UpdateCountryResponse = zod.object({
+  "id": zod.number(),
+  "slug": zod.string(),
+  "name": zod.string(),
+  "code": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "description": zod.string().nullish(),
+  "displayOrder": zod.number().optional()
+})
+
+
+/**
+ * @summary Delete a country
+ */
+export const DeleteCountryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteCountryResponse = zod.object({
+  "success": zod.boolean()
+})
 
 
 /**
