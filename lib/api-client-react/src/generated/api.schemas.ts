@@ -32,6 +32,7 @@ export interface ItineraryStep {
   description: string;
   /** @nullable */
   image?: string | null;
+  images?: string[];
 }
 
 export type TourClassification = typeof TourClassification[keyof typeof TourClassification];

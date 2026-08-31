@@ -31,6 +31,8 @@ type ItineraryStep = {
     | "Activities";
   title: string;
   description: string;
+  image?: string | null;
+  images?: string[];
 };
 
 const categories = [
@@ -110,24 +112,38 @@ function tours(categoryIds: number[], destinationIds: number[]) {
           title: "Private transfer to Punta Arenas",
           description:
             "Chartered aircraft from Santiago, timed to your arrival rather than a schedule.",
+          images: [
+            "/images/hero-patagonia.jpg",
+            "/images/cat-mountain.jpg",
+          ],
         },
         {
           type: "Ride",
           title: "Overland to the estancia",
           description:
             "Four hours through the steppe, stopping wherever the guanaco are.",
+          image: "/images/cat-mountain.jpg",
         },
         {
           type: "Hotel",
           title: "Private estancia, six nights",
           description:
             "Exclusive use. Your own chef, guide and horses for the duration.",
+          images: [
+            "/images/dest-patagonia.jpg",
+            "/images/hero-patagonia.jpg",
+            "/images/cat-mountain.jpg",
+          ],
         },
         {
           type: "Activities",
           title: "Ice field by helicopter",
           description:
             "Landing on the Southern Patagonian Ice Field, weather permitting, with a glaciologist aboard.",
+          images: [
+            "/images/cat-mountain.jpg",
+            "/images/hero-patagonia.jpg",
+          ],
         },
       ] satisfies ItineraryStep[],
     },

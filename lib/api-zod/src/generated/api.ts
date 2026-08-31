@@ -337,7 +337,8 @@ export const ListToursResponseItem = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -366,7 +367,8 @@ export const CreateTourBody = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })).optional()
 })
 
@@ -391,7 +393,8 @@ export const CreateTourResponse = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -422,7 +425,8 @@ export const GetFeaturedToursResponseItem = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -460,7 +464,8 @@ export const SearchToursResponseItem = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -494,7 +499,8 @@ export const GetTourBySlugResponse = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string(),
@@ -556,7 +562,8 @@ export const GetTourResponse = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string()
@@ -590,7 +597,8 @@ export const UpdateTourBody = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })).optional()
 })
 
@@ -615,7 +623,8 @@ export const UpdateTourResponse = zod.object({
   "type": zod.enum(['Pickup', 'Flight', 'Visa', 'Layover', 'Ride', 'Hotel', 'Activities']),
   "title": zod.string(),
   "description": zod.string(),
-  "image": zod.string().nullish()
+  "image": zod.string().nullish(),
+  "images": zod.array(zod.string()).optional()
 })),
   "createdAt": zod.string(),
   "updatedAt": zod.string()

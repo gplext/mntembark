@@ -139,6 +139,7 @@ export const itineraryStepSchema = z.object({
   title: z.string(),
   description: z.string(),
   image: z.string().nullable().optional(),
+  images: z.array(z.string()).optional(),
 });
 export type ItineraryStep = z.infer<typeof itineraryStepSchema>;
 

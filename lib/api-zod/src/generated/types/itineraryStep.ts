@@ -13,4 +13,5 @@ export interface ItineraryStep {
   description: string;
   /** @nullable */
   image?: string | null;
+  images?: string[];
 }

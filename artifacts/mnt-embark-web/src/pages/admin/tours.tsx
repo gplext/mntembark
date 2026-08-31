@@ -163,7 +163,7 @@ function ItineraryStepBuilder({
   const addStep = () => {
     onChange([
       ...steps,
-      { type: "Hotel", title: "", description: "", image: null },
+      { type: "Hotel", title: "", description: "", image: null, images: [] },
     ]);
   };
 
@@ -171,18 +171,45 @@ function ItineraryStepBuilder({
     onChange(steps.filter((_, i) => i !== idx));
   };
 
-  const updateStep = (idx: number, field: keyof ItineraryStep, value: string) => {
+  const updateStep = (idx: number, field: keyof ItineraryStep, value: unknown) => {
     onChange(
-      steps.map((s, i) => (i === idx ? { ...s, [field]: value || (field === "image" ? null : "") } : s))
+      steps.map((s, i) =>
+        i === idx
+          ? {
+              ...s,
+              [field]:
+                value ||
+                (field === "image" ? null : field === "images" ? [] : ""),
+            }
+          : s
+      )
+    );
+  };
+
+  const updateStepImages = (idx: number, newImages: string[]) => {
+    onChange(
+      steps.map((s, i) => {
+        if (i !== idx) return s;
+        return {
+          ...s,
+          images: newImages,
+          image: newImages[0] || null,
+        };
+      })
     );
   };
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <p className="font-sans text-xs uppercase tracking-widest text-muted-foreground">
-          Itinerary Steps
-        </p>
+        <div>
+          <p className="font-sans text-xs uppercase tracking-widest text-muted-foreground">
+            Itinerary Steps
+          </p>
+          <p className="font-sans text-[11px] text-muted-foreground/80 mt-0.5">
+            Add multiple images to any step to display an interactive carousel.
+          </p>
+        </div>
         <Button
           type="button"
           variant="outline"
@@ -196,58 +223,78 @@ function ItineraryStepBuilder({
         </Button>
       </div>
 
-      {steps.map((step, idx) => (
-        <div
-          key={idx}
-          className="border border-border/40 rounded p-3 space-y-2 bg-background/50"
-          data-testid={`itinerary-step-builder-${idx}`}
-        >
-          <div className="flex items-center justify-between">
-            <p className="font-sans text-xs text-muted-foreground">Step {idx + 1}</p>
-            <button
-              type="button"
-              data-testid={`remove-step-${idx}`}
-              onClick={() => removeStep(idx)}
-              className="text-muted-foreground hover:text-destructive transition-colors"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-          <Select
-            value={step.type}
-            onValueChange={(v) => updateStep(idx, "type", v)}
+      {steps.map((step, idx) => {
+        const stepImages =
+          step.images && step.images.length > 0
+            ? step.images
+            : step.image
+            ? [step.image]
+            : [];
+
+        return (
+          <div
+            key={idx}
+            className="border border-border/40 rounded p-3 space-y-3 bg-background/50"
+            data-testid={`itinerary-step-builder-${idx}`}
           >
-            <SelectTrigger className="bg-background border-border/60 font-sans text-xs h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-card border-border">
-              {STEP_TYPES.map((t) => (
-                <SelectItem key={t} value={t} className="font-sans text-xs">
-                  {t}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            value={step.title}
-            onChange={(e) => updateStep(idx, "title", e.target.value)}
-            placeholder="Step title"
-            className="bg-background border-border/60 font-sans text-xs h-8"
-          />
-          <Textarea
-            value={step.description}
-            onChange={(e) => updateStep(idx, "description", e.target.value)}
-            placeholder="Step description"
-            rows={2}
-            className="bg-background border-border/60 font-sans text-xs resize-none"
-          />
-          <ImageUploadField
-            value={step.image || ""}
-            onChange={(url) => updateStep(idx, "image", url || "")}
-            data-testid={`step-${idx}-image`}
-          />
-        </div>
-      ))}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="font-sans text-xs font-semibold text-primary uppercase tracking-wider">
+                  Step {idx + 1}
+                </span>
+                {stepImages.length > 1 && (
+                  <Badge variant="outline" className="text-[10px] border-primary/40 text-primary py-0 px-1.5 font-sans">
+                    {stepImages.length} Images (Carousel)
+                  </Badge>
+                )}
+              </div>
+              <button
+                type="button"
+                data-testid={`remove-step-${idx}`}
+                onClick={() => removeStep(idx)}
+                className="text-muted-foreground hover:text-destructive transition-colors"
+                title="Remove Step"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+            <Select
+              value={step.type}
+              onValueChange={(v) => updateStep(idx, "type", v)}
+            >
+              <SelectTrigger className="bg-background border-border/60 font-sans text-xs h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border">
+                {STEP_TYPES.map((t) => (
+                  <SelectItem key={t} value={t} className="font-sans text-xs">
+                    {t}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input
+              value={step.title}
+              onChange={(e) => updateStep(idx, "title", e.target.value)}
+              placeholder="Step title"
+              className="bg-background border-border/60 font-sans text-xs h-8"
+            />
+            <Textarea
+              value={step.description}
+              onChange={(e) => updateStep(idx, "description", e.target.value)}
+              placeholder="Step description"
+              rows={2}
+              className="bg-background border-border/60 font-sans text-xs resize-none"
+            />
+            <ImageGalleryUploadField
+              label="Step Images (Upload multiple for carousel)"
+              values={stepImages}
+              onChange={(urls) => updateStepImages(idx, urls)}
+              data-testid={`step-${idx}-gallery`}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }

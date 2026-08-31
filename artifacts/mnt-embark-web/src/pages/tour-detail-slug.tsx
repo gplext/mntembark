@@ -37,6 +37,9 @@ import {
   Navigation,
   CreditCard,
   Anchor,
+  ChevronLeft,
+  ChevronRight,
+  Images,
 } from "lucide-react";
 import type { ItineraryStep, TourActivitySection } from "@workspace/api-client-react";
 import Navbar from "@/components/Navbar";
@@ -136,6 +139,7 @@ export default function TourDetailPage() {
 
   // ── Shared state ──────────────────────────────────────────────────────────
   const [activeStepIndex, setActiveStepIndex] = useState(0);
+  const [carouselIndex, setCarouselIndex] = useState(0);
   const [imageVisible, setImageVisible] = useState(true);
   const [enquiryOpen, setEnquiryOpen] = useState(false);
 
@@ -143,14 +147,82 @@ export default function TourDetailPage() {
     setImageVisible(false);
     setTimeout(() => {
       setActiveStepIndex(idx);
+      setCarouselIndex(0);
       setImageVisible(true);
     }, 400);
   };
 
   useEffect(() => {
     setActiveStepIndex(0);
+    setCarouselIndex(0);
     setImageVisible(true);
   }, [slugOrId]);
+
+  // ── Derive display values ─────────────────────────────────────────────────
+  const hasTaxonomy = !isNumeric;
+
+  const title         = hasTaxonomy ? tourBySlug?.title         : tourById?.title;
+  const description   = hasTaxonomy ? tourBySlug?.description   : tourById?.description;
+  const coverImage    = hasTaxonomy ? tourBySlug?.coverImage    : tourById?.coverImage;
+  const images        = hasTaxonomy ? tourBySlug?.images        : tourById?.images;
+  const durationDays  = hasTaxonomy ? tourBySlug?.durationDays  : tourById?.durationDays;
+  const featured      = hasTaxonomy ? tourBySlug?.featured      : tourById?.featured;
+  const classification = hasTaxonomy
+    ? tourBySlug?.classification
+    : (tourById as { classification?: string | null } | undefined)?.classification;
+  const steps: ItineraryStep[] = hasTaxonomy
+    ? (tourBySlug?.itinerarySteps ?? [])
+    : (tourById?.itinerarySteps ?? []);
+
+  // Location display string (for sidebar pill and EnquiryModal)
+  const locationDisplay = hasTaxonomy
+    ? (tourBySlug?.location?.name ?? tourBySlug?.locationName ?? "")
+    : (tourById?.locationName ?? tourById?.location ?? "");
+
+  // Taxonomy-only fields (empty / skipped when hasTaxonomy is false)
+  const activitySections: TourActivitySection[] =
+    hasTaxonomy ? (tourBySlug?.activitySections ?? []) : [];
+
+  const activeStep = steps[activeStepIndex];
+  const stepImages: string[] =
+    activeStep?.images && activeStep.images.length > 0
+      ? activeStep.images
+      : activeStep?.image
+      ? [activeStep.image]
+      : coverImage
+      ? [coverImage]
+      : [];
+
+  const validCarouselIndex =
+    stepImages.length > 0 ? Math.min(carouselIndex, stepImages.length - 1) : 0;
+  const currentImage = stepImages[validCarouselIndex] || coverImage || "";
+  const hasActivities = activitySections.length > 0;
+
+  const handlePrevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (stepImages.length <= 1) return;
+    setCarouselIndex((prev) => (prev === 0 ? stepImages.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (stepImages.length <= 1) return;
+    setCarouselIndex((prev) => (prev === stepImages.length - 1 ? 0 : prev + 1));
+  };
+
+  // Keyboard navigation for step image carousel (MUST be declared before early returns)
+  useEffect(() => {
+    if (stepImages.length <= 1 || enquiryOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        setCarouselIndex((prev) => (prev === 0 ? stepImages.length - 1 : prev - 1));
+      } else if (e.key === "ArrowRight") {
+        setCarouselIndex((prev) => (prev === stepImages.length - 1 ? 0 : prev + 1));
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [stepImages.length, enquiryOpen]);
 
   // ── Guard: loading ────────────────────────────────────────────────────────
   const isLoading = isNumeric ? loadingById : loadingBySlug;
@@ -208,39 +280,6 @@ export default function TourDetailPage() {
     );
   }
 
-  // ── Derive display values ─────────────────────────────────────────────────
-  //
-  // hasTaxonomy  → we fetched by slug; full TourWithTaxonomy available
-  // !hasTaxonomy → numeric id with null slug; basic Tour available
-  //
-  const hasTaxonomy = !isNumeric;
-
-  const title         = hasTaxonomy ? tourBySlug!.title         : tourById!.title;
-  const description   = hasTaxonomy ? tourBySlug!.description   : tourById!.description;
-  const coverImage    = hasTaxonomy ? tourBySlug!.coverImage    : tourById!.coverImage;
-  const images        = hasTaxonomy ? tourBySlug!.images        : tourById!.images;
-  const durationDays  = hasTaxonomy ? tourBySlug!.durationDays  : tourById!.durationDays;
-  const featured      = hasTaxonomy ? tourBySlug!.featured      : tourById!.featured;
-  const classification = hasTaxonomy
-    ? tourBySlug!.classification
-    : (tourById as { classification?: string | null }).classification;
-  const steps: ItineraryStep[] = hasTaxonomy
-    ? tourBySlug!.itinerarySteps
-    : (tourById!.itinerarySteps ?? []);
-
-  // Location display string (for sidebar pill and EnquiryModal)
-  const locationDisplay = hasTaxonomy
-    ? (tourBySlug!.location?.name ?? tourBySlug!.locationName ?? "")
-    : (tourById!.locationName ?? tourById!.location ?? "");
-
-  // Taxonomy-only fields (empty / skipped when hasTaxonomy is false)
-  const activitySections: TourActivitySection[] =
-    hasTaxonomy ? tourBySlug!.activitySections : [];
-
-  const activeStep = steps[activeStepIndex];
-  const currentImage = activeStep?.image || coverImage || "";
-  const hasActivities = activitySections.length > 0;
-
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-[100dvh] bg-background">
@@ -295,49 +334,74 @@ export default function TourDetailPage() {
               </p>
             ) : (
               <div className="space-y-1">
-                {steps.map((step, idx) => (
-                  <button
-                    key={idx}
-                    data-testid={`itinerary-step-${idx}`}
-                    onClick={() => handleStepChange(idx)}
-                    className={cn(
-                      "w-full text-left flex items-start gap-3 p-3 rounded transition-all duration-200",
-                      idx === activeStepIndex
-                        ? "bg-primary/10 border border-primary/30"
-                        : "hover:bg-card border border-transparent"
-                    )}
-                  >
-                    <div
+                {steps.map((step, idx) => {
+                  const stepImgCount =
+                    step.images && step.images.length > 0
+                      ? step.images.length
+                      : step.image
+                      ? 1
+                      : 0;
+
+                  return (
+                    <button
+                      key={idx}
+                      data-testid={`itinerary-step-${idx}`}
+                      onClick={() => handleStepChange(idx)}
                       className={cn(
-                        "shrink-0 mt-0.5",
-                        idx === activeStepIndex ? "text-primary" : "text-muted-foreground"
+                        "w-full text-left flex items-start gap-3 p-3 rounded transition-all duration-200",
+                        idx === activeStepIndex
+                          ? "bg-primary/10 border border-primary/30"
+                          : "hover:bg-card border border-transparent"
                       )}
                     >
-                      <ItineraryIcon type={step.type} />
-                    </div>
-                    <div>
-                      <p
+                      <div
                         className={cn(
-                          "font-sans text-xs uppercase tracking-widest mb-0.5",
+                          "shrink-0 mt-0.5",
                           idx === activeStepIndex ? "text-primary" : "text-muted-foreground"
                         )}
                       >
-                        {step.type}
-                      </p>
-                      <p
-                        className={cn(
-                          "font-sans text-sm leading-tight",
-                          idx === activeStepIndex ? "text-foreground" : "text-foreground/70"
-                        )}
-                      >
-                        {step.title}
-                      </p>
-                    </div>
-                    {idx === activeStepIndex && (
-                      <div className="ml-auto shrink-0 w-1 self-stretch bg-primary rounded-full" />
-                    )}
-                  </button>
-                ))}
+                        <ItineraryIcon type={step.type} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <p
+                            className={cn(
+                              "font-sans text-xs uppercase tracking-widest truncate",
+                              idx === activeStepIndex ? "text-primary font-medium" : "text-muted-foreground"
+                            )}
+                          >
+                            {step.type}
+                          </p>
+                          {stepImgCount > 1 && (
+                            <span
+                              className={cn(
+                                "inline-flex items-center gap-1 font-sans text-[10px] tracking-wider uppercase px-1.5 py-0.5 rounded shrink-0",
+                                idx === activeStepIndex
+                                  ? "bg-primary/20 text-primary border border-primary/30"
+                                  : "bg-muted/40 text-muted-foreground"
+                              )}
+                              title={`${stepImgCount} photos in carousel`}
+                            >
+                              <Images className="w-2.5 h-2.5" />
+                              {stepImgCount}
+                            </span>
+                          )}
+                        </div>
+                        <p
+                          className={cn(
+                            "font-sans text-sm leading-tight",
+                            idx === activeStepIndex ? "text-foreground" : "text-foreground/70"
+                          )}
+                        >
+                          {step.title}
+                        </p>
+                      </div>
+                      {idx === activeStepIndex && (
+                        <div className="ml-auto shrink-0 w-1 self-stretch bg-primary rounded-full" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
@@ -364,8 +428,9 @@ export default function TourDetailPage() {
 
         {/* ── Right panel ────────────────────────────────────────────────── */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ paddingTop: "80px" }}>
-          {/* Hero image */}
-          <div className="flex-1 relative overflow-hidden">
+          {/* Hero image & Carousel */}
+          <div className="flex-1 relative overflow-hidden group/hero select-none">
+            {/* Image Stack / Display */}
             <div
               className={cn(
                 "absolute inset-0 transition-opacity duration-500",
@@ -373,28 +438,91 @@ export default function TourDetailPage() {
               )}
             >
               <img
+                key={`${activeStepIndex}-${validCarouselIndex}`}
                 src={currentImage}
                 alt={activeStep?.title || title}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/60" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/80" />
             </div>
 
-            {/* Caption */}
+            {/* Carousel Multi-image Navigation Controls */}
+            {stepImages.length > 1 && imageVisible && (
+              <>
+                {/* Photo Counter Pill (Top-Right) */}
+                <div className="absolute top-6 right-6 z-20">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/15 text-white shadow-lg">
+                    <Images className="w-3.5 h-3.5 text-primary" />
+                    <span className="font-sans text-xs font-medium tracking-widest">
+                      {validCarouselIndex + 1} / {stepImages.length}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Left navigation arrow */}
+                <button
+                  type="button"
+                  data-testid="itinerary-carousel-prev"
+                  aria-label="Previous step image"
+                  onClick={handlePrevImage}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 text-white/90 hover:text-white border border-white/20 hover:border-primary/60 flex items-center justify-center backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-95 shadow-xl group/btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <ChevronLeft className="w-6 h-6 transition-transform group-hover/btn:-translate-x-0.5" />
+                </button>
+
+                {/* Right navigation arrow */}
+                <button
+                  type="button"
+                  data-testid="itinerary-carousel-next"
+                  aria-label="Next step image"
+                  onClick={handleNextImage}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-full bg-black/45 hover:bg-black/75 text-white/90 hover:text-white border border-white/20 hover:border-primary/60 flex items-center justify-center backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-95 shadow-xl group/btn focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <ChevronRight className="w-6 h-6 transition-transform group-hover/btn:translate-x-0.5" />
+                </button>
+              </>
+            )}
+
+            {/* Caption & Carousel Dots */}
             <div
               className={cn(
-                "absolute bottom-0 left-0 right-0 p-8 transition-opacity duration-500",
+                "absolute bottom-0 left-0 right-0 p-8 transition-opacity duration-500 z-10",
                 imageVisible ? "opacity-100" : "opacity-0"
               )}
             >
               {activeStep && (
-                <div>
-                  <p className="font-sans text-xs uppercase tracking-widest text-accent mb-1">
-                    {activeStep.type}
-                  </p>
-                  <h2 className="font-serif text-3xl font-light text-white">
-                    {activeStep.title}
-                  </h2>
+                <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+                  <div>
+                    <p className="font-sans text-xs uppercase tracking-widest text-accent mb-1">
+                      {activeStep.type}
+                    </p>
+                    <h2 className="font-serif text-3xl font-light text-white">
+                      {activeStep.title}
+                    </h2>
+                  </div>
+
+                  {/* Carousel Progress Dots (when > 1 image) */}
+                  {stepImages.length > 1 && (
+                    <div
+                      className="flex items-center gap-1.5 py-1 px-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 self-start md:self-auto"
+                      data-testid="itinerary-carousel-dots"
+                    >
+                      {stepImages.map((_, imgIdx) => (
+                        <button
+                          key={imgIdx}
+                          type="button"
+                          onClick={() => setCarouselIndex(imgIdx)}
+                          aria-label={`Go to image ${imgIdx + 1}`}
+                          className={cn(
+                            "h-1.5 rounded-full transition-all duration-300",
+                            imgIdx === validCarouselIndex
+                              ? "w-7 bg-primary shadow-sm"
+                              : "w-2 bg-white/40 hover:bg-white/70"
+                          )}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

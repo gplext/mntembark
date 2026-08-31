@@ -1388,6 +1388,10 @@ components:
           type: string
         image:
           type: ["string", "null"]
+        images:
+          type: array
+          items:
+            type: string
       required: [type, title, description]
 
     # ── Tour ──────────────────────────────────────────────────────────
