@@ -25,6 +25,18 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-secret_key_change_me_in_production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       UPLOAD_DIR: /data/uploads
+      # Outgoing email. Compose only passes through what is listed here, so a
+      # value present in .env but absent from this block never reaches the
+      # container - the app would start with email silently unconfigured.
+      # All optional: leave them unset and enquiries still save, with their
+      # notifications queued and the reason recorded.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
+      ADMIN_NOTIFY_EMAILS: ${ADMIN_NOTIFY_EMAILS:-}
     volumes:
       - app-data:/data
     depends_on:
