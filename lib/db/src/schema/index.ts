@@ -8,4 +8,5 @@ export * from "./activities";
 export * from "./guides";
 export * from "./journals";
 export * from "./enquiries";
+export * from "./notifications";
 export * from "./admins";

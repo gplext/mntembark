@@ -1284,6 +1284,81 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /admin/enquiries/{id}/notifications:
+    get:
+      operationId: listEnquiryNotifications
+      tags: [enquiries]
+      summary: Messages queued or sent for an enquiry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /admin/notifications/{id}/resend:
+    post:
+      operationId: resendNotification
+      tags: [enquiries]
+      summary: Put a message back in the send queue
+      description: >
+        Resets the attempt counter - a resend follows a human fixing something,
+        so it gets a fresh set of attempts rather than inheriting an exhausted
+        one.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "202":
+          description: Queued for sending
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/notifications/test:
+    post:
+      operationId: sendTestEmail
+      tags: [enquiries]
+      summary: Send a test email to prove SMTP works
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestEmailInput"
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestEmailResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Email is not configured on this server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /admin/enquiries:
     get:
       operationId: listEnquiries
@@ -2212,6 +2287,62 @@ components:
           type: string
 
     # ── Enquiry ─────────────────────────────────────────────────────────
+    Notification:
+      type: object
+      properties:
+        id:
+          type: number
+        enquiryId:
+          type: ["number", "null"]
+        channel:
+          type: string
+        templateKey:
+          type: string
+        recipient:
+          type: string
+        subject:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [queued, sent, failed]
+        attempts:
+          type: number
+        lastError:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        sentAt:
+          type: ["string", "null"]
+      required:
+        [
+          id,
+          enquiryId,
+          channel,
+          templateKey,
+          recipient,
+          subject,
+          status,
+          attempts,
+          lastError,
+          createdAt,
+          sentAt,
+        ]
+
+    TestEmailInput:
+      type: object
+      properties:
+        to:
+          type: string
+          minLength: 3
+      required: [to]
+
+    TestEmailResult:
+      type: object
+      properties:
+        messageId:
+          type: string
+      required: [messageId]
+
     Enquiry:
       type: object
       properties:

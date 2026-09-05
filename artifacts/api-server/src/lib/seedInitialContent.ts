@@ -225,6 +225,31 @@ export async function seedInitialContent(): Promise<void> {
 
     CREATE UNIQUE INDEX IF NOT EXISTS admins_email_idx ON admins (LOWER(email));
 
+    CREATE TABLE IF NOT EXISTS notifications (
+      id SERIAL PRIMARY KEY,
+      enquiry_id INTEGER REFERENCES enquiries(id) ON DELETE CASCADE,
+      channel TEXT NOT NULL,
+      template_key TEXT NOT NULL,
+      recipient TEXT NOT NULL,
+      subject TEXT,
+      body TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'queued',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      last_error TEXT,
+      provider_message_id TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      sent_at TIMESTAMPTZ
+    );
+
+    CREATE INDEX IF NOT EXISTS notifications_status_created_idx
+      ON notifications (status, created_at);
+    CREATE INDEX IF NOT EXISTS notifications_enquiry_idx
+      ON notifications (enquiry_id);
+    -- One copy of a given message per recipient per enquiry, enforced by the
+    -- database so a retry or a second worker cannot send a duplicate.
+    CREATE UNIQUE INDEX IF NOT EXISTS notifications_dedupe_idx
+      ON notifications (enquiry_id, template_key, recipient);
+
     CREATE INDEX IF NOT EXISTS enquiries_status_created_idx
       ON enquiries (status, created_at DESC);
     CREATE INDEX IF NOT EXISTS enquiries_created_idx
@@ -311,6 +336,12 @@ export async function seedInitialContent(): Promise<void> {
     ALTER TABLE activities ALTER COLUMN icon DROP NOT NULL;
 
     ALTER TABLE tour_activities ADD COLUMN IF NOT EXISTS display_order SMALLINT NOT NULL DEFAULT 0;
+
+    -- Groundwork for WhatsApp: consent is asked for separately from the
+    -- marketing opt-in, and the number is stored normalised alongside whatever
+    -- the visitor actually typed, because the API will only accept E.164.
+    ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS whatsapp_consent BOOLEAN NOT NULL DEFAULT FALSE;
+    ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS phone_e164 TEXT;
 
     CREATE INDEX IF NOT EXISTS activity_groups_order_idx ON activity_groups (display_order);
     CREATE INDEX IF NOT EXISTS activities_group_idx ON activities (group_id, display_order);
@@ -559,6 +590,21 @@ export async function seedInitialContent(): Promise<void> {
       "usage_count",
       "display_order",
       "created_at",
+    ],
+    notifications: [
+      "id",
+      "enquiry_id",
+      "channel",
+      "template_key",
+      "recipient",
+      "subject",
+      "body",
+      "status",
+      "attempts",
+      "last_error",
+      "provider_message_id",
+      "created_at",
+      "sent_at",
     ],
     tour_guides: [
       "tour_id",

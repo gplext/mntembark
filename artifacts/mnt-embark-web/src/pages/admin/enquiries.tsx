@@ -15,6 +15,8 @@ import { cn } from "@workspace/mnt-embark/lib/utils";
 import { format } from "date-fns";
 import { Mail, Phone, CheckCircle, RotateCcw, MapPin, Clock, Calendar } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
+import { NotificationPanel } from "@/components/NotificationPanel";
+import { TestEmailButton } from "@/components/TestEmailButton";
 
 type StatusFilter = "all" | "new" | "handled";
 
@@ -222,6 +224,16 @@ function EnquiryDetail({ enquiry }: { enquiry: Enquiry }) {
             </a>
           )}
         </div>
+
+        <Separator className="bg-border/30" />
+
+        {/* What the site sent automatically, and whether it arrived. */}
+        <section>
+          <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
+            Delivery
+          </p>
+          <NotificationPanel enquiryId={enquiry.id} />
+        </section>
 
         <Separator className="bg-border/30" />
 
@@ -437,6 +449,7 @@ export default function AdminEnquiriesPage() {
                   )}
                 </h1>
               </div>
+              <TestEmailButton />
             </div>
 
             {/* Filter tabs */}

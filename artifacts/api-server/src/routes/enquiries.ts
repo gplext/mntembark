@@ -8,9 +8,20 @@ import {
   UpdateEnquiryStatusBody,
   UpdateEnquiryStatusParams,
   UpdateEnquiryStatusResponse,
+  ListEnquiryNotificationsParams,
+  ListEnquiryNotificationsResponse,
+  ResendNotificationParams,
+  SendTestEmailBody,
+  SendTestEmailResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { serialize } from "../lib/serialize";
+import {
+  queueEnquiryNotifications,
+  notificationsForEnquiry,
+  resendNotification,
+} from "../lib/notifications";
+import { isMailConfigured, mailConfigError, sendMail } from "../lib/mailer";
 
 const router: IRouter = Router();
 
@@ -119,6 +130,13 @@ router.post("/enquiries", async (req, res): Promise<void> => {
     })
     .returning();
 
+  /*
+   * Queue the confirmation and the office alert, but do not wait for them.
+   * Sending happens in the background precisely so that a slow or unreachable
+   * mail server cannot turn a saved enquiry into an error for the visitor.
+   */
+  void queueEnquiryNotifications(enquiry);
+
   res.status(201).json(CreateEnquiryResponse.parse(serialize(enquiry)));
 });
 
@@ -162,6 +180,92 @@ router.patch(
     }
 
     res.json(UpdateEnquiryStatusResponse.parse(serialize(enquiry)));
+  },
+);
+
+export default router;
+
+/* ==================================================================== *
+ * Notification delivery
+ * ==================================================================== */
+
+router.get(
+  "/admin/enquiries/:id/notifications",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = ListEnquiryNotificationsParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const rows = await notificationsForEnquiry(params.data.id);
+    res.json(ListEnquiryNotificationsResponse.parse(serialize(rows)));
+  },
+);
+
+router.post(
+  "/admin/notifications/:id/resend",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = ResendNotificationParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const ok = await resendNotification(params.data.id);
+    if (!ok) {
+      res.status(404).json({ error: "Notification not found" });
+      return;
+    }
+    // 202: accepted for sending, not sent yet — the worker owns that.
+    res.sendStatus(202);
+  },
+);
+
+router.post(
+  "/admin/notifications/test",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const parsed = SendTestEmailBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+
+    if (!isMailConfigured()) {
+      /*
+       * 503 rather than 500: nothing is broken, the server simply has no mail
+       * credentials. The message names which ones are missing so this is
+       * actionable without reading the server log.
+       */
+      res.status(503).json({
+        error: mailConfigError() ?? "Email is not configured on this server",
+      });
+      return;
+    }
+
+    /*
+     * Sent inline rather than queued, because the entire point is to find out
+     * now whether the credentials work. A queued test would report success the
+     * moment it was written to the table, which proves nothing.
+     */
+    try {
+      const result = await sendMail({
+        to: parsed.data.to.trim(),
+        subject: "MNT Embark — test email",
+        text: [
+          "This is a test message from the MNT Embark admin panel.",
+          "",
+          "If you are reading it, outgoing email is working:",
+          "credentials accepted, and the message was handed to the mail server.",
+        ].join("\n"),
+      });
+      res.json(SendTestEmailResponse.parse(result));
+    } catch (err) {
+      res.status(503).json({
+        error: err instanceof Error ? err.message : "Sending failed",
+      });
+    }
   },
 );
 
