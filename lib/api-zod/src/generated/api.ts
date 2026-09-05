@@ -1354,6 +1354,56 @@ export const CreateEnquiryResponse = zod.object({
 
 
 /**
+ * @summary Messages queued or sent for an enquiry
+ */
+export const ListEnquiryNotificationsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListEnquiryNotificationsResponseItem = zod.object({
+  "id": zod.number(),
+  "enquiryId": zod.number().nullable(),
+  "channel": zod.string(),
+  "templateKey": zod.string(),
+  "recipient": zod.string(),
+  "subject": zod.string().nullable(),
+  "status": zod.enum(['queued', 'sent', 'failed']),
+  "attempts": zod.number(),
+  "lastError": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "sentAt": zod.string().nullable()
+})
+export const ListEnquiryNotificationsResponse = zod.array(ListEnquiryNotificationsResponseItem)
+
+
+/**
+ * Resets the attempt counter - a resend follows a human fixing something, so it gets a fresh set of attempts rather than inheriting an exhausted one.
+ * @summary Put a message back in the send queue
+ */
+export const ResendNotificationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ResendNotificationResponse = zod.void()
+
+
+/**
+ * @summary Send a test email to prove SMTP works
+ */
+export const sendTestEmailBodyToMin = 3;
+
+
+
+export const SendTestEmailBody = zod.object({
+  "to": zod.string().min(sendTestEmailBodyToMin)
+})
+
+export const SendTestEmailResponse = zod.object({
+  "messageId": zod.string()
+})
+
+
+/**
  * @summary List customer enquiries for admins
  */
 export const ListEnquiriesResponseItem = zod.object({
@@ -1378,6 +1428,17 @@ export const ListEnquiriesResponseItem = zod.object({
   "handledAt": zod.string().nullish()
 })
 export const ListEnquiriesResponse = zod.array(ListEnquiriesResponseItem)
+
+
+/**
+ * Permanent. The notification rows go with it — they describe messages sent about this enquiry and mean nothing without it.
+ * @summary Delete an enquiry and its notification history
+ */
+export const DeleteEnquiryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteEnquiryResponse = zod.void()
 
 
 /**

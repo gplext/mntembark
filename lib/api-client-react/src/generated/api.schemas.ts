@@ -551,6 +551,42 @@ export interface JournalEntryUpdate {
   publishedAt?: string;
 }
 
+export type NotificationStatus = typeof NotificationStatus[keyof typeof NotificationStatus];
+
+
+export const NotificationStatus = {
+  queued: 'queued',
+  sent: 'sent',
+  failed: 'failed',
+} as const;
+
+export interface Notification {
+  id: number;
+  /** @nullable */
+  enquiryId: number | null;
+  channel: string;
+  templateKey: string;
+  recipient: string;
+  /** @nullable */
+  subject: string | null;
+  status: NotificationStatus;
+  attempts: number;
+  /** @nullable */
+  lastError: string | null;
+  createdAt: string;
+  /** @nullable */
+  sentAt: string | null;
+}
+
+export interface TestEmailInput {
+  /** @minLength 3 */
+  to: string;
+}
+
+export interface TestEmailResult {
+  messageId: string;
+}
+
 export type EnquirySource = typeof EnquirySource[keyof typeof EnquirySource];
 
 

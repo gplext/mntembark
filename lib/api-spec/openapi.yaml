@@ -1382,6 +1382,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /admin/enquiries/{id}:
+    delete:
+      operationId: deleteEnquiry
+      tags: [enquiries]
+      summary: Delete an enquiry and its notification history
+      description: >
+        Permanent. The notification rows go with it — they describe messages
+        sent about this enquiry and mean nothing without it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /admin/enquiries/{id}/status:
     patch:
       operationId: updateEnquiryStatus

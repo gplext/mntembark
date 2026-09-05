@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   useListEnquiries,
   useUpdateEnquiryStatus,
+  useDeleteEnquiry,
   getListEnquiriesQueryKey,
 } from "@workspace/api-client-react";
 import type { Enquiry } from "@workspace/api-client-react";
@@ -10,52 +11,26 @@ import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Badge } from "@workspace/mnt-embark/components/ui/badge";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { Separator } from "@workspace/mnt-embark/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@workspace/mnt-embark/components/ui/alert-dialog";
 import { useToast } from "@workspace/mnt-embark/hooks/use-toast";
+import { apiErrorMessage } from "@/lib/api-error";
 import { cn } from "@workspace/mnt-embark/lib/utils";
 import { format } from "date-fns";
-import { Mail, Phone, CheckCircle, RotateCcw, MapPin, Clock, Calendar } from "lucide-react";
+import { CheckCircle, RotateCcw, MapPin, Clock, Calendar, Trash2 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { TestEmailButton } from "@/components/TestEmailButton";
 
 type StatusFilter = "all" | "new" | "handled";
-
-function normalizePhone(raw: string): string {
-  return raw.replace(/\D/g, "");
-}
-
-function buildMailtoHref(enquiry: Enquiry): string {
-  const name = [enquiry.title, enquiry.firstName, enquiry.lastName].filter(Boolean).join(" ");
-  const subject = enquiry.tourTitle
-    ? `Re: Enquiry — ${enquiry.tourTitle}`
-    : `Re: Your Enquiry to MNT Embark`;
-  const body = [
-    `Dear ${enquiry.firstName},`,
-    "",
-    "Thank you for reaching out to MNT Embark.",
-    "",
-    enquiry.tourTitle ? `We have received your enquiry regarding ${enquiry.tourTitle}.` : "",
-    "",
-    "We look forward to speaking with you.",
-    "",
-    "Warm regards,",
-    "MNT Embark",
-  ]
-    .filter((l) => l !== undefined)
-    .join("\n");
-  return `mailto:${enquiry.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-}
-
-function buildWhatsAppHref(enquiry: Enquiry): string | null {
-  if (!enquiry.phone) return null;
-  const digits = normalizePhone(enquiry.phone);
-  if (!digits || digits.length < 7) return null;
-  const name = enquiry.firstName;
-  const text = enquiry.tourTitle
-    ? `Hello ${name}, this is MNT Embark. Thank you for your enquiry about ${enquiry.tourTitle}. We would love to discuss this further with you.`
-    : `Hello ${name}, this is MNT Embark. Thank you for your enquiry. We would love to discuss this with you.`;
-  return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
-}
 
 function EnquirySourceBadge({ source }: { source: Enquiry["source"] }) {
   return (
@@ -134,14 +109,45 @@ function EnquiryRow({
   );
 }
 
-function EnquiryDetail({ enquiry }: { enquiry: Enquiry }) {
+function EnquiryDetail({
+  enquiry,
+  onDeleted,
+}: {
+  enquiry: Enquiry;
+  onDeleted: () => void;
+}) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const updateStatus = useUpdateEnquiryStatus();
+  const deleteEnquiry = useDeleteEnquiry();
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const handleDelete = () => {
+    deleteEnquiry.mutate(
+      { id: enquiry.id },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getListEnquiriesQueryKey() });
+          toast({
+            title: "Enquiry deleted",
+            description: `${enquiry.firstName} ${enquiry.lastName}'s enquiry and its delivery record are gone.`,
+          });
+          setConfirmDelete(false);
+          // Nothing is selected any more — the pane would otherwise keep
+          // showing a record that no longer exists.
+          onDeleted();
+        },
+        onError: (err) =>
+          toast({
+            title: "Could not delete",
+            description: apiErrorMessage(err, "Please try again."),
+            variant: "destructive",
+          }),
+      },
+    );
+  };
 
   const name = [enquiry.title, enquiry.firstName, enquiry.lastName].filter(Boolean).join(" ");
-  const mailtoHref = buildMailtoHref(enquiry);
-  const whatsappHref = buildWhatsAppHref(enquiry);
   const isNew = enquiry.status === "new";
 
   const handleStatusToggle = () => {
@@ -177,56 +183,43 @@ function EnquiryDetail({ enquiry }: { enquiry: Enquiry }) {
               Received {format(new Date(enquiry.createdAt), "MMMM d, yyyy 'at' h:mm a")}
             </p>
           </div>
-          <Button
-            variant={isNew ? "default" : "outline"}
-            size="sm"
-            data-testid={`status-toggle-${enquiry.id}`}
-            onClick={handleStatusToggle}
-            disabled={updateStatus.isPending}
-            className="font-sans text-xs uppercase tracking-widest shrink-0 gap-1.5"
-          >
-            {isNew ? (
-              <>
-                <CheckCircle className="h-3.5 w-3.5" />
-                Mark Handled
-              </>
-            ) : (
-              <>
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reopen
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant={isNew ? "default" : "outline"}
+              size="sm"
+              data-testid={`status-toggle-${enquiry.id}`}
+              onClick={handleStatusToggle}
+              disabled={updateStatus.isPending}
+              className="font-sans text-xs uppercase tracking-widest gap-1.5"
+            >
+              {isNew ? (
+                <>
+                  <CheckCircle className="h-3.5 w-3.5" />
+                  Mark Handled
+                </>
+              ) : (
+                <>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Reopen
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              data-testid={`delete-enquiry-${enquiry.id}`}
+              onClick={() => setConfirmDelete(true)}
+              disabled={deleteEnquiry.isPending}
+              className="font-sans text-xs uppercase tracking-widest gap-1.5 text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete
+            </Button>
+          </div>
         </div>
       </div>
 
       <div className="px-7 py-6 space-y-7">
-        {/* Contact actions */}
-        <div className="flex gap-3">
-          <a
-            href={mailtoHref}
-            data-testid={`email-action-${enquiry.id}`}
-            className="inline-flex items-center gap-2 px-4 py-2.5 border border-border/60 rounded-sm font-sans text-xs uppercase tracking-widest text-foreground hover:bg-card/60 hover:border-primary/40 transition-colors duration-150"
-          >
-            <Mail className="h-3.5 w-3.5 text-primary" />
-            Send Email
-          </a>
-          {whatsappHref && (
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-testid={`whatsapp-action-${enquiry.id}`}
-              className="inline-flex items-center gap-2 px-4 py-2.5 border border-border/60 rounded-sm font-sans text-xs uppercase tracking-widest text-foreground hover:bg-card/60 hover:border-primary/40 transition-colors duration-150"
-            >
-              <Phone className="h-3.5 w-3.5 text-primary" />
-              WhatsApp
-            </a>
-          )}
-        </div>
-
-        <Separator className="bg-border/30" />
-
         {/* What the site sent automatically, and whether it arrived. */}
         <section>
           <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
@@ -369,6 +362,47 @@ function EnquiryDetail({ enquiry }: { enquiry: Enquiry }) {
           </div>
         </section>
       </div>
+
+      {/*
+        Deleting an enquiry destroys the only record of someone asking to
+        travel with you, so it asks first and names the person — a stray click
+        on a ghost button next to "Mark Handled" should not be able to lose a
+        lead silently.
+      */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-xl font-light text-foreground">
+              Delete this enquiry?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-sans text-sm text-muted-foreground">
+              {name}'s enquiry and its delivery record will be removed
+              permanently. Messages already sent cannot be unsent.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              data-testid={`cancel-delete-${enquiry.id}`}
+              className="font-sans text-xs uppercase tracking-widest"
+            >
+              Keep it
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid={`confirm-delete-${enquiry.id}`}
+              onClick={(e) => {
+                // Keep the dialog up while the request is in flight, so a
+                // failure can be reported against something still on screen.
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleteEnquiry.isPending}
+              className="font-sans text-xs uppercase tracking-widest bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteEnquiry.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -538,7 +572,10 @@ export default function AdminEnquiriesPage() {
         {/* ── RIGHT: detail panel ── */}
         <div className="flex-1 overflow-hidden bg-background">
           {selectedEnquiry ? (
-            <EnquiryDetail enquiry={selectedEnquiry} />
+            <EnquiryDetail
+              enquiry={selectedEnquiry}
+              onDeleted={() => setSelectedId(null)}
+            />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-center px-8">
               <div className="w-12 h-px bg-primary/30 mb-8" />

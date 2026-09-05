@@ -8,6 +8,7 @@ import {
   UpdateEnquiryStatusBody,
   UpdateEnquiryStatusParams,
   UpdateEnquiryStatusResponse,
+  DeleteEnquiryParams,
   ListEnquiryNotificationsParams,
   ListEnquiryNotificationsResponse,
   ResendNotificationParams,
@@ -180,6 +181,34 @@ router.patch(
     }
 
     res.json(UpdateEnquiryStatusResponse.parse(serialize(enquiry)));
+  },
+);
+
+router.delete(
+  "/admin/enquiries/:id",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = DeleteEnquiryParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    /*
+     * The enquiry's notification rows go with it, by the cascade on
+     * notifications.enquiry_id. They record messages sent about this enquiry
+     * and describe nothing once it is gone.
+     */
+    const [row] = await db
+      .delete(enquiriesTable)
+      .where(eq(enquiriesTable.id, params.data.id))
+      .returning();
+
+    if (!row) {
+      res.status(404).json({ error: "Enquiry not found" });
+      return;
+    }
+    res.sendStatus(204);
   },
 );
 
