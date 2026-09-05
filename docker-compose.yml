@@ -25,6 +25,9 @@ services:
       SESSION_SECRET: ${SESSION_SECRET:-secret_key_change_me_in_production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       UPLOAD_DIR: /data/uploads
+      # The site's own address, used for the link in branded email footers.
+      # Absent, the footer simply carries no link and the mail still sends.
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-}
       # Outgoing email. Compose only passes through what is listed here, so a
       # value present in .env but absent from this block never reaches the
       # container - the app would start with email silently unconfigured.
