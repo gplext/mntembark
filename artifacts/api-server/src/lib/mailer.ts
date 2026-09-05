@@ -1,5 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
+import MailComposer from "nodemailer/lib/mail-composer";
 import { logger } from "./logger";
+import { fileInSentFolder } from "./sentFolder";
 
 /**
  * SMTP transport, built once and reused.
@@ -116,18 +118,70 @@ export async function verifyMailer(): Promise<void> {
   }
 }
 
+/**
+ * Force CRLF line endings on a composed message.
+ *
+ * RFC 5322 requires them, and the SMTP transport fixes them up on the way out —
+ * so a message can go over the wire correct while the composed buffer still
+ * holds bare newlines in the body. That buffer is what gets filed in the Sent
+ * folder, and IMAP servers are entitled to reject an APPEND of a message with
+ * bare newlines. Normalising here means the copy is both valid and identical to
+ * what was sent.
+ *
+ * latin1 round-trips arbitrary bytes through a string unchanged, so this is
+ * safe for any transfer encoding.
+ */
+function toCrlf(raw: Buffer): Buffer {
+  return Buffer.from(raw.toString("latin1").replace(/\r?\n/g, "\r\n"), "latin1");
+}
+
+/** The bare address out of `"Name" <addr>`, for the SMTP envelope. */
+function bareAddress(value: string): string {
+  const match = /<([^>]+)>/.exec(value);
+  return (match?.[1] ?? value).trim();
+}
+
 export async function sendMail(message: MailMessage): Promise<MailResult> {
   if (!transporter) {
     throw new Error(configError ?? "Email is not configured");
   }
 
-  const info = await transporter.sendMail({
+  const fields = {
     from: mailFrom(),
     to: message.to,
     subject: message.subject,
     text: message.text,
     replyTo: message.replyTo,
+  };
+
+  /*
+   * Compose once, then send those exact bytes.
+   *
+   * Letting nodemailer compose during send would be simpler, but then the copy
+   * filed in the Sent folder would have to be composed a second time — a
+   * different Message-ID and Date, so the archive would hold something that
+   * merely resembles what the recipient got, and a reply would not thread
+   * against it.
+   */
+  const raw = toCrlf(await new MailComposer(fields).compile().build());
+
+  const info = await transporter.sendMail({
+    raw,
+    /*
+     * Raw mail bypasses header parsing, so the envelope has to be stated. These
+     * are the addresses SMTP actually routes on; the headers above are only
+     * what the recipient reads.
+     */
+    envelope: { from: bareAddress(fields.from), to: [message.to] },
   });
+
+  /*
+   * Deliberately not awaited and deliberately unable to fail: the message is
+   * already delivered. Making the caller wait on an archival copy would let a
+   * slow IMAP server stall the queue, and letting it throw would mark a
+   * delivered message failed — and send it again on the next pass.
+   */
+  void fileInSentFolder(raw);
 
   return { messageId: info.messageId };
 }

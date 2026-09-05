@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { seedInitialContent } from "./lib/seedInitialContent";
 import { verifyMailer } from "./lib/mailer";
+import { verifySentFolder } from "./lib/sentFolder";
 import { startNotificationWorker } from "./lib/notifications";
 
 const rawPort = process.env["PORT"];
@@ -28,6 +29,7 @@ async function startServer(): Promise<void> {
    * startup: the site is worth serving even when email is down.
    */
   await verifyMailer();
+  await verifySentFolder();
   startNotificationWorker();
 
   app.listen(port, (err) => {

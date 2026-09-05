@@ -37,6 +37,11 @@ services:
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
       ADMIN_NOTIFY_EMAILS: ${ADMIN_NOTIFY_EMAILS:-}
+      IMAP_HOST: ${IMAP_HOST:-}
+      IMAP_PORT: ${IMAP_PORT:-993}
+      IMAP_USER: ${IMAP_USER:-}
+      IMAP_PASS: ${IMAP_PASS:-}
+      IMAP_SENT_MAILBOX: ${IMAP_SENT_MAILBOX:-Sent}
     volumes:
       - app-data:/data
     depends_on:
