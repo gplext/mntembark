@@ -214,6 +214,17 @@ export async function seedInitialContent(): Promise<void> {
       handled_at TIMESTAMPTZ
     );
 
+    CREATE TABLE IF NOT EXISTS admins (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS admins_email_idx ON admins (LOWER(email));
+
     CREATE INDEX IF NOT EXISTS enquiries_status_created_idx
       ON enquiries (status, created_at DESC);
     CREATE INDEX IF NOT EXISTS enquiries_created_idx

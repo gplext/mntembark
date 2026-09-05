@@ -161,12 +161,12 @@ export default function TourDetailPage() {
   // ── Derive display values ─────────────────────────────────────────────────
   const hasTaxonomy = !isNumeric;
 
-  const title         = hasTaxonomy ? tourBySlug?.title         : tourById?.title;
-  const description   = hasTaxonomy ? tourBySlug?.description   : tourById?.description;
-  const coverImage    = hasTaxonomy ? tourBySlug?.coverImage    : tourById?.coverImage;
-  const images        = hasTaxonomy ? tourBySlug?.images        : tourById?.images;
-  const durationDays  = hasTaxonomy ? tourBySlug?.durationDays  : tourById?.durationDays;
-  const featured      = hasTaxonomy ? tourBySlug?.featured      : tourById?.featured;
+  const title = hasTaxonomy ? tourBySlug?.title : tourById?.title;
+  const description = hasTaxonomy ? tourBySlug?.description : tourById?.description;
+  const coverImage = hasTaxonomy ? tourBySlug?.coverImage : tourById?.coverImage;
+  const images = hasTaxonomy ? tourBySlug?.images : tourById?.images;
+  const durationDays = hasTaxonomy ? tourBySlug?.durationDays : tourById?.durationDays;
+  const featured = hasTaxonomy ? tourBySlug?.featured : tourById?.featured;
   const classification = hasTaxonomy
     ? tourBySlug?.classification
     : (tourById as { classification?: string | null } | undefined)?.classification;
@@ -187,8 +187,8 @@ export default function TourDetailPage() {
     images && images.length > 0
       ? images
       : coverImage
-      ? [coverImage]
-      : [];
+        ? [coverImage]
+        : [];
 
   const activeStep = activeStepIndex !== null ? steps[activeStepIndex] : null;
 
@@ -196,10 +196,10 @@ export default function TourDetailPage() {
     ? activeStep.images && activeStep.images.length > 0
       ? activeStep.images
       : activeStep.image
-      ? [activeStep.image]
-      : coverImage
-      ? [coverImage]
-      : []
+        ? [activeStep.image]
+        : coverImage
+          ? [coverImage]
+          : []
     : tourMainImages;
 
   const validCarouselIndex =
@@ -363,8 +363,8 @@ export default function TourDetailPage() {
                     step.images && step.images.length > 0
                       ? step.images.length
                       : step.image
-                      ? 1
-                      : 0;
+                        ? 1
+                        : 0;
 
                   return (
                     <button

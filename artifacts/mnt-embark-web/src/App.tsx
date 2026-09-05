@@ -40,6 +40,7 @@ const AdminJournalsPage = lazy(() => import('@/pages/admin/journals'));
 const AdminEnquiriesPage = lazy(() => import('@/pages/admin/enquiries'));
 const AdminActivitiesPage = lazy(() => import('@/pages/admin/activities'));
 const AdminGuidesPage = lazy(() => import('@/pages/admin/guides'));
+const AdminAdminsPage = lazy(() => import('@/pages/admin/admins'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -99,6 +100,9 @@ function Router() {
         </Route>
         <Route path="/admin/enquiries">
           <AdminGuard><AdminEnquiriesPage /></AdminGuard>
+        </Route>
+        <Route path="/admin/admins">
+          <AdminGuard><AdminAdminsPage /></AdminGuard>
         </Route>
         <Route component={NotFound} />
       </Switch>

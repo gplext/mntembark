@@ -37,11 +37,13 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json .npmrc ./
 COPY artifacts/api-server/package.json        artifacts/api-server/package.json
 COPY artifacts/mnt-embark/package.json        artifacts/mnt-embark/package.json
 COPY artifacts/mnt-embark-web/package.json    artifacts/mnt-embark-web/package.json
+COPY artifacts/mockup-sandbox/package.json    artifacts/mockup-sandbox/package.json
 COPY lib/api-client-react/package.json        lib/api-client-react/package.json
 COPY lib/api-spec/package.json                lib/api-spec/package.json
 COPY lib/api-zod/package.json                 lib/api-zod/package.json
 COPY lib/db/package.json                      lib/db/package.json
 COPY lib/object-storage-web/package.json      lib/object-storage-web/package.json
+COPY scripts/package.json                     scripts/package.json
 
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
     pnpm install --frozen-lockfile
