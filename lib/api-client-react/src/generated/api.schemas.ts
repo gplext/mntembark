@@ -578,6 +578,25 @@ export interface EmailPreview {
   warnings: string[];
 }
 
+export interface ChannelStatus {
+  key: string;
+  label: string;
+  configured: boolean;
+  ready: boolean;
+  /** @nullable */
+  detail: string | null;
+  /** @nullable */
+  identity: string | null;
+  /** @nullable */
+  checkedAt: string | null;
+}
+
+export interface NotificationChannels {
+  channels: ChannelStatus[];
+  queued: number;
+  failed: number;
+}
+
 export type NotificationStatus = typeof NotificationStatus[keyof typeof NotificationStatus];
 
 

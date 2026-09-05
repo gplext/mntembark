@@ -44,6 +44,16 @@ function env(name: string): string | undefined {
 let transporter: Transporter | null = null;
 let configError: string | null = null;
 
+/**
+ * What the startup check found, kept so the admin panel can show it.
+ *
+ * "Configured" and "working" are different claims, and only the second one is
+ * worth putting on a screen: a wrong password is configuration that looks
+ * complete and sends nothing.
+ */
+let verifiedAt: Date | null = null;
+let verifyError: string | null = null;
+
 function configure(): void {
   const present = REQUIRED.filter((k) => env(k));
 
@@ -118,10 +128,44 @@ export async function verifyMailer(): Promise<void> {
   }
   try {
     await transporter.verify();
+    verifiedAt = new Date();
+    verifyError = null;
     logger.info({ host: env("SMTP_HOST"), from: mailFrom() }, "SMTP ready");
   } catch (err) {
+    verifyError = err instanceof Error ? err.message : String(err);
     logger.error({ err }, "SMTP credentials rejected — email will fail");
   }
+}
+
+export interface ChannelStatus {
+  key: string;
+  label: string;
+  /**
+   * Credentials are present. Says nothing about whether they work — which is
+   * the distinction the whole status line exists to draw, because a rejected
+   * password and an unused channel look identical from the outside and mean
+   * opposite things.
+   */
+  configured: boolean;
+  /** True only when the provider actually accepted our credentials. */
+  ready: boolean;
+  /** Why it is not ready, in the provider's words where there are any. */
+  detail: string | null;
+  /** Something identifying to confirm it is the right account. */
+  identity: string | null;
+  checkedAt: string | null;
+}
+
+export function mailStatus(): ChannelStatus {
+  return {
+    key: "email",
+    label: "Email",
+    configured: transporter !== null,
+    ready: transporter !== null && verifyError === null && verifiedAt !== null,
+    detail: configError ?? verifyError,
+    identity: transporter ? mailFrom() : null,
+    checkedAt: verifiedAt?.toISOString() ?? null,
+  };
 }
 
 /**

@@ -40,6 +40,11 @@ function apiVersion(): string {
 
 let configError: string | null = null;
 
+/** What the startup check found, so the admin panel can show it. */
+let verifiedAt: Date | null = null;
+let verifyError: string | null = null;
+let verifiedNumber: string | null = null;
+
 function configure(): void {
   const present = REQUIRED.filter((k) => env(k));
   if (present.length === 0) {
@@ -259,12 +264,19 @@ export async function verifyWhatsApp(): Promise<void> {
     };
 
     if (!response.ok) {
+      verifyError = data.error?.message ?? `HTTP ${response.status}`;
       logger.error(
-        { reason: data.error?.message ?? `HTTP ${response.status}` },
+        { reason: verifyError },
         "WhatsApp credentials rejected — WhatsApp messages will fail",
       );
       return;
     }
+
+    verifiedAt = new Date();
+    verifyError = null;
+    verifiedNumber =
+      [data.verified_name, data.display_phone_number].filter(Boolean).join(" · ") ||
+      null;
 
     logger.info(
       {
@@ -276,6 +288,19 @@ export async function verifyWhatsApp(): Promise<void> {
       "WhatsApp ready",
     );
   } catch (err) {
+    verifyError = err instanceof Error ? err.message : String(err);
     logger.error({ err }, "Could not reach WhatsApp at startup");
   }
+}
+
+export function whatsAppStatus() {
+  return {
+    key: "whatsapp",
+    label: "WhatsApp",
+    configured: configError === null,
+    ready: configError === null && verifyError === null && verifiedAt !== null,
+    detail: configError ?? verifyError,
+    identity: verifiedNumber,
+    checkedAt: verifiedAt?.toISOString() ?? null,
+  };
 }

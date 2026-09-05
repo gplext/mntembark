@@ -1418,6 +1418,27 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /admin/notification-channels:
+    get:
+      operationId: getNotificationChannels
+      tags: [enquiries]
+      summary: Which channels will send, and what is waiting
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: One entry per channel, plus the queue counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannels"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /admin/notifications/test:
     post:
       operationId: sendTestEmail
@@ -2466,6 +2487,38 @@ components:
           items:
             type: string
       required: [subject, body, html, warnings]
+
+    ChannelStatus:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        configured:
+          type: boolean
+        ready:
+          type: boolean
+        detail:
+          type: ["string", "null"]
+        identity:
+          type: ["string", "null"]
+        checkedAt:
+          type: ["string", "null"]
+      required: [key, label, configured, ready, detail, identity, checkedAt]
+
+    NotificationChannels:
+      type: object
+      properties:
+        channels:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelStatus"
+        queued:
+          type: number
+        failed:
+          type: number
+      required: [channels, queued, failed]
 
     Notification:
       type: object

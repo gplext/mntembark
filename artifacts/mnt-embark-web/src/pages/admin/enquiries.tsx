@@ -29,6 +29,7 @@ import { CheckCircle, RotateCcw, MapPin, Clock, Calendar, Trash2 } from "lucide-
 import AdminLayout from "@/components/AdminLayout";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { TestEmailButton } from "@/components/TestEmailButton";
+import { ChannelStatusLine } from "@/components/ChannelStatusLine";
 
 type StatusFilter = "all" | "new" | "handled";
 
@@ -482,6 +483,11 @@ export default function AdminEnquiriesPage() {
                     </span>
                   )}
                 </h1>
+                {/* Whether anything can actually be sent, before anyone waits
+                    for a message that was never going to arrive. */}
+                <div className="mt-1.5">
+                  <ChannelStatusLine />
+                </div>
               </div>
               <TestEmailButton />
             </div>

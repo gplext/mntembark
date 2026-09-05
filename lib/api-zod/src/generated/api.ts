@@ -1461,6 +1461,24 @@ export const PreviewEmailTemplateResponse = zod.object({
 
 
 /**
+ * @summary Which channels will send, and what is waiting
+ */
+export const GetNotificationChannelsResponse = zod.object({
+  "channels": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "configured": zod.boolean(),
+  "ready": zod.boolean(),
+  "detail": zod.string().nullable(),
+  "identity": zod.string().nullable(),
+  "checkedAt": zod.string().nullable()
+})),
+  "queued": zod.number(),
+  "failed": zod.number()
+})
+
+
+/**
  * @summary Send a test email to prove SMTP works
  */
 export const sendTestEmailBodyToMin = 3;

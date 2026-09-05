@@ -21,10 +21,11 @@ import {
   queueEnquiryNotifications,
   notificationsForEnquiry,
   resendNotification,
+  queueSummary,
 } from "../lib/notifications";
-import { isMailConfigured, mailConfigError, sendMail } from "../lib/mailer";
+import { isMailConfigured, mailConfigError, mailStatus, sendMail } from "../lib/mailer";
 import { testMessage } from "../lib/templates";
-import { toE164 } from "../lib/whatsapp";
+import { toE164, whatsAppStatus } from "../lib/whatsapp";
 
 const router: IRouter = Router();
 
@@ -256,6 +257,23 @@ router.post(
     }
     // 202: accepted for sending, not sent yet — the worker owns that.
     res.sendStatus(202);
+  },
+);
+
+/**
+ * Which channels will actually send, and what is waiting.
+ *
+ * Exists because "is it configured" and "does it work" are different questions,
+ * and the honest answer to the second one lives in a boot log nobody reads. A
+ * wrong password is configuration that looks complete and sends nothing; this
+ * reports what the provider said when the server asked it.
+ */
+router.get(
+  "/admin/notification-channels",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    const queue = await queueSummary();
+    res.json({ channels: [mailStatus(), whatsAppStatus()], ...queue });
   },
 );
 

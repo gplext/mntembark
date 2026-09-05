@@ -60,6 +60,7 @@ import type {
   LocationSummary,
   LocationUpdateInput,
   Notification,
+  NotificationChannels,
   SearchToursParams,
   Stats,
   TestEmailInput,
@@ -4486,6 +4487,83 @@ export const usePreviewEmailTemplate = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getPreviewEmailTemplateMutationOptions(options));
     }
+
+export const getGetNotificationChannelsUrl = () => {
+
+
+
+
+  return `/api/admin/notification-channels`
+}
+
+/**
+ * @summary Which channels will send, and what is waiting
+ */
+export const getNotificationChannels = async ( options?: Parameters<typeof customFetch>[1]): Promise<NotificationChannels> => {
+
+  return customFetch<NotificationChannels>(getGetNotificationChannelsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetNotificationChannelsQueryKey = () => {
+    return [
+    `/api/admin/notification-channels`
+    ] as const;
+    }
+
+
+export const getGetNotificationChannelsQueryOptions = <TData = Awaited<ReturnType<typeof getNotificationChannels>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationChannelsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotificationChannels>>> = ({ signal }) => getNotificationChannels({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotificationChannels>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetNotificationChannelsQueryResult = NonNullable<Awaited<ReturnType<typeof getNotificationChannels>>>
+export type GetNotificationChannelsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Which channels will send, and what is waiting
+ */
+
+export function useGetNotificationChannels<TData = Awaited<ReturnType<typeof getNotificationChannels>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getNotificationChannels>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetNotificationChannelsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getSendTestEmailUrl = () => {
 
