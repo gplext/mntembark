@@ -44,6 +44,9 @@ import type {
   DestinationPlacesIds,
   DestinationPlacesInput,
   DestinationUpdate,
+  EmailPreview,
+  EmailTemplate,
+  EmailTemplateInput,
   Enquiry,
   EnquiryInput,
   EnquiryStatusInput,
@@ -4260,6 +4263,228 @@ export const useResendNotification = <TError = ErrorType<ApiError>,
         TContext
       > => {
       return useMutation(getResendNotificationMutationOptions(options));
+    }
+
+export const getListEmailTemplatesUrl = () => {
+
+
+
+
+  return `/api/admin/email-templates`
+}
+
+/**
+ * @summary The wording of each automatic message
+ */
+export const listEmailTemplates = async ( options?: Parameters<typeof customFetch>[1]): Promise<EmailTemplate[]> => {
+
+  return customFetch<EmailTemplate[]>(getListEmailTemplatesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListEmailTemplatesQueryKey = () => {
+    return [
+    `/api/admin/email-templates`
+    ] as const;
+    }
+
+
+export const getListEmailTemplatesQueryOptions = <TData = Awaited<ReturnType<typeof listEmailTemplates>>, TError = ErrorType<ApiError>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmailTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListEmailTemplatesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listEmailTemplates>>> = ({ signal }) => listEmailTemplates({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listEmailTemplates>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListEmailTemplatesQueryResult = NonNullable<Awaited<ReturnType<typeof listEmailTemplates>>>
+export type ListEmailTemplatesQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary The wording of each automatic message
+ */
+
+export function useListEmailTemplates<TData = Awaited<ReturnType<typeof listEmailTemplates>>, TError = ErrorType<ApiError>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listEmailTemplates>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListEmailTemplatesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateEmailTemplateUrl = (key: string,) => {
+
+
+
+
+  return `/api/admin/email-templates/${key}`
+}
+
+/**
+ * Storing an empty subject or body is allowed and means "use the built-in wording" — that is how a template is reset.
+ * @summary Change the wording of one message
+ */
+export const updateEmailTemplate = async (key: string,
+    emailTemplateInput: EmailTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<EmailTemplate> => {
+
+  return customFetch<EmailTemplate>(getUpdateEmailTemplateUrl(key),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(emailTemplateInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateEmailTemplateMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmailTemplate>>, TError,{key: string;data: BodyType<EmailTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateEmailTemplate>>, TError,{key: string;data: BodyType<EmailTemplateInput>}, TContext> => {
+
+const mutationKey = ['updateEmailTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateEmailTemplate>>, {key: string;data: BodyType<EmailTemplateInput>}> = (props) => {
+          const {key,data} = props ?? {};
+
+          return  updateEmailTemplate(key,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof updateEmailTemplate>>>
+    export type UpdateEmailTemplateMutationBody = BodyType<EmailTemplateInput>
+    export type UpdateEmailTemplateMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Change the wording of one message
+ */
+export const useUpdateEmailTemplate = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateEmailTemplate>>, TError,{key: string;data: BodyType<EmailTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateEmailTemplate>>,
+        TError,
+        {key: string;data: BodyType<EmailTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateEmailTemplateMutationOptions(options));
+    }
+
+export const getPreviewEmailTemplateUrl = (key: string,) => {
+
+
+
+
+  return `/api/admin/email-templates/${key}/preview`
+}
+
+/**
+ * @summary Render a template against a sample enquiry
+ */
+export const previewEmailTemplate = async (key: string,
+    emailTemplateInput: EmailTemplateInput, options?: Parameters<typeof customFetch>[1]): Promise<EmailPreview> => {
+
+  return customFetch<EmailPreview>(getPreviewEmailTemplateUrl(key),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(emailTemplateInput)
+  }
+);}
+
+
+
+
+
+export const getPreviewEmailTemplateMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewEmailTemplate>>, TError,{key: string;data: BodyType<EmailTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewEmailTemplate>>, TError,{key: string;data: BodyType<EmailTemplateInput>}, TContext> => {
+
+const mutationKey = ['previewEmailTemplate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewEmailTemplate>>, {key: string;data: BodyType<EmailTemplateInput>}> = (props) => {
+          const {key,data} = props ?? {};
+
+          return  previewEmailTemplate(key,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewEmailTemplateMutationResult = NonNullable<Awaited<ReturnType<typeof previewEmailTemplate>>>
+    export type PreviewEmailTemplateMutationBody = BodyType<EmailTemplateInput>
+    export type PreviewEmailTemplateMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Render a template against a sample enquiry
+ */
+export const usePreviewEmailTemplate = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewEmailTemplate>>, TError,{key: string;data: BodyType<EmailTemplateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewEmailTemplate>>,
+        TError,
+        {key: string;data: BodyType<EmailTemplateInput>},
+        TContext
+      > => {
+      return useMutation(getPreviewEmailTemplateMutationOptions(options));
     }
 
 export const getSendTestEmailUrl = () => {

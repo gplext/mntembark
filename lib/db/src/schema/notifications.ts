@@ -63,6 +63,15 @@ export const notificationsTable = pgTable(
     subject: text("subject"),
     body: text("body").notNull(),
 
+    /**
+     * The HTML part as it was sent, when there was one.
+     *
+     * Nullable because messages queued before branded mail existed have no HTML
+     * body, and because a channel that has no such thing — WhatsApp — never
+     * will.
+     */
+    bodyHtml: text("body_html"),
+
     /** queued | sent | failed */
     status: text("status").notNull().default("queued"),
 

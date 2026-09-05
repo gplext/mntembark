@@ -551,6 +551,33 @@ export interface JournalEntryUpdate {
   publishedAt?: string;
 }
 
+export interface EmailTemplateInput {
+  subject: string;
+  body: string;
+}
+
+export interface EmailTemplate {
+  key: string;
+  name: string;
+  description: string;
+  subject: string;
+  body: string;
+  isCustomised: boolean;
+  /** @nullable */
+  updatedAt: string | null;
+  placeholders: string[];
+  defaultSubject: string;
+  defaultBody: string;
+  warnings?: string[];
+}
+
+export interface EmailPreview {
+  subject: string;
+  body: string;
+  html: string;
+  warnings: string[];
+}
+
 export type NotificationStatus = typeof NotificationStatus[keyof typeof NotificationStatus];
 
 
@@ -573,6 +600,8 @@ export interface Notification {
   attempts: number;
   /** @nullable */
   lastError: string | null;
+  /** @nullable */
+  bodyHtml?: string | null;
   createdAt: string;
   /** @nullable */
   sentAt: string | null;

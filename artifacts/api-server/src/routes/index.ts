@@ -12,6 +12,7 @@ import guidesRouter from "./guides";
 import journalsRouter from "./journals";
 import statsRouter from "./stats";
 import enquiriesRouter from "./enquiries";
+import emailTemplatesRouter from "./emailTemplates";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,7 @@ router.use(categoriesRouter);
 router.use(guidesRouter);
 router.use(journalsRouter);
 router.use(enquiriesRouter);
+router.use(emailTemplatesRouter);
 router.use(statsRouter);
 
 export default router;

@@ -1370,6 +1370,7 @@ export const ListEnquiryNotificationsResponseItem = zod.object({
   "status": zod.enum(['queued', 'sent', 'failed']),
   "attempts": zod.number(),
   "lastError": zod.string().nullable(),
+  "bodyHtml": zod.string().nullish(),
   "createdAt": zod.string(),
   "sentAt": zod.string().nullable()
 })
@@ -1385,6 +1386,73 @@ export const ResendNotificationParams = zod.object({
 })
 
 export const ResendNotificationResponse = zod.void()
+
+
+/**
+ * @summary The wording of each automatic message
+ */
+export const ListEmailTemplatesResponseItem = zod.object({
+  "key": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "isCustomised": zod.boolean(),
+  "updatedAt": zod.string().nullable(),
+  "placeholders": zod.array(zod.string()),
+  "defaultSubject": zod.string(),
+  "defaultBody": zod.string(),
+  "warnings": zod.array(zod.string()).optional()
+})
+export const ListEmailTemplatesResponse = zod.array(ListEmailTemplatesResponseItem)
+
+
+/**
+ * Storing an empty subject or body is allowed and means "use the built-in wording" — that is how a template is reset.
+ * @summary Change the wording of one message
+ */
+export const UpdateEmailTemplateParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const UpdateEmailTemplateBody = zod.object({
+  "subject": zod.string(),
+  "body": zod.string()
+})
+
+export const UpdateEmailTemplateResponse = zod.object({
+  "key": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "isCustomised": zod.boolean(),
+  "updatedAt": zod.string().nullable(),
+  "placeholders": zod.array(zod.string()),
+  "defaultSubject": zod.string(),
+  "defaultBody": zod.string(),
+  "warnings": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Render a template against a sample enquiry
+ */
+export const PreviewEmailTemplateParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const PreviewEmailTemplateBody = zod.object({
+  "subject": zod.string(),
+  "body": zod.string()
+})
+
+export const PreviewEmailTemplateResponse = zod.object({
+  "subject": zod.string(),
+  "body": zod.string(),
+  "html": zod.string(),
+  "warnings": zod.array(zod.string())
+})
 
 
 /**

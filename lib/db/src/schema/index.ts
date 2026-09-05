@@ -9,4 +9,5 @@ export * from "./guides";
 export * from "./journals";
 export * from "./enquiries";
 export * from "./notifications";
+export * from "./emailTemplates";
 export * from "./admins";

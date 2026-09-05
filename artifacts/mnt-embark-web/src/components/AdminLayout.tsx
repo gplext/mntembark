@@ -9,6 +9,7 @@ import {
   Inbox,
   Compass,
   PenLine,
+  Mail,
   Users,
   LogOut,
   Shield,
@@ -24,6 +25,7 @@ const baseNavItems = [
   { href: "/admin/guides", label: "Guides", icon: PenLine },
   { href: "/admin/journals", label: "Journals", icon: BookOpen },
   { href: "/admin/enquiries", label: "Enquiries", icon: Inbox },
+  { href: "/admin/email-templates", label: "Email wording", icon: Mail },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

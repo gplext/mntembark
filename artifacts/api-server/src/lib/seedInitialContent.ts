@@ -250,6 +250,21 @@ export async function seedInitialContent(): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS notifications_dedupe_idx
       ON notifications (enquiry_id, template_key, recipient);
 
+    -- The HTML that actually went out, kept beside the text so the admin
+    -- screen shows the message as the recipient saw it rather than a
+    -- reconstruction.
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body_html TEXT;
+
+    -- Editable wording for the automatic messages. A row here overrides the
+    -- copy that ships in the code; no row, or a blank one, falls back to it.
+    CREATE TABLE IF NOT EXISTS email_templates (
+      key TEXT PRIMARY KEY,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      updated_by TEXT,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
     CREATE INDEX IF NOT EXISTS enquiries_status_created_idx
       ON enquiries (status, created_at DESC);
     CREATE INDEX IF NOT EXISTS enquiries_created_idx
@@ -603,9 +618,11 @@ export async function seedInitialContent(): Promise<void> {
       "attempts",
       "last_error",
       "provider_message_id",
+      "body_html",
       "created_at",
       "sent_at",
     ],
+    email_templates: ["key", "subject", "body", "updated_by", "updated_at"],
     tour_guides: [
       "tour_id",
       "opener",

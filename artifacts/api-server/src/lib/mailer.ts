@@ -20,6 +20,12 @@ export interface MailMessage {
   to: string;
   subject: string;
   text: string;
+  /**
+   * The branded alternative. Sent alongside the text, never instead of it —
+   * the recipient's client picks, and anything that refuses HTML still has a
+   * readable message.
+   */
+  html?: string;
   /** Sets the header so a reply goes to the client, not to the notifications inbox. */
   replyTo?: string;
 }
@@ -151,6 +157,7 @@ export async function sendMail(message: MailMessage): Promise<MailResult> {
     to: message.to,
     subject: message.subject,
     text: message.text,
+    html: message.html,
     replyTo: message.replyTo,
   };
 

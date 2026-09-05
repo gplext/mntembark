@@ -32,8 +32,8 @@ function backoffMs(attempts: number): number {
  */
 export async function queueEnquiryNotifications(enquiry: Enquiry): Promise<void> {
   try {
-    const client = clientConfirmation(enquiry);
-    const admin = adminAlert(enquiry);
+    const client = await clientConfirmation(enquiry);
+    const admin = await adminAlert(enquiry);
 
     const rows = [
       {
@@ -43,6 +43,7 @@ export async function queueEnquiryNotifications(enquiry: Enquiry): Promise<void>
         recipient: enquiry.email,
         subject: client.subject,
         body: client.body,
+        bodyHtml: client.html,
       },
       ...adminRecipients().map((to) => ({
         enquiryId: enquiry.id,
@@ -51,6 +52,7 @@ export async function queueEnquiryNotifications(enquiry: Enquiry): Promise<void>
         recipient: to,
         subject: admin.subject,
         body: admin.body,
+        bodyHtml: admin.html,
       })),
     ];
 
@@ -80,6 +82,12 @@ async function deliver(row: typeof notificationsTable.$inferSelect): Promise<voi
     to: row.recipient,
     subject: row.subject ?? "",
     text: row.body,
+    /*
+     * Whatever was rendered when the message was queued, not a fresh render.
+     * A template edited between queueing and a retry must not change what a
+     * client is about to receive halfway through.
+     */
+    html: row.bodyHtml ?? undefined,
     /*
      * Only the office alert gets a Reply-To pointing at the client. Setting it
      * on the client's own confirmation would send their reply back to

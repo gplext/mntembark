@@ -23,6 +23,7 @@ import {
   resendNotification,
 } from "../lib/notifications";
 import { isMailConfigured, mailConfigError, sendMail } from "../lib/mailer";
+import { testMessage } from "../lib/templates";
 
 const router: IRouter = Router();
 
@@ -277,15 +278,14 @@ router.post(
      * moment it was written to the table, which proves nothing.
      */
     try {
+      // The same template the admin screen previews, so a test proves the
+      // branded shell renders too — not just that the credentials work.
+      const message = await testMessage();
       const result = await sendMail({
         to: parsed.data.to.trim(),
-        subject: "MNT Embark — test email",
-        text: [
-          "This is a test message from the MNT Embark admin panel.",
-          "",
-          "If you are reading it, outgoing email is working:",
-          "credentials accepted, and the message was handed to the mail server.",
-        ].join("\n"),
+        subject: message.subject,
+        text: message.body,
+        html: message.html,
       });
       res.json(SendTestEmailResponse.parse(result));
     } catch (err) {

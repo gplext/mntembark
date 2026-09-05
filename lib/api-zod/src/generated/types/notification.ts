@@ -20,6 +20,8 @@ export interface Notification {
   attempts: number;
   /** @nullable */
   lastError: string | null;
+  /** @nullable */
+  bodyHtml?: string | null;
   createdAt: string;
   /** @nullable */
   sentAt: string | null;
