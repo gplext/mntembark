@@ -26,6 +26,8 @@ const LABELS: Record<string, string> = {
   enquiry_client_confirmation: "Confirmation to client",
   enquiry_admin_alert: "Alert to office",
   test_email: "Test email",
+  whatsapp_client_confirmation: "WhatsApp to client",
+  whatsapp_admin_alert: "WhatsApp to office",
 };
 
 function StatusText({ status }: { status: Notification["status"] }) {
@@ -110,6 +112,14 @@ export function NotificationPanel({ enquiryId }: { enquiryId: number }) {
             </div>
             <p className="font-sans text-xs text-muted-foreground truncate">
               {n.recipient}
+            </p>
+            {/*
+              What actually went out, verbatim. WhatsApp's wording lives in a
+              template Meta approved, so without this the admin panel could show
+              a phone number and a status but not a single word of the message.
+            */}
+            <p className="font-sans text-xs text-foreground/70 mt-1 whitespace-pre-wrap">
+              {n.body}
             </p>
             {n.sentAt && (
               <p className="font-sans text-[11px] text-muted-foreground mt-0.5">

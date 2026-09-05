@@ -33,6 +33,17 @@ export const TEMPLATE_KEYS = {
   test: "test_email",
 } as const;
 
+/*
+ * WhatsApp's keys are separate from email's on purpose. They are not the same
+ * message in another medium: the wording lives in a template Meta approved, so
+ * these name a row in the outbox and a rendering for the admin screen, not
+ * something anyone can edit here.
+ */
+export const WHATSAPP_TEMPLATE_KEYS = {
+  clientConfirmation: "whatsapp_client_confirmation",
+  adminAlert: "whatsapp_admin_alert",
+} as const;
+
 export type TemplateKey = (typeof TEMPLATE_KEYS)[keyof typeof TEMPLATE_KEYS];
 
 const BRAND = process.env["MAIL_FROM_NAME"]?.trim() || "MNT Embark";
@@ -380,5 +391,49 @@ export function previewOf(
     subject: render(subject, values),
     body: rendered,
     html: brandedHtml({ body: rendered, brand: BRAND, siteUrl: SITE_URL }),
+  };
+}
+
+
+/* ------------------------------ WhatsApp ---------------------------------- */
+
+/**
+ * The parameters for one WhatsApp template, and a readable rendering of them.
+ *
+ * Meta owns the sentence. All we choose is what goes in the blanks, so the
+ * contract that matters is the ORDER of these values — it has to match the
+ * {{1}}, {{2}}, {{3}} of the template as approved. Change one without changing
+ * the other and the message still sends, saying the wrong thing.
+ *
+ * The `body` returned alongside is only for the admin screen, so that "what did
+ * we send this person" has an answer that does not require going to Meta.
+ */
+export interface WhatsAppMessage {
+  params: string[];
+  body: string;
+}
+
+/**
+ * Template as submitted to Meta:
+ *   "Hi {{1}}, thank you for your enquiry about {{2}}. Someone from {{3}} will
+ *    be in touch personally, usually within one working day."
+ */
+export function whatsAppClientConfirmation(e: Enquiry): WhatsAppMessage {
+  const params = [e.firstName, subjectLine(e), BRAND];
+  return {
+    params,
+    body: `Hi ${params[0]}, thank you for your enquiry about ${params[1]}. Someone from ${params[2]} will be in touch personally, usually within one working day.`,
+  };
+}
+
+/**
+ * Template as submitted to Meta:
+ *   "New {{1}} enquiry from {{2}} ({{3}}) about {{4}}."
+ */
+export function whatsAppAdminAlert(e: Enquiry): WhatsAppMessage {
+  const params = [e.source, fullName(e), e.email, subjectLine(e)];
+  return {
+    params,
+    body: `New ${params[0]} enquiry from ${params[1]} (${params[2]}) about ${params[3]}.`,
   };
 }

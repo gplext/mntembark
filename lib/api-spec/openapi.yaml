@@ -2489,8 +2489,13 @@ components:
           type: number
         lastError:
           type: ["string", "null"]
+        body:
+          type: string
         bodyHtml:
           type: ["string", "null"]
+        payload:
+          type: ["object", "null"]
+          additionalProperties: true
         createdAt:
           type: string
         sentAt:
@@ -2503,6 +2508,7 @@ components:
           templateKey,
           recipient,
           subject,
+          body,
           status,
           attempts,
           lastError,
@@ -2554,6 +2560,10 @@ components:
           type: boolean
         receiveUpdates:
           type: boolean
+        whatsappConsent:
+          type: boolean
+        phoneE164:
+          type: ["string", "null"]
         tourTitle:
           type: ["string", "null"]
         tourLocation:
@@ -2568,7 +2578,7 @@ components:
           type: string
         handledAt:
           type: ["string", "null"]
-      required: [id, source, status, firstName, lastName, email, acceptPrivacy, receiveUpdates, createdAt]
+      required: [id, source, status, firstName, lastName, email, acceptPrivacy, receiveUpdates, whatsappConsent, createdAt]
 
     EnquiryInput:
       type: object
@@ -2602,6 +2612,8 @@ components:
         acceptPrivacy:
           type: boolean
         receiveUpdates:
+          type: boolean
+        whatsappConsent:
           type: boolean
         tourTitle:
           type: string

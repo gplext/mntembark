@@ -6,6 +6,7 @@ import {
   timestamp,
   index,
   uniqueIndex,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -71,6 +72,17 @@ export const notificationsTable = pgTable(
      * will.
      */
     bodyHtml: text("body_html"),
+
+    /**
+     * Whatever the channel needs that an email does not.
+     *
+     * WhatsApp does not send text: it names an approved template and supplies
+     * its parameters, so the message a person eventually reads is assembled by
+     * Meta, not here. Those parameters live in this column; `body` still holds
+     * a readable rendering so the admin screen can show what was said without
+     * knowing anything about templates.
+     */
+    payload: jsonb("payload").$type<Record<string, unknown>>(),
 
     /** queued | sent | failed */
     status: text("status").notNull().default("queued"),

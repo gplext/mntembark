@@ -255,6 +255,10 @@ export async function seedInitialContent(): Promise<void> {
     -- reconstruction.
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS body_html TEXT;
 
+    -- Channel-specific send data. WhatsApp keeps the approved template name and
+    -- its parameters here, because it does not send text.
+    ALTER TABLE notifications ADD COLUMN IF NOT EXISTS payload JSONB;
+
     -- Editable wording for the automatic messages. A row here overrides the
     -- copy that ships in the code; no row, or a blank one, falls back to it.
     CREATE TABLE IF NOT EXISTS email_templates (
@@ -619,6 +623,7 @@ export async function seedInitialContent(): Promise<void> {
       "last_error",
       "provider_message_id",
       "body_html",
+      "payload",
       "created_at",
       "sent_at",
     ],

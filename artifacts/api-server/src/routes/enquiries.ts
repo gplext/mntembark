@@ -24,6 +24,7 @@ import {
 } from "../lib/notifications";
 import { isMailConfigured, mailConfigError, sendMail } from "../lib/mailer";
 import { testMessage } from "../lib/templates";
+import { toE164 } from "../lib/whatsapp";
 
 const router: IRouter = Router();
 
@@ -129,6 +130,14 @@ router.post("/enquiries", async (req, res): Promise<void> => {
       tourDurationDays: data.tourDurationDays ?? null,
       enquiryType,
       budget,
+      whatsappConsent: data.whatsappConsent ?? false,
+      /*
+       * Normalised once, here, rather than at send time. A number we cannot
+       * make sense of is then visibly null on the enquiry — which is the whole
+       * signal, because sending a stranger's travel plans to a mistyped number
+       * is worse than not sending at all.
+       */
+      phoneE164: toE164(phone),
     })
     .returning();
 

@@ -3,6 +3,7 @@ import { logger } from "./lib/logger";
 import { seedInitialContent } from "./lib/seedInitialContent";
 import { verifyMailer } from "./lib/mailer";
 import { verifySentFolder } from "./lib/sentFolder";
+import { verifyWhatsApp } from "./lib/whatsapp";
 import { startNotificationWorker } from "./lib/notifications";
 
 const rawPort = process.env["PORT"];
@@ -30,6 +31,7 @@ async function startServer(): Promise<void> {
    */
   await verifyMailer();
   await verifySentFolder();
+  await verifyWhatsApp();
   startNotificationWorker();
 
   app.listen(port, (err) => {

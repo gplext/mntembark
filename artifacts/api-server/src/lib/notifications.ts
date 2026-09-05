@@ -2,7 +2,21 @@ import { and, asc, eq, lt, sql } from "drizzle-orm";
 import { db, notificationsTable, type Enquiry } from "@workspace/db";
 import { logger } from "./logger";
 import { isMailConfigured, mailConfigError, sendMail, adminRecipients } from "./mailer";
-import { adminAlert, clientConfirmation, TEMPLATE_KEYS } from "./templates";
+import {
+  adminAlert,
+  clientConfirmation,
+  whatsAppAdminAlert,
+  whatsAppClientConfirmation,
+  TEMPLATE_KEYS,
+  WHATSAPP_TEMPLATE_KEYS,
+} from "./templates";
+import {
+  isWhatsAppConfigured,
+  sendWhatsApp,
+  whatsAppAdminRecipients,
+  whatsAppLanguage,
+  WHATSAPP_TEMPLATES,
+} from "./whatsapp";
 
 /**
  * The outbox: queue messages, then send them on a timer.
@@ -35,7 +49,7 @@ export async function queueEnquiryNotifications(enquiry: Enquiry): Promise<void>
     const client = await clientConfirmation(enquiry);
     const admin = await adminAlert(enquiry);
 
-    const rows = [
+    const rows: Array<typeof notificationsTable.$inferInsert> = [
       {
         enquiryId: enquiry.id,
         channel: "email",
@@ -56,6 +70,8 @@ export async function queueEnquiryNotifications(enquiry: Enquiry): Promise<void>
       })),
     ];
 
+    rows.push(...whatsAppRowsFor(enquiry));
+
     await db
       .insert(notificationsTable)
       .values(rows)
@@ -73,12 +89,105 @@ export async function queueEnquiryNotifications(enquiry: Enquiry): Promise<void>
   }
 }
 
+/**
+ * The WhatsApp rows an enquiry earns, which is often none.
+ *
+ * Three separate conditions have to hold before a client is messaged on their
+ * personal phone: WhatsApp is configured at all, they ticked the box, and we
+ * could make sense of the number they gave. Any one missing and the message is
+ * not queued — silence is the correct outcome, not a row that fails five times.
+ */
+function whatsAppRowsFor(enquiry: Enquiry) {
+  if (!isWhatsAppConfigured()) return [];
+
+  const language = whatsAppLanguage();
+  const rows: Array<typeof notificationsTable.$inferInsert> = [];
+
+  if (enquiry.whatsappConsent && enquiry.phoneE164) {
+    const message = whatsAppClientConfirmation(enquiry);
+    rows.push({
+      enquiryId: enquiry.id,
+      channel: "whatsapp",
+      templateKey: WHATSAPP_TEMPLATE_KEYS.clientConfirmation,
+      recipient: enquiry.phoneE164,
+      subject: null,
+      body: message.body,
+      payload: {
+        templateName: WHATSAPP_TEMPLATES.clientConfirmation,
+        languageCode: language,
+        params: message.params,
+      },
+    });
+  }
+
+  const alert = whatsAppAdminAlert(enquiry);
+  for (const to of whatsAppAdminRecipients()) {
+    rows.push({
+      enquiryId: enquiry.id,
+      channel: "whatsapp",
+      templateKey: WHATSAPP_TEMPLATE_KEYS.adminAlert,
+      recipient: to,
+      subject: null,
+      body: alert.body,
+      payload: {
+        templateName: WHATSAPP_TEMPLATES.adminAlert,
+        languageCode: language,
+        params: alert.params,
+      },
+    });
+  }
+
+  return rows;
+}
+
 async function deliver(row: typeof notificationsTable.$inferSelect): Promise<void> {
+  const { messageId } =
+    row.channel === "whatsapp" ? await deliverWhatsApp(row) : await deliverEmail(row);
+
+  await db
+    .update(notificationsTable)
+    .set({
+      status: "sent",
+      sentAt: new Date(),
+      providerMessageId: messageId,
+      lastError: null,
+      attempts: row.attempts + 1,
+    })
+    .where(eq(notificationsTable.id, row.id));
+}
+
+async function deliverWhatsApp(
+  row: typeof notificationsTable.$inferSelect,
+): Promise<{ messageId: string }> {
+  const payload = row.payload as
+    | { templateName?: string; languageCode?: string; params?: unknown }
+    | null;
+
+  /*
+   * The parameters were fixed when the row was queued. Rebuilding them now
+   * would let a message sent on the third attempt say something different from
+   * what the first attempt was going to say.
+   */
+  if (!payload?.templateName || !Array.isArray(payload.params)) {
+    throw new Error("This WhatsApp message has no template parameters stored");
+  }
+
+  return sendWhatsApp({
+    to: row.recipient,
+    templateName: payload.templateName,
+    languageCode: payload.languageCode ?? whatsAppLanguage(),
+    params: payload.params.map((p) => String(p)),
+  });
+}
+
+async function deliverEmail(
+  row: typeof notificationsTable.$inferSelect,
+): Promise<{ messageId: string }> {
   if (row.channel !== "email") {
     throw new Error(`No sender for channel "${row.channel}"`);
   }
 
-  const { messageId } = await sendMail({
+  return sendMail({
     to: row.recipient,
     subject: row.subject ?? "",
     text: row.body,
@@ -98,17 +207,6 @@ async function deliver(row: typeof notificationsTable.$inferSelect): Promise<voi
         ? await enquiryEmail(row.enquiryId)
         : undefined,
   });
-
-  await db
-    .update(notificationsTable)
-    .set({
-      status: "sent",
-      sentAt: new Date(),
-      providerMessageId: messageId,
-      lastError: null,
-      attempts: row.attempts + 1,
-    })
-    .where(eq(notificationsTable.id, row.id));
 }
 
 async function enquiryEmail(enquiryId: number | null): Promise<string | undefined> {
@@ -131,7 +229,7 @@ let running = false;
  */
 export async function processQueue(): Promise<void> {
   if (running) return;
-  if (!isMailConfigured()) return;
+  if (!isMailConfigured() && !isWhatsAppConfigured()) return;
 
   running = true;
   try {
@@ -209,10 +307,10 @@ export async function resendNotification(id: number): Promise<boolean> {
 }
 
 export function startNotificationWorker(): void {
-  if (!isMailConfigured()) {
+  if (!isMailConfigured() && !isWhatsAppConfigured()) {
     logger.warn(
       { reason: mailConfigError() },
-      "Notification worker not started — email is not configured",
+      "Notification worker not started — no channel is configured",
     );
     return;
   }

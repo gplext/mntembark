@@ -5,6 +5,7 @@
  * MNT Embark API — luxury tour company
  * OpenAPI spec version: 0.1.0
  */
+import type { NotificationPayload } from './notificationPayload';
 import type { NotificationStatus } from './notificationStatus';
 
 export interface Notification {
@@ -20,8 +21,11 @@ export interface Notification {
   attempts: number;
   /** @nullable */
   lastError: string | null;
+  body: string;
   /** @nullable */
   bodyHtml?: string | null;
+  /** @nullable */
+  payload?: NotificationPayload;
   createdAt: string;
   /** @nullable */
   sentAt: string | null;

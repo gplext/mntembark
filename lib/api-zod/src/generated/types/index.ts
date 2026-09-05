@@ -61,6 +61,7 @@ export * from './locationInput';
 export * from './locationSummary';
 export * from './locationUpdateInput';
 export * from './notification';
+export * from './notificationPayload';
 export * from './notificationStatus';
 export * from './searchToursParams';
 export * from './stats';

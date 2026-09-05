@@ -25,6 +25,9 @@ export interface Enquiry {
   notes?: string | null;
   acceptPrivacy: boolean;
   receiveUpdates: boolean;
+  whatsappConsent: boolean;
+  /** @nullable */
+  phoneE164?: string | null;
   /** @nullable */
   tourTitle?: string | null;
   /** @nullable */

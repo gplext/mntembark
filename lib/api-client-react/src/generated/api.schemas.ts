@@ -587,6 +587,11 @@ export const NotificationStatus = {
   failed: 'failed',
 } as const;
 
+/**
+ * @nullable
+ */
+export type NotificationPayload = { [key: string]: unknown } | null;
+
 export interface Notification {
   id: number;
   /** @nullable */
@@ -600,8 +605,11 @@ export interface Notification {
   attempts: number;
   /** @nullable */
   lastError: string | null;
+  body: string;
   /** @nullable */
   bodyHtml?: string | null;
+  /** @nullable */
+  payload?: NotificationPayload;
   createdAt: string;
   /** @nullable */
   sentAt: string | null;
@@ -649,6 +657,9 @@ export interface Enquiry {
   notes?: string | null;
   acceptPrivacy: boolean;
   receiveUpdates: boolean;
+  whatsappConsent: boolean;
+  /** @nullable */
+  phoneE164?: string | null;
   /** @nullable */
   tourTitle?: string | null;
   /** @nullable */
@@ -716,6 +727,7 @@ export interface EnquiryInput {
   notes?: string | null;
   acceptPrivacy: boolean;
   receiveUpdates: boolean;
+  whatsappConsent?: boolean;
   /** @maxLength 200 */
   tourTitle?: string;
   /** @maxLength 200 */
