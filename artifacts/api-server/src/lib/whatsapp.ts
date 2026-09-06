@@ -253,9 +253,20 @@ export async function verifyWhatsApp(): Promise<void> {
 
   const url = `${apiBase()}/${apiVersion()}/${env("WHATSAPP_PHONE_NUMBER_ID")}?fields=display_phone_number,verified_name`;
 
+  /*
+   * A timeout of its own, for the reason sendWhatsApp has one: a connection
+   * nobody answers is indistinguishable from a slow one, and this call exists
+   * only to write a status line. Ten seconds rather than twenty because nothing
+   * is waiting on the answer - a check that has not come back is reported the
+   * same way as one that came back refused.
+   */
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+
   try {
     const response = await fetch(url, {
       headers: { Authorization: `Bearer ${env("WHATSAPP_ACCESS_TOKEN")}` },
+      signal: controller.signal,
     });
     const data = (await response.json()) as {
       display_phone_number?: string;
@@ -288,8 +299,20 @@ export async function verifyWhatsApp(): Promise<void> {
       "WhatsApp ready",
     );
   } catch (err) {
-    verifyError = err instanceof Error ? err.message : String(err);
-    logger.error({ err }, "Could not reach WhatsApp at startup");
+    /*
+     * Said in words the admin panel can show. "This operation was aborted" is
+     * what the runtime calls it; it is not what a person hovering a red dot
+     * needs to read.
+     */
+    verifyError =
+      err instanceof Error && err.name === "AbortError"
+        ? "WhatsApp did not respond within 10 seconds"
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    logger.error({ reason: verifyError }, "Could not reach WhatsApp at startup");
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
