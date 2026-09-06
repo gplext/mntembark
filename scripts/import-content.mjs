@@ -271,19 +271,22 @@ console.log(`\n${DRY ? "Would create" : "Created"} ${created}, left ${skipped} a
 if (DRY) console.log("Re-run without --dry-run to apply.");
 
 /*
- * Two things the API drops on the floor. Both are in the generated request
- * schema rather than the database, which already has columns for them, so both
- * are fixed in openapi.yaml and a regenerate — not here.
+ * Sanity check rather than a warning. Both fields were added to the spec and
+ * are live; this reports what actually came back so a future regression is
+ * visible at import time instead of being discovered on the public site.
  */
-console.log(`
-Note — two fields the API discards on create, so they are not in your site yet:
+if (!DRY) {
+  const check = (await api("GET", "/tours")) ?? [];
+  const list = Array.isArray(check) ? check : (check.tours ?? []);
+  const mine = new Set(read("tours.csv").map((t) => t.title));
+  const landed = list.filter((t) => mine.has(t.title));
+  const noSlug = landed.filter((t) => !t.slug).length;
+  const withStepImages = landed.filter((t) =>
+    (t.itinerarySteps ?? []).some((s) => Array.isArray(s.images) && s.images.length > 1),
+  ).length;
 
-  slug            CreateTourBody has no slug field, so every tour created
-                  through this script OR the admin panel is stored with an
-                  empty slug. /tours/slug/:slug cannot find them.
-
-  step images[]   Itinerary steps keep only the single "image". The multiple
-                  images per step in itinerary_steps.csv are dropped, so the
-                  per-step carousels the admin form offers stay empty.
-
-Both live in lib/api-spec/openapi.yaml.`);
+  console.log(`
+Landed: ${landed.length} of these tours are on the site.
+  slugs:        ${landed.length - noSlug}/${landed.length} have one${noSlug ? "  <-- PROBLEM" : ""}
+  step images:  ${withStepImages}/${landed.length} kept a multi-image step`);
+}

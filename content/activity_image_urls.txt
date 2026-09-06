@@ -1,0 +1,121 @@
+ACTIVITY COVER IMAGES
+============================================================
+
+Paste each URL into the activity's Cover Image field in the admin panel.
+Activities already exist, so re-running the importer will not update them.
+
+NONE of these have been looked at - the egress proxy blocks images.unsplash.com
+from both my environment and yours. They are chosen from the descriptions
+Unsplash publishes, which reliably catches the obvious misses but not the
+subtle ones. Open each before trusting it.
+
+
+--- WILDLIFE ------------------------------------------------
+
+Game Drives  (game-drives)
+  https://images.unsplash.com/photo-1779388762527-0d4c5d8f4a92?w=1600&q=75&auto=format&fit=crop
+  shows: Two people with a safari vehicle under a serengeti archway
+  note: Names Serengeti and a vehicle
+
+Walking Safari  (walking-safari)
+  https://images.unsplash.com/photo-1582866143347-8f3efbeb44c9?w=1600&q=75&auto=format&fit=crop
+  shows: 3 people walking on dirt road during daytime
+  note: WEAK - no real bush-walk image exists in Unsplash results
+
+Night Drives  (night-drives)
+  https://images.unsplash.com/photo-1682970982553-aee4ad25d4cf?w=1600&q=75&auto=format&fit=crop
+  shows: a leopard walking down a dirt road next to a vehicle
+  note: Substitute - it is a drive, but daylight
+
+Gorilla Trekking  (gorilla-trekking)
+  https://images.unsplash.com/photo-1509897739002-791fa79aac9b?w=1600&q=75&auto=format&fit=crop
+  shows: photo of silver-back gorilla beside tree
+  note: LOW - most gorilla stock is captive. CHECK FIRST
+
+Rhino Tracking  (rhino-tracking)
+  https://images.unsplash.com/photo-1781646292529-31243c398dad?w=1600&q=75&auto=format&fit=crop
+  shows: A rhinoceros stands in dry grass under a clear sky
+
+Birdwatching  (birdwatching)
+  https://images.unsplash.com/photo-1690216714027-bd6ede1fa960?w=1600&q=75&auto=format&fit=crop
+  shows: a man standing in a field looking through a pair of binoculars
+  note: Most results were product shots of binoculars; this is a scene
+
+Marine Wildlife  (marine-wildlife)
+  https://images.unsplash.com/photo-1717292741615-4695bafa9663?w=1600&q=75&auto=format&fit=crop
+  shows: a large group of fish swimming over a coral reef
+
+Polar Wildlife  (polar-wildlife)
+  https://images.unsplash.com/photo-1589656966895-2f33e7653819?w=1600&q=75&auto=format&fit=crop
+  shows: polar bear on snow covered ground during daytime
+
+--- WATER ---------------------------------------------------
+
+Snorkelling  (snorkelling)
+  https://images.unsplash.com/photo-1682686581663-179efad3cd2f?w=1600&q=75&auto=format&fit=crop
+  shows: a person swimming in the ocean near a coral reef
+
+Diving  (diving)
+  https://images.unsplash.com/photo-1682687981907-170c006e3744?w=1600&q=75&auto=format&fit=crop
+  shows: a scuba diver swims over a colorful coral reef
+
+Canoeing  (canoeing)
+  -- no URL --
+  NOT SOURCED - try Unsplash search: mokoro okavango
+
+Sailing  (sailing)
+  https://images.unsplash.com/photo-1605376084519-ccacb5566f23?w=1600&q=75&auto=format&fit=crop
+  shows: brown sail boat on sea during sunset
+  note: Reads as a dhow
+
+Zodiac Cruising  (zodiac-cruising)
+  -- no URL --
+  NOT SOURCED - try: zodiac inflatable arctic
+
+--- LAND & ADVENTURE ----------------------------------------
+
+Hiking & Trekking  (hiking)
+  https://images.unsplash.com/photo-1661810803959-f91f5195138e?w=1600&q=75&auto=format&fit=crop
+  shows: Retro style photo of group of mountain trekkers on Himalayan forest
+  note: Himalayan - suits the Bhutan tour
+
+Horse Riding  (horse-riding)
+  https://images.unsplash.com/photo-1463588194886-8317dff53014?w=1600&q=75&auto=format&fit=crop
+  shows: brown and black horses on brown field during daytime
+
+Hot Air Ballooning  (ballooning)
+  https://images.unsplash.com/photo-1464388334095-4e05c18297cd?w=1600&q=75&auto=format&fit=crop
+  shows: brown hot air balloon during daytime
+
+Scenic Flights  (scenic-flights)
+  -- no URL --
+  NOT SOURCED - try: bush plane africa airstrip
+
+Desert Exploration  (desert-exploration)
+  https://images.unsplash.com/photo-1652439310454-a50203f01d8f?w=1600&q=75&auto=format&fit=crop
+  shows: a desert landscape with sand dunes
+
+--- CULTURE & WELLBEING -------------------------------------
+
+Cultural Visits  (cultural-visits)
+  -- no URL --
+  NOT SOURCED - try: maasai village / local community africa
+
+Festivals & Ceremony  (festivals)
+  -- no URL --
+  NOT SOURCED - try: bhutan tsechu masked dance
+
+Temples & Monasteries  (monasteries)
+  https://images.unsplash.com/photo-1772702812440-b3b1c2c3abe3?w=1600&q=75&auto=format&fit=crop
+  shows: Traditional bhutanese stupas against a cloudy sky
+
+Private Dining  (private-dining)
+  -- no URL --
+  NOT SOURCED - try: outdoor dining table candles safari
+
+
+============================================================
+16 sourced, 6 still need an image.
+
+The 6 gaps are ones where Unsplash returned nothing I would stand behind.
+The suggested search term is in each entry.
