@@ -1284,6 +1284,192 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApiError"
 
+  /admin/enquiries/{id}/notifications:
+    get:
+      operationId: listEnquiryNotifications
+      tags: [enquiries]
+      summary: Messages queued or sent for an enquiry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Notification"
+
+  /admin/notifications/{id}/resend:
+    post:
+      operationId: resendNotification
+      tags: [enquiries]
+      summary: Put a message back in the send queue
+      description: >
+        Resets the attempt counter - a resend follows a human fixing something,
+        so it gets a fresh set of attempts rather than inheriting an exhausted
+        one.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "202":
+          description: Queued for sending
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/email-templates:
+    get:
+      operationId: listEmailTemplates
+      tags: [enquiries]
+      summary: The wording of each automatic message
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: One entry per template, stored wording or the built-in default
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmailTemplate"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/email-templates/{key}:
+    put:
+      operationId: updateEmailTemplate
+      tags: [enquiries]
+      summary: Change the wording of one message
+      description: >
+        Storing an empty subject or body is allowed and means "use the built-in
+        wording" — that is how a template is reset.
+      security:
+        - adminSession: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailTemplateInput"
+      responses:
+        "200":
+          description: The saved template, with any placeholder warnings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailTemplate"
+        "404":
+          description: No such template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/email-templates/{key}/preview:
+    post:
+      operationId: previewEmailTemplate
+      tags: [enquiries]
+      summary: Render a template against a sample enquiry
+      security:
+        - adminSession: []
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmailTemplateInput"
+      responses:
+        "200":
+          description: The rendered message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmailPreview"
+        "404":
+          description: No such template
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/notification-channels:
+    get:
+      operationId: getNotificationChannels
+      tags: [enquiries]
+      summary: Which channels will send, and what is waiting
+      security:
+        - adminSession: []
+      responses:
+        "200":
+          description: One entry per channel, plus the queue counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationChannels"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/notifications/test:
+    post:
+      operationId: sendTestEmail
+      tags: [enquiries]
+      summary: Send a test email to prove SMTP works
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TestEmailInput"
+      responses:
+        "200":
+          description: Sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TestEmailResult"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Email is not configured on this server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
   /admin/enquiries:
     get:
       operationId: listEnquiries
@@ -1302,6 +1488,29 @@ paths:
                   $ref: "#/components/schemas/Enquiry"
         "401":
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /admin/enquiries/{id}:
+    delete:
+      operationId: deleteEnquiry
+      tags: [enquiries]
+      summary: Delete an enquiry and its notification history
+      description: >
+        Permanent. The notification rows go with it — they describe messages
+        sent about this enquiry and mean nothing without it.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: number }
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
           content:
             application/json:
               schema:
@@ -2232,6 +2441,169 @@ components:
           type: string
 
     # ── Enquiry ─────────────────────────────────────────────────────────
+    EmailTemplateInput:
+      type: object
+      properties:
+        subject:
+          type: string
+        body:
+          type: string
+      required: [subject, body]
+
+    EmailTemplate:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        subject:
+          type: string
+        body:
+          type: string
+        isCustomised:
+          type: boolean
+        updatedAt:
+          type: ["string", "null"]
+        placeholders:
+          type: array
+          items:
+            type: string
+        defaultSubject:
+          type: string
+        defaultBody:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+      required:
+        [
+          key,
+          name,
+          description,
+          subject,
+          body,
+          isCustomised,
+          updatedAt,
+          placeholders,
+          defaultSubject,
+          defaultBody,
+        ]
+
+    EmailPreview:
+      type: object
+      properties:
+        subject:
+          type: string
+        body:
+          type: string
+        html:
+          type: string
+        warnings:
+          type: array
+          items:
+            type: string
+      required: [subject, body, html, warnings]
+
+    ChannelStatus:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        configured:
+          type: boolean
+        ready:
+          type: boolean
+        detail:
+          type: ["string", "null"]
+        identity:
+          type: ["string", "null"]
+        checkedAt:
+          type: ["string", "null"]
+      required: [key, label, configured, ready, detail, identity, checkedAt]
+
+    NotificationChannels:
+      type: object
+      properties:
+        channels:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChannelStatus"
+        queued:
+          type: number
+        failed:
+          type: number
+      required: [channels, queued, failed]
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: number
+        enquiryId:
+          type: ["number", "null"]
+        channel:
+          type: string
+        templateKey:
+          type: string
+        recipient:
+          type: string
+        subject:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [queued, sent, failed]
+        attempts:
+          type: number
+        lastError:
+          type: ["string", "null"]
+        body:
+          type: string
+        bodyHtml:
+          type: ["string", "null"]
+        payload:
+          type: ["object", "null"]
+          additionalProperties: true
+        createdAt:
+          type: string
+        sentAt:
+          type: ["string", "null"]
+      required:
+        [
+          id,
+          enquiryId,
+          channel,
+          templateKey,
+          recipient,
+          subject,
+          body,
+          status,
+          attempts,
+          lastError,
+          createdAt,
+          sentAt,
+        ]
+
+    TestEmailInput:
+      type: object
+      properties:
+        to:
+          type: string
+          minLength: 3
+      required: [to]
+
+    TestEmailResult:
+      type: object
+      properties:
+        messageId:
+          type: string
+      required: [messageId]
+
     Enquiry:
       type: object
       properties:
@@ -2261,6 +2633,10 @@ components:
           type: boolean
         receiveUpdates:
           type: boolean
+        whatsappConsent:
+          type: boolean
+        phoneE164:
+          type: ["string", "null"]
         tourTitle:
           type: ["string", "null"]
         tourLocation:
@@ -2275,7 +2651,7 @@ components:
           type: string
         handledAt:
           type: ["string", "null"]
-      required: [id, source, status, firstName, lastName, email, acceptPrivacy, receiveUpdates, createdAt]
+      required: [id, source, status, firstName, lastName, email, acceptPrivacy, receiveUpdates, whatsappConsent, createdAt]
 
     EnquiryInput:
       type: object
@@ -2309,6 +2685,8 @@ components:
         acceptPrivacy:
           type: boolean
         receiveUpdates:
+          type: boolean
+        whatsappConsent:
           type: boolean
         tourTitle:
           type: string

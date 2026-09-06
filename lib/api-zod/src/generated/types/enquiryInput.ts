@@ -41,6 +41,7 @@ export interface EnquiryInput {
   notes?: string | null;
   acceptPrivacy: boolean;
   receiveUpdates: boolean;
+  whatsappConsent?: boolean;
   /** @maxLength 200 */
   tourTitle?: string;
   /** @maxLength 200 */

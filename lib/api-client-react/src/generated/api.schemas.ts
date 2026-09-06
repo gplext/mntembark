@@ -571,6 +571,98 @@ export interface JournalEntryUpdate {
   publishedAt?: string;
 }
 
+export interface EmailTemplateInput {
+  subject: string;
+  body: string;
+}
+
+export interface EmailTemplate {
+  key: string;
+  name: string;
+  description: string;
+  subject: string;
+  body: string;
+  isCustomised: boolean;
+  /** @nullable */
+  updatedAt: string | null;
+  placeholders: string[];
+  defaultSubject: string;
+  defaultBody: string;
+  warnings?: string[];
+}
+
+export interface EmailPreview {
+  subject: string;
+  body: string;
+  html: string;
+  warnings: string[];
+}
+
+export interface ChannelStatus {
+  key: string;
+  label: string;
+  configured: boolean;
+  ready: boolean;
+  /** @nullable */
+  detail: string | null;
+  /** @nullable */
+  identity: string | null;
+  /** @nullable */
+  checkedAt: string | null;
+}
+
+export interface NotificationChannels {
+  channels: ChannelStatus[];
+  queued: number;
+  failed: number;
+}
+
+export type NotificationStatus = typeof NotificationStatus[keyof typeof NotificationStatus];
+
+
+export const NotificationStatus = {
+  queued: 'queued',
+  sent: 'sent',
+  failed: 'failed',
+} as const;
+
+/**
+ * @nullable
+ */
+export type NotificationPayload = { [key: string]: unknown } | null;
+
+export interface Notification {
+  id: number;
+  /** @nullable */
+  enquiryId: number | null;
+  channel: string;
+  templateKey: string;
+  recipient: string;
+  /** @nullable */
+  subject: string | null;
+  status: NotificationStatus;
+  attempts: number;
+  /** @nullable */
+  lastError: string | null;
+  body: string;
+  /** @nullable */
+  bodyHtml?: string | null;
+  /** @nullable */
+  payload?: NotificationPayload;
+  createdAt: string;
+  /** @nullable */
+  sentAt: string | null;
+}
+
+export interface TestEmailInput {
+  /** @minLength 3 */
+  to: string;
+}
+
+export interface TestEmailResult {
+  messageId: string;
+}
+
 export type EnquirySource = typeof EnquirySource[keyof typeof EnquirySource];
 
 
@@ -604,6 +696,9 @@ export interface Enquiry {
   notes?: string | null;
   acceptPrivacy: boolean;
   receiveUpdates: boolean;
+  whatsappConsent: boolean;
+  /** @nullable */
+  phoneE164?: string | null;
   /** @nullable */
   tourTitle?: string | null;
   /** @nullable */
@@ -671,6 +766,7 @@ export interface EnquiryInput {
   notes?: string | null;
   acceptPrivacy: boolean;
   receiveUpdates: boolean;
+  whatsappConsent?: boolean;
   /** @maxLength 200 */
   tourTitle?: string;
   /** @maxLength 200 */

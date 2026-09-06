@@ -8,9 +8,24 @@ import {
   UpdateEnquiryStatusBody,
   UpdateEnquiryStatusParams,
   UpdateEnquiryStatusResponse,
+  DeleteEnquiryParams,
+  ListEnquiryNotificationsParams,
+  ListEnquiryNotificationsResponse,
+  ResendNotificationParams,
+  SendTestEmailBody,
+  SendTestEmailResponse,
 } from "@workspace/api-zod";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { serialize } from "../lib/serialize";
+import {
+  queueEnquiryNotifications,
+  notificationsForEnquiry,
+  resendNotification,
+  queueSummary,
+} from "../lib/notifications";
+import { isMailConfigured, mailConfigError, mailStatus, sendMail } from "../lib/mailer";
+import { testMessage } from "../lib/templates";
+import { toE164, whatsAppStatus } from "../lib/whatsapp";
 
 const router: IRouter = Router();
 
@@ -116,8 +131,23 @@ router.post("/enquiries", async (req, res): Promise<void> => {
       tourDurationDays: data.tourDurationDays ?? null,
       enquiryType,
       budget,
+      whatsappConsent: data.whatsappConsent ?? false,
+      /*
+       * Normalised once, here, rather than at send time. A number we cannot
+       * make sense of is then visibly null on the enquiry — which is the whole
+       * signal, because sending a stranger's travel plans to a mistyped number
+       * is worse than not sending at all.
+       */
+      phoneE164: toE164(phone),
     })
     .returning();
+
+  /*
+   * Queue the confirmation and the office alert, but do not wait for them.
+   * Sending happens in the background precisely so that a slow or unreachable
+   * mail server cannot turn a saved enquiry into an error for the visitor.
+   */
+  void queueEnquiryNotifications(enquiry);
 
   res.status(201).json(CreateEnquiryResponse.parse(serialize(enquiry)));
 });
@@ -162,6 +192,134 @@ router.patch(
     }
 
     res.json(UpdateEnquiryStatusResponse.parse(serialize(enquiry)));
+  },
+);
+
+router.delete(
+  "/admin/enquiries/:id",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = DeleteEnquiryParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+
+    /*
+     * The enquiry's notification rows go with it, by the cascade on
+     * notifications.enquiry_id. They record messages sent about this enquiry
+     * and describe nothing once it is gone.
+     */
+    const [row] = await db
+      .delete(enquiriesTable)
+      .where(eq(enquiriesTable.id, params.data.id))
+      .returning();
+
+    if (!row) {
+      res.status(404).json({ error: "Enquiry not found" });
+      return;
+    }
+    res.sendStatus(204);
+  },
+);
+
+/* ==================================================================== *
+ * Notification delivery
+ * ==================================================================== */
+
+router.get(
+  "/admin/enquiries/:id/notifications",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = ListEnquiryNotificationsParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const rows = await notificationsForEnquiry(params.data.id);
+    res.json(ListEnquiryNotificationsResponse.parse(serialize(rows)));
+  },
+);
+
+router.post(
+  "/admin/notifications/:id/resend",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const params = ResendNotificationParams.safeParse(req.params);
+    if (!params.success) {
+      res.status(400).json({ error: params.error.message });
+      return;
+    }
+    const ok = await resendNotification(params.data.id);
+    if (!ok) {
+      res.status(404).json({ error: "Notification not found" });
+      return;
+    }
+    // 202: accepted for sending, not sent yet — the worker owns that.
+    res.sendStatus(202);
+  },
+);
+
+/**
+ * Which channels will actually send, and what is waiting.
+ *
+ * Exists because "is it configured" and "does it work" are different questions,
+ * and the honest answer to the second one lives in a boot log nobody reads. A
+ * wrong password is configuration that looks complete and sends nothing; this
+ * reports what the provider said when the server asked it.
+ */
+router.get(
+  "/admin/notification-channels",
+  requireAdmin,
+  async (_req, res): Promise<void> => {
+    const queue = await queueSummary();
+    res.json({ channels: [mailStatus(), whatsAppStatus()], ...queue });
+  },
+);
+
+router.post(
+  "/admin/notifications/test",
+  requireAdmin,
+  async (req, res): Promise<void> => {
+    const parsed = SendTestEmailBody.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.message });
+      return;
+    }
+
+    if (!isMailConfigured()) {
+      /*
+       * 503 rather than 500: nothing is broken, the server simply has no mail
+       * credentials. The message names which ones are missing so this is
+       * actionable without reading the server log.
+       */
+      res.status(503).json({
+        error: mailConfigError() ?? "Email is not configured on this server",
+      });
+      return;
+    }
+
+    /*
+     * Sent inline rather than queued, because the entire point is to find out
+     * now whether the credentials work. A queued test would report success the
+     * moment it was written to the table, which proves nothing.
+     */
+    try {
+      // The same template the admin screen previews, so a test proves the
+      // branded shell renders too — not just that the credentials work.
+      const message = await testMessage();
+      const result = await sendMail({
+        to: parsed.data.to.trim(),
+        subject: message.subject,
+        text: message.body,
+        html: message.html,
+      });
+      res.json(SendTestEmailResponse.parse(result));
+    } catch (err) {
+      res.status(503).json({
+        error: err instanceof Error ? err.message : "Sending failed",
+      });
+    }
   },
 );
 

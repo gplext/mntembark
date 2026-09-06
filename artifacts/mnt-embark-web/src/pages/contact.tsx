@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Input } from "@workspace/mnt-embark/components/ui/input";
+import { Checkbox } from "@workspace/mnt-embark/components/ui/checkbox";
 import { Textarea } from "@workspace/mnt-embark/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@workspace/mnt-embark/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/mnt-embark/components/ui/select";
@@ -21,6 +22,7 @@ const enquirySchema = z.object({
   enquiryType: z.string().min(1, "Please select an enquiry type"),
   budget: z.string().optional(),
   message: z.string().min(10, "Please provide a message of at least 10 characters"),
+  whatsappConsent: z.boolean().optional(),
 });
 
 type EnquiryFormData = z.infer<typeof enquirySchema>;
@@ -39,6 +41,7 @@ export default function ContactPage() {
       enquiryType: "",
       budget: "",
       message: "",
+      whatsappConsent: false,
     },
   });
 
@@ -57,6 +60,7 @@ export default function ContactPage() {
           // Contact form has no consent flow — default to false
           acceptPrivacy: false,
           receiveUpdates: false,
+          whatsappConsent: data.whatsappConsent ?? false,
         },
       },
       {
@@ -190,6 +194,35 @@ export default function ContactPage() {
                     </FormItem>
                   )}
                 />
+
+                {/*
+                  Its own consent, separate from anything else on this form.
+                  WhatsApp reaches a personal phone, Meta requires demonstrable
+                  opt-in, and an unticked box is the only honest default. Shown
+                  only once a number is entered — there is nothing to agree to
+                  otherwise.
+                */}
+                {form.watch("phone")?.trim() && (
+                  <FormField
+                    control={form.control}
+                    name="whatsappConsent"
+                    render={({ field }) => (
+                      <FormItem className="flex items-start gap-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                            data-testid="input-whatsapp-consent"
+                            className="mt-0.5"
+                          />
+                        </FormControl>
+                        <FormLabel className="font-sans text-sm text-foreground leading-snug cursor-pointer">
+                          You may also send my enquiry confirmation to this number on WhatsApp.
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                )}
 
                 <FormField
                   control={form.control}

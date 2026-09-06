@@ -1337,6 +1337,7 @@ export const CreateEnquiryBody = zod.object({
   "notes": zod.string().max(createEnquiryBodyNotesMax).nullish(),
   "acceptPrivacy": zod.boolean(),
   "receiveUpdates": zod.boolean(),
+  "whatsappConsent": zod.boolean().optional(),
   "tourTitle": zod.string().max(createEnquiryBodyTourTitleMax).optional(),
   "tourLocation": zod.string().max(createEnquiryBodyTourLocationMax).optional(),
   "tourDurationDays": zod.number().min(1).multipleOf(createEnquiryBodyTourDurationDaysMultipleOf).optional(),
@@ -1357,6 +1358,8 @@ export const CreateEnquiryResponse = zod.object({
   "notes": zod.string().nullish(),
   "acceptPrivacy": zod.boolean(),
   "receiveUpdates": zod.boolean(),
+  "whatsappConsent": zod.boolean(),
+  "phoneE164": zod.string().nullish(),
   "tourTitle": zod.string().nullish(),
   "tourLocation": zod.string().nullish(),
   "tourDurationDays": zod.number().nullish(),
@@ -1364,6 +1367,144 @@ export const CreateEnquiryResponse = zod.object({
   "budget": zod.string().nullish(),
   "createdAt": zod.string(),
   "handledAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Messages queued or sent for an enquiry
+ */
+export const ListEnquiryNotificationsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListEnquiryNotificationsResponseItem = zod.object({
+  "id": zod.number(),
+  "enquiryId": zod.number().nullable(),
+  "channel": zod.string(),
+  "templateKey": zod.string(),
+  "recipient": zod.string(),
+  "subject": zod.string().nullable(),
+  "status": zod.enum(['queued', 'sent', 'failed']),
+  "attempts": zod.number(),
+  "lastError": zod.string().nullable(),
+  "body": zod.string(),
+  "bodyHtml": zod.string().nullish(),
+  "payload": zod.record(zod.string(), zod.unknown()).nullish(),
+  "createdAt": zod.string(),
+  "sentAt": zod.string().nullable()
+})
+export const ListEnquiryNotificationsResponse = zod.array(ListEnquiryNotificationsResponseItem)
+
+
+/**
+ * Resets the attempt counter - a resend follows a human fixing something, so it gets a fresh set of attempts rather than inheriting an exhausted one.
+ * @summary Put a message back in the send queue
+ */
+export const ResendNotificationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ResendNotificationResponse = zod.void()
+
+
+/**
+ * @summary The wording of each automatic message
+ */
+export const ListEmailTemplatesResponseItem = zod.object({
+  "key": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "isCustomised": zod.boolean(),
+  "updatedAt": zod.string().nullable(),
+  "placeholders": zod.array(zod.string()),
+  "defaultSubject": zod.string(),
+  "defaultBody": zod.string(),
+  "warnings": zod.array(zod.string()).optional()
+})
+export const ListEmailTemplatesResponse = zod.array(ListEmailTemplatesResponseItem)
+
+
+/**
+ * Storing an empty subject or body is allowed and means "use the built-in wording" — that is how a template is reset.
+ * @summary Change the wording of one message
+ */
+export const UpdateEmailTemplateParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const UpdateEmailTemplateBody = zod.object({
+  "subject": zod.string(),
+  "body": zod.string()
+})
+
+export const UpdateEmailTemplateResponse = zod.object({
+  "key": zod.string(),
+  "name": zod.string(),
+  "description": zod.string(),
+  "subject": zod.string(),
+  "body": zod.string(),
+  "isCustomised": zod.boolean(),
+  "updatedAt": zod.string().nullable(),
+  "placeholders": zod.array(zod.string()),
+  "defaultSubject": zod.string(),
+  "defaultBody": zod.string(),
+  "warnings": zod.array(zod.string()).optional()
+})
+
+
+/**
+ * @summary Render a template against a sample enquiry
+ */
+export const PreviewEmailTemplateParams = zod.object({
+  "key": zod.coerce.string()
+})
+
+export const PreviewEmailTemplateBody = zod.object({
+  "subject": zod.string(),
+  "body": zod.string()
+})
+
+export const PreviewEmailTemplateResponse = zod.object({
+  "subject": zod.string(),
+  "body": zod.string(),
+  "html": zod.string(),
+  "warnings": zod.array(zod.string())
+})
+
+
+/**
+ * @summary Which channels will send, and what is waiting
+ */
+export const GetNotificationChannelsResponse = zod.object({
+  "channels": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "configured": zod.boolean(),
+  "ready": zod.boolean(),
+  "detail": zod.string().nullable(),
+  "identity": zod.string().nullable(),
+  "checkedAt": zod.string().nullable()
+})),
+  "queued": zod.number(),
+  "failed": zod.number()
+})
+
+
+/**
+ * @summary Send a test email to prove SMTP works
+ */
+export const sendTestEmailBodyToMin = 3;
+
+
+
+export const SendTestEmailBody = zod.object({
+  "to": zod.string().min(sendTestEmailBodyToMin)
+})
+
+export const SendTestEmailResponse = zod.object({
+  "messageId": zod.string()
 })
 
 
@@ -1383,6 +1524,8 @@ export const ListEnquiriesResponseItem = zod.object({
   "notes": zod.string().nullish(),
   "acceptPrivacy": zod.boolean(),
   "receiveUpdates": zod.boolean(),
+  "whatsappConsent": zod.boolean(),
+  "phoneE164": zod.string().nullish(),
   "tourTitle": zod.string().nullish(),
   "tourLocation": zod.string().nullish(),
   "tourDurationDays": zod.number().nullish(),
@@ -1392,6 +1535,17 @@ export const ListEnquiriesResponseItem = zod.object({
   "handledAt": zod.string().nullish()
 })
 export const ListEnquiriesResponse = zod.array(ListEnquiriesResponseItem)
+
+
+/**
+ * Permanent. The notification rows go with it — they describe messages sent about this enquiry and mean nothing without it.
+ * @summary Delete an enquiry and its notification history
+ */
+export const DeleteEnquiryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteEnquiryResponse = zod.void()
 
 
 /**
@@ -1418,6 +1572,8 @@ export const UpdateEnquiryStatusResponse = zod.object({
   "notes": zod.string().nullish(),
   "acceptPrivacy": zod.boolean(),
   "receiveUpdates": zod.boolean(),
+  "whatsappConsent": zod.boolean(),
+  "phoneE164": zod.string().nullish(),
   "tourTitle": zod.string().nullish(),
   "tourLocation": zod.string().nullish(),
   "tourDurationDays": zod.number().nullish(),

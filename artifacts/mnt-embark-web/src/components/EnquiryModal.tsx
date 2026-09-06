@@ -56,6 +56,7 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
     notes: "",
     acceptPrivacy: false,
     receiveUpdates: true,
+    whatsappConsent: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -87,6 +88,7 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
       notes: "",
       acceptPrivacy: false,
       receiveUpdates: true,
+      whatsappConsent: false,
     });
     setErrors({});
   };
@@ -112,6 +114,7 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
           notes: form.notes.trim() || null,
           acceptPrivacy: form.acceptPrivacy,
           receiveUpdates: form.receiveUpdates,
+          whatsappConsent: form.whatsappConsent,
           tourTitle: tour.title,
           tourLocation: tour.location,
           tourDurationDays: tour.durationDays,
@@ -368,6 +371,32 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
                     </div>
                     {errors.acceptPrivacy && (
                       <p className="font-sans text-xs text-destructive pl-7">{errors.acceptPrivacy}</p>
+                    )}
+
+
+                    {/*
+                      Its own consent, separate from the marketing one. WhatsApp
+                      reaches a personal phone, Meta requires demonstrable
+                      opt-in, and an unticked box is the only honest default.
+                      Shown only once a number is entered — there is nothing to
+                      agree to otherwise.
+                    */}
+                    {form.phone.trim() && (
+                      <div className="flex items-start gap-3">
+                        <Checkbox
+                          id="whatsapp-consent"
+                          checked={form.whatsappConsent}
+                          onCheckedChange={(checked) => set("whatsappConsent", !!checked)}
+                          data-testid="enquiry-whatsapp-consent"
+                          className="mt-0.5"
+                        />
+                        <Label
+                          htmlFor="whatsapp-consent"
+                          className="font-sans text-sm text-foreground leading-snug cursor-pointer"
+                        >
+                          You may also send my enquiry confirmation to this number on WhatsApp.
+                        </Label>
+                      </div>
                     )}
 
                     {/* Receive Updates */}

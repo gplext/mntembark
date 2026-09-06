@@ -28,6 +28,26 @@ export const enquiriesTable = pgTable(
     isTravelAdvisor: boolean("is_travel_advisor"),
     notes: text("notes"),
     acceptPrivacy: boolean("accept_privacy").notNull().default(false),
+
+    /**
+     * Permission to message this person on WhatsApp.
+     *
+     * Separate from `receiveUpdates` because it is a different promise: one is
+     * marketing, this is a channel on their personal phone. Meta requires
+     * demonstrable opt-in before a business messages anyone, and defaulting it
+     * false means the absence of a decision is never read as consent.
+     */
+    whatsappConsent: boolean("whatsapp_consent").notNull().default(false),
+
+    /**
+     * The phone number in E.164 (+447700900123), derived from `phone` when the
+     * enquiry is saved.
+     *
+     * Stored rather than normalised at send time so what we dial is fixed at
+     * the moment they gave it, and so a number we could not make sense of is
+     * visibly null instead of failing later inside the worker.
+     */
+    phoneE164: text("phone_e164"),
     receiveUpdates: boolean("receive_updates").notNull().default(false),
     tourTitle: text("tour_title"),
     tourLocation: text("tour_location"),
