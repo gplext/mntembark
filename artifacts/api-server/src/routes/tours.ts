@@ -3,6 +3,7 @@ import { and, eq, desc, inArray, SQL, getTableColumns } from "drizzle-orm";
 import { db, toursTable, locationsTable, countriesTable, MAX_ACTIVITIES_PER_TOUR } from "@workspace/db";
 import { findTours, getTourWithTaxonomy } from "@workspace/db/queries";
 import { serialize } from "../lib/serialize";
+import { uniqueTourSlug } from "../lib/slug";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { logger } from "../lib/logger";
 import {
@@ -327,10 +328,21 @@ router.post("/tours", requireAdmin, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  /*
+   * Derived from the title unless the caller supplied one.
+   *
+   * Every tour needs a slug because that is what /tours/slug/:slug routes on,
+   * and the admin form has no field for it - so left to the caller, every tour
+   * created through the panel was stored with none and its public page could
+   * not be reached at all.
+   */
+  const slug = parsed.data.slug ?? (await uniqueTourSlug(parsed.data.title));
+
   const [row] = await db
     .insert(toursTable)
     .values({
       ...parsed.data,
+      slug,
       images: parsed.data.images ?? [],
       itinerarySteps: parsed.data.itinerarySteps ?? [],
     })
@@ -355,9 +367,31 @@ router.patch("/tours/:id", requireAdmin, async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  /*
+   * Fill in a missing slug, but never change one that exists.
+   *
+   * Those are different acts. A tour saved before the slug was accepted has
+   * no public URL at all, so deriving one can only help. A tour that already
+   * has one is already linked to, and silently rewriting its URL because
+   * somebody corrected a typo in the title would break every one of those
+   * links. So: only when it is absent, and only when the caller did not say.
+   */
+  const patch = { ...parsed.data };
+  if (patch.slug === undefined) {
+    const [current] = await db
+      .select({ slug: toursTable.slug, title: toursTable.title })
+      .from(toursTable)
+      .where(eq(toursTable.id, params.data.id))
+      .limit(1);
+
+    if (current && !current.slug) {
+      patch.slug = await uniqueTourSlug(patch.title ?? current.title);
+    }
+  }
+
   const [row] = await db
     .update(toursTable)
-    .set(parsed.data)
+    .set(patch)
     .where(eq(toursTable.id, params.data.id))
     .returning();
   if (!row) {

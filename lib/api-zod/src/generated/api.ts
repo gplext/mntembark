@@ -349,10 +349,16 @@ export const ListToursResponse = zod.array(ListToursResponseItem)
 /**
  * @summary Create a tour
  */
+export const createTourBodySlugMin = 2;
+export const createTourBodySlugMax = 120;
+
+
+export const createTourBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
 
 
 
 export const CreateTourBody = zod.object({
+  "slug": zod.string().min(createTourBodySlugMin).max(createTourBodySlugMax).regex(createTourBodySlugRegExp).nullish(),
   "title": zod.string().min(1),
   "description": zod.string(),
   "coverImage": zod.string(),
@@ -577,10 +583,16 @@ export const UpdateTourParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const updateTourBodySlugMin = 2;
+export const updateTourBodySlugMax = 120;
+
+
+export const updateTourBodySlugRegExp = new RegExp('^[a-z0-9]+(?:-[a-z0-9]+)*$');
 
 
 
 export const UpdateTourBody = zod.object({
+  "slug": zod.string().min(updateTourBodySlugMin).max(updateTourBodySlugMax).regex(updateTourBodySlugRegExp).nullish(),
   "title": zod.string().min(1).optional(),
   "description": zod.string().optional(),
   "coverImage": zod.string().optional(),

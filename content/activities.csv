@@ -1,0 +1,23 @@
+slug,name,group_slug,description,coverImage,icon,aliases,isFilterable,isIndexable,displayOrder
+game-drives,Game Drives,wildlife,"Open vehicles, early starts and a guide who knows where the animals were yesterday. The foundation of most safari days.",/images/act-game-drive.jpg,truck,safari-drives | game-viewing,true,false,1
+walking-safari,Walking Safari,wildlife,"On foot with a guide and an armed scout. Slower, quieter, and a completely different relationship to the ground.",/images/act-walking-safari.jpg,footprints,bush-walks | walking,true,false,2
+night-drives,Night Drives,wildlife,"After dark with a spotlight, when the cats are moving and the smaller nocturnal animals appear. Permitted on private land where the parks do not allow it.",/images/act-night-drive.jpg,moon,night-safari | spotlighting,true,false,3
+gorilla-trekking,Gorilla Trekking,wildlife,"Permits are capped daily and booked months ahead. One hour with a habituated family, however long the climb takes.",/images/act-gorilla-trek.jpg,trees,gorillas | primate-trekking,true,false,4
+rhino-tracking,Rhino Tracking,wildlife,On foot with a conservancy monitoring team who know each animal individually.,/images/act-rhino.jpg,shield,rhino,true,false,5
+birdwatching,Birdwatching,wildlife,"Rewarding on every itinerary here, and the reason some guests extend. Guides carry the books.",/images/act-birding.jpg,bird,birding | birds,true,false,6
+marine-wildlife,Marine Wildlife,wildlife,"Turtles, rays, sea lions and whatever the season brings. Watched from the water rather than a boat rail.",/images/act-turtle.jpg,fish,sea-life | ocean-wildlife,true,false,7
+polar-wildlife,Polar Wildlife,wildlife,"Bears on the ice edge, walrus haul-outs and bird cliffs. Entirely dependent on where the ice sits that year.",/images/act-polar-bear.jpg,snowflake,arctic-wildlife | polar-bears,true,false,8
+snorkelling,Snorkelling,water,"Off the beach or off the boat, on reefs that begin in waist-deep water.",/images/act-reef-snorkel.jpg,waves,snorkeling | reef-swimming,true,false,1
+diving,Diving,water,"Certified diving on walls and drop-offs, with equipment and guiding arranged in advance.",/images/act-diving.jpg,anchor,scuba | scuba-diving,true,false,2
+canoeing,Canoeing,water,"Poled through papyrus in a dugout, at water level and in near silence. The only way to see the delta's small things.",/images/act-mokoro.jpg,ship,mokoro | dugout,true,false,3
+sailing,Sailing,water,"Traditional rig, sailed rather than motored, usually timed for the end of the day.",/images/act-dhow.jpg,sailboat,dhow | yacht,true,false,4
+zodiac-cruising,Zodiac Cruising,water,Inflatables launched from the ship to reach coastlines and ice that the vessel itself cannot approach.,/images/act-zodiac.jpg,life-buoy,zodiac | small-boat,true,false,5
+hiking,Hiking & Trekking,land-and-adventure,"Anything from an hour to a full day, matched to what you actually want rather than a fixed programme.",/images/act-hiking.jpg,mountain,trekking | walking-trails,true,false,1
+horse-riding,Horse Riding,land-and-adventure,"Horses suited to your standard, among plains game that ignores a horse entirely.",/images/act-horseback.jpg,rabbit,horseback | riding,true,false,2
+ballooning,Hot Air Ballooning,land-and-adventure,"One morning aloft at dawn, weather permitting, landing to breakfast on the grass.",/images/act-balloon.jpg,circle,balloon | balloon-safari,true,false,3
+scenic-flights,Scenic Flights,land-and-adventure,"Helicopter or light aircraft, flown low and routed for the view rather than the destination.",/images/act-scenic-flight.jpg,plane,helicopter | flightseeing,true,false,4
+desert-exploration,Desert Exploration,land-and-adventure,"Dunes, dry riverbeds and gravel plains, on foot and by vehicle, usually at either end of the day.",/images/act-dunes.jpg,sun,dunes | desert,true,false,5
+cultural-visits,Cultural Visits,culture-and-wellbeing,"Arranged through people we work with directly, on terms the community sets.",/images/act-cultural-visit.jpg,users,communities | culture,true,false,1
+festivals,Festivals & Ceremony,culture-and-wellbeing,"Timed into an itinerary where the dates allow, at courtyards that are still local rather than ticketed.",/images/act-festival.jpg,sparkles,festival | ceremony,true,false,2
+monasteries,Temples & Monasteries,culture-and-wellbeing,"Opened privately where possible, which usually means before the doors open to everyone else.",/images/act-monastery.jpg,landmark,temples | dzong,true,false,3
+private-dining,Private Dining,culture-and-wellbeing,"Your own chef, and meals wherever they make sense — a riverbed, a deck, the middle of a plain.",/images/act-private-dining.jpg,utensils,dining | chef,true,false,4
