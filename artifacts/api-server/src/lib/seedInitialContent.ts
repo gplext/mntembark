@@ -78,6 +78,8 @@ export async function seedInitialContent(): Promise<void> {
       name TEXT NOT NULL UNIQUE,
       image TEXT,
       code TEXT UNIQUE,
+      latitude REAL,
+      longitude REAL,
       description TEXT,
       display_order INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -138,35 +140,33 @@ export async function seedInitialContent(): Promise<void> {
       cover_image TEXT NOT NULL,
       images TEXT[] NOT NULL DEFAULT '{}',
       location TEXT NOT NULL,
-      author TEXT NOT NULL DEFAULT 'MNT Embark',
+      author_name TEXT NOT NULL DEFAULT 'MNT Editorial',
+      author_role TEXT NOT NULL DEFAULT 'Curator',
+      author_avatar TEXT,
       published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      display_order INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS activity_groups (
       id SERIAL PRIMARY KEY,
-      slug TEXT NOT NULL UNIQUE,
+      slug TEXT UNIQUE,
       name TEXT NOT NULL UNIQUE,
       description TEXT,
-      cover_image TEXT,
-      icon TEXT,
-      selection_mode TEXT NOT NULL DEFAULT 'multiple',
       display_order INTEGER NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS activities (
       id SERIAL PRIMARY KEY,
-      slug TEXT NOT NULL UNIQUE,
+      slug TEXT UNIQUE,
       name TEXT NOT NULL UNIQUE,
-      group_id INTEGER NOT NULL REFERENCES activity_groups(id) ON DELETE RESTRICT,
+      group_id INTEGER NOT NULL REFERENCES activity_groups(id) ON DELETE CASCADE,
       description TEXT,
-      cover_image TEXT,
-      icon TEXT,
+      image TEXT,
       aliases TEXT[] NOT NULL DEFAULT '{}',
       display_order INTEGER NOT NULL DEFAULT 0,
-      usage_count INTEGER NOT NULL DEFAULT 0,
       is_filterable BOOLEAN NOT NULL DEFAULT TRUE,
       is_indexable BOOLEAN NOT NULL DEFAULT FALSE,
       redirect_to_id INTEGER REFERENCES activities(id) ON DELETE SET NULL,
@@ -248,8 +248,22 @@ export async function seedInitialContent(): Promise<void> {
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS slug TEXT;
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS code TEXT;
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS image TEXT;
+    ALTER TABLE countries ADD COLUMN IF NOT EXISTS latitude REAL;
+    ALTER TABLE countries ADD COLUMN IF NOT EXISTS longitude REAL;
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS description TEXT;
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    -- Backfill default centroid coordinates for standard seeded countries
+    UPDATE countries SET latitude = 36.2048, longitude = 138.2529 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'japan' OR LOWER(code) = 'jp');
+    UPDATE countries SET latitude = 31.7917, longitude = -7.0926 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'morocco' OR LOWER(code) = 'ma');
+    UPDATE countries SET latitude = 64.9631, longitude = -19.0208 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'iceland' OR LOWER(code) = 'is');
+    UPDATE countries SET latitude = 15.8700, longitude = 100.9925 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'thailand' OR LOWER(code) = 'th');
+    UPDATE countries SET latitude = 3.2028, longitude = 73.2207 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) LIKE '%maldives%' OR LOWER(code) = 'mv');
+    UPDATE countries SET latitude = -0.0236, longitude = 37.9062 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'kenya' OR LOWER(code) = 'ke');
+    UPDATE countries SET latitude = -6.3690, longitude = 34.8888 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'tanzania' OR LOWER(code) = 'tz');
+    UPDATE countries SET latitude = -35.6751, longitude = -71.5430 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'chile' OR LOWER(code) = 'cl');
+    UPDATE countries SET latitude = -38.4161, longitude = -63.6167 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'argentina' OR LOWER(code) = 'ar');
+    UPDATE countries SET latitude = 41.8719, longitude = 12.5674 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'italy' OR LOWER(code) = 'it');
 
     ALTER TABLE locations ADD COLUMN IF NOT EXISTS slug TEXT;
     ALTER TABLE locations ADD COLUMN IF NOT EXISTS image TEXT;

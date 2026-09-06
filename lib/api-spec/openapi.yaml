@@ -1892,6 +1892,10 @@ components:
           type: ["string", "null"]
         image:
           type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
         description:
           type: ["string", "null"]
         displayOrder:
@@ -1910,6 +1914,10 @@ components:
           type: ["string", "null"]
         image:
           type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
         description:
           type: ["string", "null"]
         displayOrder:
@@ -1927,6 +1935,10 @@ components:
           type: ["string", "null"]
         image:
           type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
         description:
           type: ["string", "null"]
         displayOrder:
@@ -1965,6 +1977,14 @@ components:
           type: string
         name:
           type: string
+        code:
+          type: ["string", "null"]
+        image:
+          type: ["string", "null"]
+        latitude:
+          type: ["number", "null"]
+        longitude:
+          type: ["number", "null"]
       required: [id, slug, name]
 
     DestinationListItem:

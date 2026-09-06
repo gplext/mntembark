@@ -1,4 +1,4 @@
-import { useListDestinations, useListTours } from "@workspace/api-client-react";
+import { useListDestinations, useListCountries, useListTours } from "@workspace/api-client-react";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { MapPin } from "lucide-react";
 import { Link } from "wouter";
@@ -9,6 +9,7 @@ import DestinationsMap from "@/components/DestinationsMap";
 
 export default function DestinationsPage() {
   const { data: destinations, isLoading, isError, refetch } = useListDestinations();
+  const { data: countries } = useListCountries();
   const { data: tours, isLoading: toursLoading } = useListTours();
 
   return (
@@ -31,9 +32,10 @@ export default function DestinationsPage() {
       </div>
 
       {/* Illustrated Map — shown whenever data is available */}
-      {!isLoading && !isError && destinations && destinations.length > 0 && (
+      {!isLoading && !isError && ((destinations && destinations.length > 0) || (countries && countries.length > 0)) && (
         <DestinationsMap
-          destinations={destinations}
+          destinations={destinations ?? []}
+          countries={countries ?? []}
           tours={tours ?? []}
           toursLoading={toursLoading}
         />

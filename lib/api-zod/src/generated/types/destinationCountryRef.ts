@@ -10,4 +10,12 @@ export interface DestinationCountryRef {
   id: number;
   slug: string;
   name: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
 }

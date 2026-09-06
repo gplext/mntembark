@@ -3,6 +3,7 @@ import {
   text,
   serial,
   integer,
+  real,
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -37,6 +38,12 @@ export const countriesTable = pgTable(
      */
     code: text("code"),
 
+    /** Centroid latitude (-90 to +90) for map placement. */
+    latitude: real("latitude"),
+
+    /** Centroid longitude (-180 to +180) for map placement. */
+    longitude: real("longitude"),
+
     description: text("description"),
 
     displayOrder: integer("display_order").notNull().default(0),
@@ -58,6 +65,8 @@ export const insertCountrySchema = createInsertSchema(countriesTable, {
     .length(2)
     .regex(/^[A-Z]{2}$/, "Uppercase ISO 3166-1 alpha-2")
     .nullish(),
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
 }).omit({ id: true, createdAt: true });
 
 export type InsertCountry = z.infer<typeof insertCountrySchema>;

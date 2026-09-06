@@ -366,6 +366,10 @@ export interface CountrySummary {
   /** @nullable */
   image?: string | null;
   /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /** @nullable */
   description?: string | null;
   displayOrder?: number;
 }
@@ -380,6 +384,10 @@ export interface CountryInput {
   /** @nullable */
   image?: string | null;
   /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /** @nullable */
   description?: string | null;
   displayOrder?: number;
 }
@@ -392,6 +400,10 @@ export interface CountryUpdateInput {
   code?: string | null;
   /** @nullable */
   image?: string | null;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
   /** @nullable */
   description?: string | null;
   displayOrder?: number;
@@ -418,6 +430,14 @@ export interface DestinationCountryRef {
   id: number;
   slug: string;
   name: string;
+  /** @nullable */
+  code?: string | null;
+  /** @nullable */
+  image?: string | null;
+  /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
 }
 
 export interface DestinationListItem {

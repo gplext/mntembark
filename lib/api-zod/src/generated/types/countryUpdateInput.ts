@@ -15,6 +15,10 @@ export interface CountryUpdateInput {
   /** @nullable */
   image?: string | null;
   /** @nullable */
+  latitude?: number | null;
+  /** @nullable */
+  longitude?: number | null;
+  /** @nullable */
   description?: string | null;
   displayOrder?: number;
 }

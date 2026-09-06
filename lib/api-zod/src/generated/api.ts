@@ -772,7 +772,11 @@ export const ListDestinationsResponseItem = zod.object({
   "countries": zod.array(zod.object({
   "id": zod.number(),
   "slug": zod.string(),
-  "name": zod.string()
+  "name": zod.string(),
+  "code": zod.string().nullish(),
+  "image": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish()
 }))
 })
 export const ListDestinationsResponse = zod.array(ListDestinationsResponseItem)
@@ -1012,6 +1016,8 @@ export const ListCountriesResponseItem = zod.object({
   "name": zod.string(),
   "code": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "description": zod.string().nullish(),
   "displayOrder": zod.number().optional()
 })
@@ -1029,6 +1035,8 @@ export const CreateCountryBody = zod.object({
   "slug": zod.string().nullish(),
   "code": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "description": zod.string().nullish(),
   "displayOrder": zod.number().optional()
 })
@@ -1039,6 +1047,8 @@ export const CreateCountryResponse = zod.object({
   "name": zod.string(),
   "code": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "description": zod.string().nullish(),
   "displayOrder": zod.number().optional()
 })
@@ -1056,6 +1066,8 @@ export const UpdateCountryBody = zod.object({
   "slug": zod.string().nullish(),
   "code": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "description": zod.string().nullish(),
   "displayOrder": zod.number().optional()
 })
@@ -1066,6 +1078,8 @@ export const UpdateCountryResponse = zod.object({
   "name": zod.string(),
   "code": zod.string().nullish(),
   "image": zod.string().nullish(),
+  "latitude": zod.number().nullish(),
+  "longitude": zod.number().nullish(),
   "description": zod.string().nullish(),
   "displayOrder": zod.number().optional()
 })

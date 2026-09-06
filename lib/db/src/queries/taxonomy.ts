@@ -19,6 +19,7 @@ import { sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 import { pool, db } from "../index";
+import { resolveDefaultCountryCoords } from "./countryCoordinates";
 import {
   activityGroupsTable,
   activitiesTable,
@@ -767,6 +768,8 @@ export interface CountrySummary {
   name: string;
   code: string | null;
   image: string | null;
+  latitude: number | null;
+  longitude: number | null;
   description: string | null;
   displayOrder: number;
 }
@@ -783,6 +786,8 @@ export async function getCountries(): Promise<CountrySummary[]> {
       name: countriesTable.name,
       code: countriesTable.code,
       image: countriesTable.image,
+      latitude: countriesTable.latitude,
+      longitude: countriesTable.longitude,
       description: countriesTable.description,
       displayOrder: countriesTable.displayOrder,
     })
@@ -795,12 +800,26 @@ export async function createCountry(data: {
   slug?: string | null;
   code?: string | null;
   image?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   description?: string | null;
   displayOrder?: number | null;
 }): Promise<CountrySummary> {
   const name = data.name.trim();
   const slug = (data.slug?.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")) || "country";
   const code = data.code?.trim().toUpperCase() || null;
+
+  let lat = data.latitude !== undefined && data.latitude !== null ? Number(data.latitude) : null;
+  let lng = data.longitude !== undefined && data.longitude !== null ? Number(data.longitude) : null;
+
+  // Automatically resolve standard centroid coordinates if missing
+  if (lat === null || lng === null) {
+    const defaultCoords = resolveDefaultCountryCoords(name, code, slug);
+    if (defaultCoords) {
+      lat = defaultCoords[0];
+      lng = defaultCoords[1];
+    }
+  }
 
   const [inserted] = await db
     .insert(countriesTable)
@@ -809,6 +828,8 @@ export async function createCountry(data: {
       slug,
       code,
       image: data.image ?? null,
+      latitude: lat,
+      longitude: lng,
       description: data.description ?? null,
       displayOrder: data.displayOrder ?? 0,
     })
@@ -820,6 +841,8 @@ export async function createCountry(data: {
     name: inserted.name,
     code: inserted.code,
     image: inserted.image,
+    latitude: inserted.latitude,
+    longitude: inserted.longitude,
     description: inserted.description,
     displayOrder: inserted.displayOrder,
   };
@@ -832,6 +855,8 @@ export async function updateCountry(
     slug?: string | null;
     code?: string | null;
     image?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
     description?: string | null;
     displayOrder?: number | null;
   }>,
@@ -843,6 +868,8 @@ export async function updateCountry(
   }
   if (data.code !== undefined) updates.code = data.code?.trim().toUpperCase() || null;
   if (data.image !== undefined) updates.image = data.image;
+  if (data.latitude !== undefined) updates.latitude = data.latitude !== null ? Number(data.latitude) : null;
+  if (data.longitude !== undefined) updates.longitude = data.longitude !== null ? Number(data.longitude) : null;
   if (data.description !== undefined) updates.description = data.description;
   if (data.displayOrder !== undefined && data.displayOrder !== null) updates.displayOrder = data.displayOrder;
 
@@ -865,6 +892,8 @@ export async function updateCountry(
     name: updated.name,
     code: updated.code,
     image: updated.image,
+    latitude: updated.latitude,
+    longitude: updated.longitude,
     description: updated.description,
     displayOrder: updated.displayOrder,
   };
@@ -932,6 +961,10 @@ export interface DestinationCountryRef {
   id: number;
   slug: string;
   name: string;
+  code: string | null;
+  image: string | null;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface DestinationListItem {
@@ -967,6 +1000,10 @@ export async function listDestinationsWithCountries(): Promise<DestinationListIt
         id: countriesTable.id,
         slug: countriesTable.slug,
         name: countriesTable.name,
+        code: countriesTable.code,
+        image: countriesTable.image,
+        latitude: countriesTable.latitude,
+        longitude: countriesTable.longitude,
       })
       .from(destinationCountriesTable)
       .innerJoin(
@@ -982,7 +1019,15 @@ export async function listDestinationsWithCountries(): Promise<DestinationListIt
   const countryMap = new Map<number, DestinationCountryRef[]>();
   for (const link of links) {
     const arr = countryMap.get(link.destinationId) ?? [];
-    arr.push({ id: link.id, slug: link.slug, name: link.name });
+    arr.push({
+      id: link.id,
+      slug: link.slug,
+      name: link.name,
+      code: link.code,
+      image: link.image,
+      latitude: link.latitude,
+      longitude: link.longitude,
+    });
     countryMap.set(link.destinationId, arr);
   }
 

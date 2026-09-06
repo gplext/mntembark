@@ -63,6 +63,14 @@ import { cn } from "@workspace/mnt-embark/lib/utils";
 import { Plus, Pencil, Trash2, Globe, MapPin, Compass, Search, Filter } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { ImageUploadField } from "@/components/ImageUploadField";
+import {
+  proj,
+  unproj,
+  resolveDefaultCountryCoords,
+  MAP_W,
+  MAP_H,
+} from "@/lib/countryCoordinates";
+import { CountryPinMapPicker } from "@/components/CountryPinMapPicker";
 import type {
   Destination,
   CountrySummary,
@@ -101,12 +109,16 @@ function QuickAddCountryModal({
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [slug, setSlug] = useState("");
+  const [latitude, setLatitude] = useState<string>("");
+  const [longitude, setLongitude] = useState<string>("");
 
   useEffect(() => {
     if (open) {
       setName("");
       setCode("");
       setSlug("");
+      setLatitude("");
+      setLongitude("");
     }
   }, [open]);
 
@@ -115,11 +127,42 @@ function QuickAddCountryModal({
     if (!slug || slug === autoSlug(name)) {
       setSlug(autoSlug(val));
     }
+    const def = resolveDefaultCountryCoords(val, code);
+    if (def && (!latitude || !longitude)) {
+      setLatitude(String(def[0]));
+      setLongitude(String(def[1]));
+    }
   };
+
+  const handleCodeChange = (val: string) => {
+    const nextCode = val.toUpperCase();
+    setCode(nextCode);
+    const def = resolveDefaultCountryCoords(name, nextCode);
+    if (def && (!latitude || !longitude)) {
+      setLatitude(String(def[0]));
+      setLongitude(String(def[1]));
+    }
+  };
+
+  const parsedLat = latitude ? parseFloat(latitude) : undefined;
+  const parsedLng = longitude ? parseFloat(longitude) : undefined;
+  const hasValidCoords =
+    parsedLat !== undefined &&
+    !isNaN(parsedLat) &&
+    parsedLng !== undefined &&
+    !isNaN(parsedLng);
+  const mapPos = hasValidCoords ? proj(parsedLat, parsedLng) : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
+
+    const def = resolveDefaultCountryCoords(name.trim(), code.trim());
+    const coords = hasValidCoords
+      ? { lat: parsedLat!, lng: parsedLng! }
+      : def
+      ? { lat: def[0], lng: def[1] }
+      : null;
 
     createCountryMutation.mutate(
       {
@@ -127,6 +170,8 @@ function QuickAddCountryModal({
           name: name.trim(),
           code: code.trim().toUpperCase() || null,
           slug: slug.trim() || autoSlug(name),
+          latitude: coords?.lat ?? null,
+          longitude: coords?.lng ?? null,
         },
       },
       {
@@ -151,7 +196,7 @@ function QuickAddCountryModal({
             <Globe className="h-4 w-4 text-primary" /> Add New Country
           </DialogTitle>
           <DialogDescription className="font-sans text-xs text-muted-foreground">
-            Quickly create a sovereign country to associate with destinations and tours.
+            Quickly create a sovereign country with automatic map coordinates.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
@@ -177,7 +222,7 @@ function QuickAddCountryModal({
                 placeholder="e.g. GR, NO, JP"
                 maxLength={2}
                 value={code}
-                onChange={(e) => setCode(e.target.value.toUpperCase())}
+                onChange={(e) => handleCodeChange(e.target.value)}
                 className="bg-background border-border/60 font-sans text-sm uppercase"
               />
             </div>
@@ -193,6 +238,42 @@ function QuickAddCountryModal({
               />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">
+                Latitude (-90 to 90)
+              </label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="e.g. 36.2048"
+                value={latitude}
+                onChange={(e) => setLatitude(e.target.value)}
+                className="bg-background border-border/60 font-sans text-sm font-mono"
+              />
+            </div>
+            <div>
+              <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">
+                Longitude (-180 to 180)
+              </label>
+              <Input
+                type="number"
+                step="any"
+                placeholder="e.g. 138.2529"
+                value={longitude}
+                onChange={(e) => setLongitude(e.target.value)}
+                className="bg-background border-border/60 font-sans text-sm font-mono"
+              />
+            </div>
+          </div>
+          {mapPos && (
+            <div className="text-[11px] font-mono text-primary/90 bg-primary/10 border border-primary/20 rounded px-2.5 py-1.5 flex items-center justify-between">
+              <span>Projected Map X / Y:</span>
+              <span>
+                X: <strong>{Math.round(mapPos[0])}px</strong>, Y: <strong>{Math.round(mapPos[1])}px</strong>
+              </span>
+            </div>
+          )}
           <DialogFooter className="pt-2 gap-2">
             <Button
               type="button"
@@ -861,16 +942,76 @@ function CountryForm({
     image: country?.image ?? "",
     description: country?.description ?? "",
     displayOrder: country?.displayOrder ?? 0,
+    latitude: country?.latitude != null ? String(country.latitude) : "",
+    longitude: country?.longitude != null ? String(country.longitude) : "",
   });
   const [slugError, setSlugError] = useState<string | null>(null);
 
+  // If initial country coordinates are unset, resolve default centroid
+  useEffect(() => {
+    if (!form.latitude && !form.longitude && (form.name || form.code)) {
+      const def = resolveDefaultCountryCoords(form.name, form.code);
+      if (def) {
+        setForm((prev) => ({
+          ...prev,
+          latitude: String(def[0]),
+          longitude: String(def[1]),
+        }));
+      }
+    }
+  }, []);
+
   const handleNameChange = (val: string) => {
-    setForm((prev) => ({
-      ...prev,
-      name: val,
-      slug: !prev.slug || prev.slug === autoSlug(prev.name) ? autoSlug(val) : prev.slug,
-    }));
+    setForm((prev) => {
+      const nextSlug = !prev.slug || prev.slug === autoSlug(prev.name) ? autoSlug(val) : prev.slug;
+      let nextLat = prev.latitude;
+      let nextLng = prev.longitude;
+      if (!nextLat && !nextLng) {
+        const def = resolveDefaultCountryCoords(val, prev.code);
+        if (def) {
+          nextLat = String(def[0]);
+          nextLng = String(def[1]);
+        }
+      }
+      return {
+        ...prev,
+        name: val,
+        slug: nextSlug,
+        latitude: nextLat,
+        longitude: nextLng,
+      };
+    });
   };
+
+  const handleCodeChange = (val: string) => {
+    const uppercaseCode = val.toUpperCase();
+    setForm((prev) => {
+      let nextLat = prev.latitude;
+      let nextLng = prev.longitude;
+      if (!nextLat && !nextLng) {
+        const def = resolveDefaultCountryCoords(prev.name, uppercaseCode);
+        if (def) {
+          nextLat = String(def[0]);
+          nextLng = String(def[1]);
+        }
+      }
+      return {
+        ...prev,
+        code: uppercaseCode,
+        latitude: nextLat,
+        longitude: nextLng,
+      };
+    });
+  };
+
+  const parsedLat = form.latitude !== "" ? parseFloat(form.latitude) : null;
+  const parsedLng = form.longitude !== "" ? parseFloat(form.longitude) : null;
+  const hasValidCoords =
+    parsedLat !== null &&
+    !isNaN(parsedLat) &&
+    parsedLng !== null &&
+    !isNaN(parsedLng);
+  const mapPos = hasValidCoords ? proj(parsedLat, parsedLng) : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -882,6 +1023,13 @@ function CountryForm({
     }
     setSlugError(null);
 
+    const def = resolveDefaultCountryCoords(form.name.trim(), form.code.trim());
+    const coords = hasValidCoords
+      ? { lat: parsedLat!, lng: parsedLng! }
+      : def
+      ? { lat: def[0], lng: def[1] }
+      : null;
+
     const payload: CountryInput = {
       name: form.name.trim(),
       code: form.code.trim().toUpperCase() || null,
@@ -889,6 +1037,8 @@ function CountryForm({
       image: form.image || null,
       description: form.description || null,
       displayOrder: Number(form.displayOrder) || 0,
+      latitude: coords?.lat ?? null,
+      longitude: coords?.lng ?? null,
     };
 
     if (country) {
@@ -943,7 +1093,7 @@ function CountryForm({
           <Input
             maxLength={2}
             value={form.code}
-            onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
+            onChange={(e) => handleCodeChange(e.target.value)}
             placeholder="e.g. CL, JP, MA"
             className="bg-background border-border/60 font-sans text-sm uppercase"
           />
@@ -978,11 +1128,81 @@ function CountryForm({
         {slugError && <p className="font-sans text-xs text-destructive mt-1">{slugError}</p>}
       </div>
 
-      <ImageUploadField
-        label="Cover Image"
-        value={form.image}
-        onChange={(url) => setForm({ ...form, image: url })}
-      />
+      <div className="space-y-1">
+        <ImageUploadField
+          label="Country Pin Icon / Cover Image"
+          value={form.image}
+          onChange={(url) => setForm({ ...form, image: url })}
+        />
+        <p className="text-[11px] font-sans text-muted-foreground">
+          This icon or image is placed directly on the interactive map pin for this country and its tours.
+        </p>
+      </div>
+
+      {/* Map Pin Adjuster Section */}
+      <div className="space-y-3 pt-1">
+        <div>
+          <label className="font-sans text-xs uppercase tracking-widest text-primary block mb-1">
+            Map Pin Placement & Coordinates
+          </label>
+          <p className="font-sans text-xs text-muted-foreground mb-2">
+            Click directly on the map to place the country pin, or type exact latitude and longitude below.
+          </p>
+        </div>
+
+        <CountryPinMapPicker
+          latitude={hasValidCoords ? parsedLat : null}
+          longitude={hasValidCoords ? parsedLng : null}
+          pinImage={form.image}
+          countryName={form.name}
+          countryCode={form.code}
+          onChange={(lat, lng) => {
+            setForm((prev) => ({
+              ...prev,
+              latitude: String(lat),
+              longitude: String(lng),
+            }));
+          }}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">
+              Latitude (-90 to 90)
+            </label>
+            <Input
+              type="number"
+              step="any"
+              value={form.latitude}
+              onChange={(e) => setForm({ ...form, latitude: e.target.value })}
+              placeholder="e.g. 35.6762"
+              className="bg-background border-border/60 font-sans text-sm font-mono"
+            />
+          </div>
+          <div>
+            <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">
+              Longitude (-180 to 180)
+            </label>
+            <Input
+              type="number"
+              step="any"
+              value={form.longitude}
+              onChange={(e) => setForm({ ...form, longitude: e.target.value })}
+              placeholder="e.g. 139.6503"
+              className="bg-background border-border/60 font-sans text-sm font-mono"
+            />
+          </div>
+        </div>
+
+        {mapPos && (
+          <div className="text-[11px] font-mono text-primary/90 bg-primary/10 border border-primary/20 rounded px-2.5 py-1.5 flex items-center justify-between">
+            <span>Projected Map X / Y:</span>
+            <span>
+              X: <strong>{Math.round(mapPos[0])}px</strong>, Y: <strong>{Math.round(mapPos[1])}px</strong>
+            </span>
+          </div>
+        )}
+      </div>
 
       <div>
         <label className="font-sans text-xs uppercase tracking-widest text-muted-foreground block mb-1">
@@ -1648,9 +1868,12 @@ export default function AdminDestinationsPage() {
                         ISO Code
                       </th>
                       <th className="text-left p-4 font-sans text-xs uppercase tracking-widest text-muted-foreground hidden md:table-cell">
-                        Slug
+                        Coordinates / Pin
                       </th>
                       <th className="text-left p-4 font-sans text-xs uppercase tracking-widest text-muted-foreground hidden lg:table-cell">
+                        Slug
+                      </th>
+                      <th className="text-left p-4 font-sans text-xs uppercase tracking-widest text-muted-foreground hidden xl:table-cell">
                         Order
                       </th>
                       <th className="p-4" />
@@ -1665,17 +1888,25 @@ export default function AdminDestinationsPage() {
                       >
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            {country.image ? (
-                              <img
-                                src={country.image}
-                                alt={country.name}
-                                className="w-10 h-10 object-cover rounded border border-border/40 shrink-0"
-                              />
-                            ) : (
-                              <div className="w-10 h-10 rounded bg-muted/40 flex items-center justify-center text-muted-foreground shrink-0 font-mono text-xs">
-                                {country.code || <Globe className="w-4 h-4" />}
-                              </div>
-                            )}
+                            <div className="relative shrink-0">
+                              {country.image ? (
+                                <img
+                                  src={country.image}
+                                  alt={country.name}
+                                  className="w-10 h-10 object-cover rounded-full border border-primary/50 shadow-sm"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-full bg-muted/40 border border-border/60 flex items-center justify-center text-muted-foreground font-mono text-xs">
+                                  {country.code || <Globe className="w-4 h-4" />}
+                                </div>
+                              )}
+                              <span
+                                className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-primary flex items-center justify-center shadow"
+                                title="Interactive map pin available"
+                              >
+                                <MapPin className="w-2 h-2 text-primary-foreground" />
+                              </span>
+                            </div>
                             <div>
                               <p className="font-sans text-sm font-medium text-foreground">{country.name}</p>
                               {country.description && (
@@ -1696,9 +1927,31 @@ export default function AdminDestinationsPage() {
                           )}
                         </td>
                         <td className="p-4 hidden md:table-cell">
-                          <span className="font-mono text-xs text-muted-foreground">/{country.slug}</span>
+                          {country.latitude != null && country.longitude != null ? (
+                            (() => {
+                              const [px, py] = proj(country.latitude, country.longitude);
+                              return (
+                                <div className="space-y-0.5">
+                                  <div className="font-mono text-xs text-foreground flex items-center gap-1.5">
+                                    <MapPin className="w-3 h-3 text-primary" />
+                                    <span>
+                                      {country.latitude.toFixed(2)}°, {country.longitude.toFixed(2)}°
+                                    </span>
+                                  </div>
+                                  <div className="font-mono text-[10px] text-primary/80">
+                                    Map: X: {Math.round(px)}px, Y: {Math.round(py)}px
+                                  </div>
+                                </div>
+                              );
+                            })()
+                          ) : (
+                            <span className="font-sans text-xs text-muted-foreground/60 italic">Unset</span>
+                          )}
                         </td>
                         <td className="p-4 hidden lg:table-cell">
+                          <span className="font-mono text-xs text-muted-foreground">/{country.slug}</span>
+                        </td>
+                        <td className="p-4 hidden xl:table-cell">
                           <span className="font-sans text-xs text-muted-foreground">{country.displayOrder ?? 0}</span>
                         </td>
                         <td className="p-4">

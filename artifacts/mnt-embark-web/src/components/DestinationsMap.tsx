@@ -1,14 +1,31 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Link } from "wouter";
-import { Mountain, Waves, Wind, Sun, type LucideProps } from "lucide-react";
+import { Mountain, Waves, Wind, type LucideProps } from "lucide-react";
 import countriesTopology from "world-atlas/countries-110m.json";
 import { feature } from "topojson-client";
 import type { Tour } from "@workspace/api-client-react";
 import { cn } from "@workspace/mnt-embark/lib/utils";
+import {
+  MAP_W,
+  MAP_H,
+  proj,
+  resolveDefaultCountryCoords,
+  COUNTRY_DEFAULT_COORDINATES,
+} from "@/lib/countryCoordinates";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-interface Destination {
+export interface DestinationCountryItem {
+  id: number;
+  slug: string;
+  name: string;
+  code?: string | null;
+  image?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+}
+
+export interface Destination {
   id: number;
   slug?: string | null;
   name: string;
@@ -16,6 +33,7 @@ interface Destination {
   region?: string | null;
   description?: string | null;
   coverImage?: string | null;
+  countries?: DestinationCountryItem[];
 }
 
 interface CategoryMeta {
@@ -30,11 +48,9 @@ interface CategoryMeta {
 
 // ─── Category ────────────────────────────────────────────────────────────────
 
-type Category = "polar" | "desert" | "wilderness" | "island" | "unknown";
+type Category = "wilderness" | "island" | "unknown";
 
 const SLUG_CATEGORY_MAP: Record<string, Category> = {
-  iceland: "polar",
-  morocco: "desert",
   patagonia: "wilderness",
   "the-maldives": "island",
 };
@@ -45,24 +61,6 @@ function deriveCategory(slug: string | null | undefined): Category {
 }
 
 const CATEGORY_META: Record<Category, CategoryMeta> = {
-  polar: {
-    label: "Polar",
-    Icon: Wind,
-    markerFill: "hsl(var(--chart-4))",
-    markerStroke: "hsl(var(--background))",
-    iconColor: "hsl(var(--background))",
-    regionFill: "hsl(var(--chart-4) / 0.25)",
-    glowColor: "hsl(var(--chart-4) / 0.3)",
-  },
-  desert: {
-    label: "Desert",
-    Icon: Sun,
-    markerFill: "hsl(var(--primary))",
-    markerStroke: "hsl(var(--background))",
-    iconColor: "hsl(var(--primary-foreground))",
-    regionFill: "hsl(var(--primary) / 0.2)",
-    glowColor: "hsl(var(--primary) / 0.28)",
-  },
   wilderness: {
     label: "Wilderness",
     Icon: Mountain,
@@ -84,25 +82,15 @@ const CATEGORY_META: Record<Category, CategoryMeta> = {
   unknown: {
     label: "Destination",
     Icon: Wind,
-    markerFill: "hsl(var(--muted-foreground))",
+    markerFill: "hsl(var(--primary))",
     markerStroke: "hsl(var(--background))",
-    iconColor: "hsl(var(--background))",
-    regionFill: "hsl(var(--muted-foreground) / 0.15)",
-    glowColor: "hsl(var(--muted-foreground) / 0.22)",
+    iconColor: "hsl(var(--primary-foreground))",
+    regionFill: "hsl(var(--primary) / 0.15)",
+    glowColor: "hsl(var(--primary) / 0.25)",
   },
 };
 
-// ─── Projection ───────────────────────────────────────────────────────────────
-// Equirectangular: 1200 × 580 px
-
-const MAP_W = 1200;
-const MAP_H = 580;
-
-function proj(lat: number, lng: number): [number, number] {
-  const x = ((lng + 180) / 360) * MAP_W;
-  const y = ((90 - lat) / 180) * MAP_H;
-  return [x, y];
-}
+// ─── Projection helpers ───────────────────────────────────────────────────────
 
 // Helpers so we can write coordinates as (lat, lng) tuples
 function p(lat: number, lng: number) {
@@ -197,29 +185,65 @@ const countriesFeatureCollection = feature(
   features: Array<{ id?: string | number; geometry?: GeoGeometry }>;
 };
 
-const WORLD_COUNTRY_PATHS = countriesFeatureCollection.features
+export const WORLD_COUNTRY_PATHS = countriesFeatureCollection.features
   .map((country, index) => ({
     id: String(country.id ?? index),
     d: geometryToPath(country.geometry),
   }))
   .filter((country) => country.d.length > 0);
 
-// ─── Known destination coordinates ───────────────────────────────────────────
+// ─── Resolve destination / country coordinates ───────────────────────────────
 
-const DESTINATION_COORDS: Record<string, [number, number]> = {
-  iceland: [64.9631, -19.0208],
-  morocco: [31.7917, -7.0926],
-  patagonia: [-45.5, -69.0],
-  "the-maldives": [3.2028, 73.2207],
-  maldives: [3.2028, 73.2207],
-  japan: [36.2048, 138.2529],
-  chile: [-35.6751, -71.5430],
-  argentina: [-38.4161, -63.6167],
-};
+function getDestinationCoords(
+  dest: Destination,
+  allCountries: DestinationCountryItem[] = [],
+): [number, number] | null {
+  // 1. Check if any linked country has explicit lat/lng
+  if (dest.countries && dest.countries.length > 0) {
+    for (const c of dest.countries) {
+      if (
+        c.latitude !== null &&
+        c.latitude !== undefined &&
+        c.longitude !== null &&
+        c.longitude !== undefined
+      ) {
+        return [c.latitude, c.longitude];
+      }
+    }
+  }
 
-function getCoords(slug: string | null | undefined): [number, number] | null {
-  if (!slug) return null;
-  return DESTINATION_COORDS[slug.toLowerCase()] ?? null;
+  // 2. Check matching country in allCountries
+  const match = allCountries.find(
+    (c) =>
+      (dest.country && c.name.toLowerCase() === dest.country.toLowerCase()) ||
+      (dest.slug && c.slug.toLowerCase() === dest.slug.toLowerCase()) ||
+      (c.code && dest.slug && c.code.toLowerCase() === dest.slug.toLowerCase()) ||
+      (dest.name && c.name.toLowerCase() === dest.name.toLowerCase()),
+  );
+  if (
+    match &&
+    match.latitude !== null &&
+    match.latitude !== undefined &&
+    match.longitude !== null &&
+    match.longitude !== undefined
+  ) {
+    return [match.latitude, match.longitude];
+  }
+
+  // 3. Fallback to country / slug dictionary
+  const bySlug = resolveDefaultCountryCoords(dest.name, null, dest.slug);
+  if (bySlug) return bySlug;
+
+  if (dest.country) {
+    const byCountry = resolveDefaultCountryCoords(dest.country, null, null);
+    if (byCountry) return byCountry;
+  }
+
+  if (dest.slug && COUNTRY_DEFAULT_COORDINATES[dest.slug.toLowerCase()]) {
+    return COUNTRY_DEFAULT_COORDINATES[dest.slug.toLowerCase()];
+  }
+
+  return null;
 }
 
 // ─── Graticule ────────────────────────────────────────────────────────────────
@@ -355,12 +379,14 @@ interface MarkerProps {
   category: Category;
   meta: CategoryMeta;
   isActive: boolean;
+  pinImage?: string | null;
   onActivate: (id: number | null) => void;
 }
 
-function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerProps) {
+function DestinationMarker({ dest, cx, cy, meta, isActive, pinImage, onActivate }: MarkerProps) {
   const slug = encodeURIComponent(dest.slug ?? "");
-  const href = `/tours?destinationSlug=${slug}`;
+  const isCountryOnly = dest.id < 0;
+  const href = isCountryOnly ? `/tours?countrySlug=${slug}` : `/tours?destinationSlug=${slug}`;
   const { Icon } = meta;
 
   const handleMouseEnter = useCallback(() => onActivate(dest.id), [dest.id, onActivate]);
@@ -379,6 +405,7 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
       aria-label={`${dest.name} — ${meta.label} destination`}
       transform={`translate(${cx},${cy})`}
       onMouseEnter={handleMouseEnter}
+      onMouseMove={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       style={{ cursor: "pointer" }}
     >
@@ -452,16 +479,34 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
           aria-label={`View tours in ${dest.name}${dest.country ? `, ${dest.country}` : ""}`}
           onFocus={handleFocus}
           onBlur={handleBlur}
+          onMouseEnter={handleMouseEnter}
+          onMouseMove={handleMouseEnter}
         />
       </foreignObject>
 
-      {/* Lucide icon centred in disc */}
-      <foreignObject x={-12} y={-12} width={24} height={24} style={{ pointerEvents: "none" }}>
-        <Icon
-          style={{ color: meta.iconColor, display: "block", width: "24px", height: "24px" }}
-          strokeWidth={2.2}
-        />
-      </foreignObject>
+      {/* Lucide icon or custom Country/Destination Pin Image centred in disc */}
+      {pinImage ? (
+        <foreignObject
+          x={-DISC_R + 1}
+          y={-DISC_R + 1}
+          width={(DISC_R - 1) * 2}
+          height={(DISC_R - 1) * 2}
+          style={{ pointerEvents: "none" }}
+        >
+          <img
+            src={pinImage}
+            alt={dest.name}
+            className="w-full h-full object-cover rounded-full shadow-inner border border-background bg-card"
+          />
+        </foreignObject>
+      ) : (
+        <foreignObject x={-12} y={-12} width={24} height={24} style={{ pointerEvents: "none" }}>
+          <Icon
+            style={{ color: meta.iconColor, display: "block", width: "24px", height: "24px" }}
+            strokeWidth={2.2}
+          />
+        </foreignObject>
+      )}
 
       {/* Name label with strong knockout stroke */}
       <text
@@ -480,8 +525,8 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
         {dest.name}
       </text>
 
-      {/* Country label stays mounted to preserve the marker's SVG bounds. */}
-      {dest.country && (
+      {/* Country label only if different from destination name */}
+      {dest.country && dest.country.trim().toLowerCase() !== dest.name.trim().toLowerCase() && (
         <text
           y={LABEL_Y + 15}
           textAnchor="middle"
@@ -499,43 +544,6 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
         </text>
       )}
     </g>
-  );
-}
-
-// ─── Legend ───────────────────────────────────────────────────────────────────
-
-function MapLegend({ categories }: { categories: Category[] }) {
-  const unique = Array.from(new Set(categories)).filter((c) => c !== "unknown");
-  if (unique.length === 0) return null;
-  return (
-    <div
-      className="flex flex-wrap gap-2 mt-5 justify-center"
-      aria-label="Map legend"
-      role="list"
-    >
-      {unique.map((cat) => {
-        const meta = CATEGORY_META[cat];
-        const { Icon } = meta;
-        return (
-          <div
-            key={cat}
-            role="listitem"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-sm border border-border bg-card"
-          >
-            <span
-              className="inline-flex items-center justify-center rounded-full w-6 h-6 shrink-0"
-              style={{ backgroundColor: meta.markerFill }}
-              aria-hidden="true"
-            >
-              <Icon style={{ color: meta.iconColor, width: "13px", height: "13px" }} strokeWidth={2.5} />
-            </span>
-            <span className="font-sans text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-              {meta.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
   );
 }
 
@@ -574,11 +582,6 @@ function ActiveCallout({
                   <div className="min-w-0">
                     <p className="font-serif text-lg font-light italic text-foreground leading-tight truncate">
                       {activeItem.dest.name}
-                    </p>
-                    <p className="font-sans text-xs text-muted-foreground uppercase tracking-widest mt-0.5">
-                      {[activeItem.dest.country, activeItem.dest.region, activeItem.meta.label]
-                        .filter(Boolean)
-                        .join(" · ")}
                     </p>
                   </div>
                 </div>
@@ -622,28 +625,119 @@ function ActiveCallout({
 
 interface DestinationsMapProps {
   destinations: Destination[];
+  countries?: DestinationCountryItem[];
   tours: Tour[];
   toursLoading?: boolean;
 }
 
 export default function DestinationsMap({
   destinations,
+  countries = [],
   tours,
   toursLoading = false,
 }: DestinationsMapProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
-  const handleActivate = useCallback((id: number | null) => setActiveId(id), []);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearCloseTimeout = useCallback(() => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  }, []);
+
+  const handleActivate = useCallback(
+    (id: number | null) => {
+      clearCloseTimeout();
+      if (id !== null) {
+        setActiveId(id);
+      } else {
+        closeTimeoutRef.current = setTimeout(() => {
+          setActiveId(null);
+        }, 280);
+      }
+    },
+    [clearCloseTimeout]
+  );
+
+  const handlePopupMouseEnter = useCallback(() => {
+    clearCloseTimeout();
+  }, [clearCloseTimeout]);
+
+  const handlePopupMouseLeave = useCallback(() => {
+    clearCloseTimeout();
+    closeTimeoutRef.current = setTimeout(() => {
+      setActiveId(null);
+    }, 280);
+  }, [clearCloseTimeout]);
+
+  useEffect(() => {
+    return () => {
+      clearCloseTimeout();
+    };
+  }, [clearCloseTimeout]);
 
   const graticuleD = buildGraticule();
   const subGraticuleD = buildSubGraticule();
 
-  const enriched = destinations.map((dest) => {
-    const coords = getCoords(dest.slug);
+  // 1. Destination items with resolved coordinates and custom images
+  const destinationItems = destinations.map((dest) => {
+    const coords = getDestinationCoords(dest, countries);
     const category = deriveCategory(dest.slug);
     const meta = CATEGORY_META[category];
     const [cx, cy] = coords ? proj(coords[0], coords[1]) : [null, null];
-    return { dest, category, meta, cx, cy };
+    const pinImage =
+      dest.countries?.find((c) => c.image)?.image ||
+      countries.find((c) => dest.country && c.name.toLowerCase() === dest.country.toLowerCase())?.image ||
+      dest.coverImage ||
+      null;
+    return { dest, category, meta, cx, cy, pinImage };
   });
+
+  // 2. Identify standalone countries not represented by destinations
+  const linkedCountrySlugs = new Set<string>();
+  destinations.forEach((d) => {
+    d.countries?.forEach((c) => linkedCountrySlugs.add(c.slug.toLowerCase()));
+    if (d.country) linkedCountrySlugs.add(d.country.toLowerCase());
+    if (d.slug) linkedCountrySlugs.add(d.slug.toLowerCase());
+  });
+
+  const standaloneCountryItems = countries
+    .filter(
+      (c) =>
+        !linkedCountrySlugs.has(c.slug.toLowerCase()) &&
+        !linkedCountrySlugs.has(c.name.toLowerCase()),
+    )
+    .map((country) => {
+      const coords: [number, number] | null =
+        country.latitude !== null &&
+        country.latitude !== undefined &&
+        country.longitude !== null &&
+        country.longitude !== undefined
+          ? [country.latitude, country.longitude]
+          : resolveDefaultCountryCoords(country.name, country.code, country.slug);
+
+      const [cx, cy] = coords ? proj(coords[0], coords[1]) : [null, null];
+      const category: Category = "unknown";
+      const meta = CATEGORY_META[category];
+      const destProxy: Destination = {
+        id: -country.id,
+        slug: country.slug,
+        name: country.name,
+        country: country.name,
+        coverImage: country.image,
+      };
+      return {
+        dest: destProxy,
+        category,
+        meta,
+        cx,
+        cy,
+        pinImage: country.image || null,
+      };
+    });
+
+  const enriched = [...destinationItems, ...standaloneCountryItems];
 
   const mappable = enriched.filter((e) => e.cx !== null && e.cy !== null) as {
     dest: Destination;
@@ -651,13 +745,15 @@ export default function DestinationsMap({
     meta: CategoryMeta;
     cx: number;
     cy: number;
+    pinImage?: string | null;
   }[];
 
-  const categories = enriched.map((e) => e.category);
   const routeLines = buildRouteLines(mappable);
   const activeItem = mappable.find((e) => e.dest.id === activeId) ?? null;
   const activeTours = activeItem
-    ? tours.filter((tour) => tour.destinationId === activeItem.dest.id)
+    ? tours.filter((tour) =>
+        activeItem.dest.id < 0 ? true : tour.destinationId === activeItem.dest.id,
+      )
     : [];
 
   // Lat labels for reference lines
@@ -740,18 +836,6 @@ export default function DestinationsMap({
                 <stop offset="100%" stopColor="hsl(var(--chart-4))" stopOpacity="0.28" />
               </radialGradient>
 
-              {/* Polar ice cap tint */}
-              <linearGradient id="polarTint" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%"   stopColor="hsl(var(--chart-4))" stopOpacity="0.38" />
-                <stop offset="100%" stopColor="transparent" />
-              </linearGradient>
-
-              {/* Desert warm tint */}
-              <radialGradient id="desertTint" cx="55%" cy="45%" r="55%">
-                <stop offset="0%"   stopColor="hsl(var(--primary))" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="transparent" />
-              </radialGradient>
-
               {/* ── Filters ───────────────────────────────────────────────── */}
 
               {/* Subtle sketch displacement — small scale keeps shapes recognisable */}
@@ -805,25 +889,6 @@ export default function DestinationsMap({
               {/* ── Ocean ─────────────────────────────────────────────────── */}
               <rect width={MAP_W} height={MAP_H} fill="url(#ocean)" />
               <rect width={MAP_W} height={MAP_H} fill="url(#oceanGrid)" opacity={0.7} />
-
-              {/* Polar ice cap tint (top ~15%) */}
-              <rect
-                x={0} y={0} width={MAP_W}
-                height={proj(55, 0)[1]}
-                fill="url(#polarTint)"
-                style={{ pointerEvents: "none" }}
-              />
-
-              {/* Desert warm wash */}
-              <rect
-                x={proj(0, -20)[0]}
-                y={proj(40, 0)[1]}
-                width={proj(0, 60)[0] - proj(0, -20)[0]}
-                height={proj(-10, 0)[1] - proj(40, 0)[1]}
-                fill="url(#desertTint)"
-                opacity={0.55}
-                style={{ pointerEvents: "none" }}
-              />
 
               {/* ── Sub-graticule ─────────────────────────────────────────── */}
               <path
@@ -1031,7 +1096,7 @@ export default function DestinationsMap({
               })}
 
               {/* ── Destination markers ───────────────────────────────────── */}
-              {mappable.map(({ dest, category, meta, cx, cy }) => (
+              {mappable.map(({ dest, category, meta, cx, cy, pinImage }) => (
                 <g key={dest.id}>
                   <DestinationMarker
                     dest={dest}
@@ -1040,6 +1105,7 @@ export default function DestinationsMap({
                     category={category}
                     meta={meta}
                     isActive={activeId === dest.id}
+                    pinImage={pinImage}
                     onActivate={handleActivate}
                   />
                 </g>
@@ -1055,7 +1121,14 @@ export default function DestinationsMap({
             <div
               role="tooltip"
               data-testid={`destination-tour-hover-${activeItem.dest.id}`}
-              className="pointer-events-none absolute z-20 hidden w-[min(19rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-sm border border-primary/30 bg-primary px-4 py-3 text-primary-foreground shadow-lg sm:block"
+              onMouseEnter={handlePopupMouseEnter}
+              onMouseLeave={handlePopupMouseLeave}
+              className={cn(
+                "pointer-events-auto absolute z-20 hidden w-[min(19rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-sm border border-primary/30 bg-primary px-4 py-3 text-primary-foreground shadow-lg sm:block",
+                activeItem.cy < 150
+                  ? "before:absolute before:left-0 before:right-0 before:bottom-full before:h-6 before:content-['']"
+                  : "after:absolute after:left-0 after:right-0 after:top-full after:h-6 after:content-['']"
+              )}
               style={{
                 left: `clamp(10.5rem, ${(activeItem.cx / MAP_W) * 100}%, calc(100% - 10.5rem))`,
                 top: `${(activeItem.cy / MAP_H) * 100}%`,
@@ -1069,11 +1142,6 @@ export default function DestinationsMap({
                   <p className="truncate font-serif text-base font-light italic">
                     {activeItem.dest.name}
                   </p>
-                  <p className="mt-0.5 font-sans text-[10px] uppercase tracking-widest opacity-75">
-                    {[activeItem.dest.country, activeItem.meta.label]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
                 </div>
                 <span className="shrink-0 font-sans text-[10px] font-semibold uppercase tracking-widest opacity-80">
                   {toursLoading ? "…" : `${activeTours.length} ${activeTours.length === 1 ? "tour" : "tours"}`}
@@ -1085,15 +1153,16 @@ export default function DestinationsMap({
                   <p className="font-sans text-xs opacity-80">Loading tours…</p>
                 ) : activeTours.length > 0 ? (
                   activeTours.map((tour) => (
-                    <div
+                    <Link
                       key={tour.id}
-                      className="border-l border-primary-foreground/40 py-1 pl-2 text-left"
+                      href={`/tours/${tour.slug}`}
+                      className="block border-l border-primary-foreground/40 py-1 pl-2 text-left transition-colors hover:border-primary-foreground hover:bg-primary-foreground/10 rounded-r-sm cursor-pointer"
                     >
-                      <p className="font-serif text-sm leading-tight">{tour.title}</p>
+                      <p className="font-serif text-sm leading-tight hover:underline">{tour.title}</p>
                       <p className="mt-1 font-sans text-[10px] uppercase tracking-widest opacity-70">
                         {tour.durationDays} days
                       </p>
-                    </div>
+                    </Link>
                   ))
                 ) : (
                   <p className="font-sans text-xs opacity-80">No tours available yet.</p>
@@ -1109,9 +1178,6 @@ export default function DestinationsMap({
           tours={activeTours}
           toursLoading={toursLoading}
         />
-
-        {/* ── Legend ─────────────────────────────────────────────────────── */}
-        <MapLegend categories={categories} />
     </section>
   );
 }
