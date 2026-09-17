@@ -1655,6 +1655,15 @@ components:
     TourInput:
       type: object
       properties:
+        # Optional. The server derives one from the title when it is absent,
+        # so the admin panel needs no change and no tour can be saved without
+        # a slug — which is what made /tours/slug/:slug unable to find any
+        # tour that was not created by the original seed.
+        slug:
+          type: ["string", "null"]
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          minLength: 2
+          maxLength: 120
         title:
           type: string
           minLength: 1
@@ -1687,6 +1696,15 @@ components:
     TourUpdate:
       type: object
       properties:
+        # Optional. The server derives one from the title when it is absent,
+        # so the admin panel needs no change and no tour can be saved without
+        # a slug — which is what made /tours/slug/:slug unable to find any
+        # tour that was not created by the original seed.
+        slug:
+          type: ["string", "null"]
+          pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          minLength: 2
+          maxLength: 120
         title:
           type: string
           minLength: 1

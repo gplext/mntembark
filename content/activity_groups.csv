@@ -1,0 +1,5 @@
+slug,name,description,icon,selectionMode,displayOrder
+wildlife,Wildlife,"What you came to see, and the guiding that gets you close to it.",binoculars,multiple,1
+water,Water,"Reef, delta and open ocean — in it rather than beside it.",waves,multiple,2
+land-and-adventure,Land & Adventure,"Covering ground on foot, on horseback, or above it.",mountain,multiple,3
+culture-and-wellbeing,Culture & Wellbeing,The part of a journey that is not about wildlife at all.,landmark,multiple,4

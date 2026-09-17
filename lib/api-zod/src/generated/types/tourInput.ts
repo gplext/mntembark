@@ -8,6 +8,13 @@
 import type { ItineraryStep } from './itineraryStep';
 
 export interface TourInput {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     * @nullable
+     * @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$
+     */
+  slug?: string | null;
   /** @minLength 1 */
   title: string;
   description: string;

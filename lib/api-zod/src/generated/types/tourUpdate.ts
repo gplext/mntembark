@@ -9,6 +9,13 @@ import type { ItineraryStep } from './itineraryStep';
 import type { TourUpdateClassification } from './tourUpdateClassification';
 
 export interface TourUpdate {
+  /**
+     * @minLength 2
+     * @maxLength 120
+     * @nullable
+     * @pattern ^[a-z0-9]+(?:-[a-z0-9]+)*$
+     */
+  slug?: string | null;
   /** @minLength 1 */
   title?: string;
   description?: string;

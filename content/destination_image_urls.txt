@@ -1,0 +1,48 @@
+Paste each into the destination's Cover Image field in the admin panel.
+The destinations already exist, so the importer will not update them.
+
+Tanzania
+  https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=1600&q=75&auto=format&fit=crop
+  shows: brown tree surrounded by brown grass during golden hour
+  Acacia savanna — distinct from the Serengeti tour cover
+
+Botswana
+  https://images.unsplash.com/photo-1590214766638-c8dbb1262b79?w=1600&q=75&auto=format&fit=crop
+  shows: two elephants swimming in a body of water
+  REUSED from the Okavango tour cover
+
+Zambia
+  https://images.unsplash.com/photo-1533631278779-d722ded4c7df?w=1600&q=75&auto=format&fit=crop
+  shows: elephant of body of water near forest
+  Reads as the Luangwa river
+
+Kenya
+  https://images.unsplash.com/photo-1716297468621-c6e6c34fa2b3?w=1600&q=75&auto=format&fit=crop
+  shows: a giraffe standing in a grassy field with mountains in the background
+  Mountains suit Laikipia under Mount Kenya
+
+Rwanda
+  https://images.unsplash.com/photo-1509897739002-791fa79aac9b?w=1600&q=75&auto=format&fit=crop
+  shows: photo of silver-back gorilla beside tree
+  REUSED from Virunga — and still the LOW-confidence one
+
+Namibia
+  https://images.unsplash.com/photo-1644560781436-df5e5208bc13?w=1600&q=75&auto=format&fit=crop
+  shows: a group of dead trees sitting in the middle of a desert
+  Deadvlei — the definitive Namibia image
+
+Svalbard
+  https://images.unsplash.com/photo-1589656966895-2f33e7653819?w=1600&q=75&auto=format&fit=crop
+  shows: polar bear on snow covered ground during daytime
+  Distinct from the tour's bear-on-ice
+
+Ecuador
+  https://images.unsplash.com/photo-1503301360699-4f60cf292ec8?w=1600&q=75&auto=format&fit=crop
+  shows: yellow iguana on rocks during daytime
+  REUSED from the Galapagos tour cover
+
+Bhutan
+  https://images.unsplash.com/photo-1761048172334-6d1475e25e8d?w=1600&q=75&auto=format&fit=crop
+  shows: Traditional bhutanese architecture nestled in a mountain valley
+  Valley scene rather than Taktsang, so it does not repeat the tour
+
