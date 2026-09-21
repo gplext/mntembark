@@ -35,6 +35,8 @@ export interface Enquiry {
   /** @nullable */
   tourDurationDays?: number | null;
   /** @nullable */
+  attractionId?: number | null;
+  /** @nullable */
   enquiryType?: string | null;
   /** @nullable */
   budget?: string | null;

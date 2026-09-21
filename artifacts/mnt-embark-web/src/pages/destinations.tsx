@@ -1,4 +1,5 @@
-import { useListDestinations, useListTours } from "@workspace/api-client-react";
+import { useListDestinations } from "@workspace/api-client-react";
+import { useAttractions } from "@/lib/attractions-api";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { MapPin } from "lucide-react";
 import { Link } from "wouter";
@@ -9,7 +10,7 @@ import DestinationsMap from "@/components/DestinationsMap";
 
 export default function DestinationsPage() {
   const { data: destinations, isLoading, isError, refetch } = useListDestinations();
-  const { data: tours, isLoading: toursLoading } = useListTours();
+  const { data: attractions, isLoading: attractionsLoading } = useAttractions();
 
   return (
     <div className="min-h-[100dvh] bg-background">
@@ -34,8 +35,8 @@ export default function DestinationsPage() {
       {!isLoading && !isError && destinations && destinations.length > 0 && (
         <DestinationsMap
           destinations={destinations}
-          tours={tours ?? []}
-          toursLoading={toursLoading}
+          attractions={attractions ?? []}
+          attractionsLoading={attractionsLoading}
         />
       )}
 
@@ -80,15 +81,14 @@ export default function DestinationsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {destinations.map((dest, idx) => {
               const isLarge = idx % 5 === 0 || idx % 5 === 3;
-              const destinationTours = (tours ?? []).filter(
-                (tour) => tour.destinationId === dest.id,
-              );
+              // Through its location or its country: see destinationIds on the API.
+              const inDest = (attractions ?? []).filter((a) => a.destinationIds.includes(dest.id));
               return (
                 <Link
                   key={dest.id}
-                  href={`/tours?destinationSlug=${encodeURIComponent(dest.slug ?? "")}`}
+                  href={`/attractions?destinationSlug=${encodeURIComponent(dest.slug ?? "")}`}
                   data-testid={`destination-card-${dest.id}`}
-                  aria-label={`View tours in ${dest.name}`}
+                  aria-label={`View attractions in ${dest.name}`}
                   className={`group relative overflow-hidden rounded cursor-pointer block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${isLarge ? "md:col-span-1" : ""}`}
                   style={{ height: isLarge ? "420px" : "300px" }}
                 >
@@ -113,33 +113,31 @@ export default function DestinationsPage() {
                     </h3>
                   </div>
 
-                  {/* Tour preview — the first three tours appear over the blurred image. */}
+                  {/* Preview: the first three attractions appear over the blurred image. */}
                   <div
                     className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 opacity-0 transition-all duration-500 group-hover:opacity-100 group-focus-within:opacity-100"
-                    data-testid={`destination-card-tours-${dest.id}`}
+                    data-testid={`destination-card-attractions-${dest.id}`}
                   >
                     <div className="w-full max-w-sm">
                       <p className="mb-4 font-sans text-[10px] font-semibold uppercase tracking-widest text-accent">
-                        {toursLoading
-                          ? "Loading tours…"
-                          : `${Math.min(destinationTours.length, 3)} ${destinationTours.length === 1 ? "tour" : "tours"} in ${dest.name}`}
+                        {attractionsLoading
+                          ? "Loading…"
+                          : `${inDest.length} ${inDest.length === 1 ? "attraction" : "attractions"} in ${dest.name}`}
                       </p>
-                      {!toursLoading && destinationTours.length > 0 && (
-                        <ul className="space-y-3" aria-label={`Tours in ${dest.name}`}>
-                          {destinationTours.slice(0, 3).map((tour) => (
+                      {!attractionsLoading && inDest.length > 0 && (
+                        <ul className="space-y-3" aria-label={`Attractions in ${dest.name}`}>
+                          {inDest.slice(0, 3).map((a) => (
                             <li
-                              key={tour.id}
+                              key={a.id}
                               className="border-l border-accent/70 pl-3 font-serif text-base leading-tight text-white"
                             >
-                              {tour.title}
+                              {a.name}
                             </li>
                           ))}
                         </ul>
                       )}
-                      {!toursLoading && destinationTours.length === 0 && (
-                        <p className="font-sans text-xs text-white/70">
-                          No tours available yet.
-                        </p>
+                      {!attractionsLoading && inDest.length === 0 && (
+                        <p className="font-sans text-xs text-white/70">No attractions added yet.</p>
                       )}
                     </div>
                   </div>

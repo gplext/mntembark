@@ -207,7 +207,7 @@ export const ListAllActivitiesResponseItem = zod.object({
   "isFilterable": zod.boolean(),
   "isIndexable": zod.boolean(),
   "displayOrder": zod.number(),
-  "tourCount": zod.number()
+  "attractionCount": zod.number()
 })
 export const ListAllActivitiesResponse = zod.array(ListAllActivitiesResponseItem)
 
@@ -246,7 +246,7 @@ export const CreateActivityResponse = zod.object({
   "isFilterable": zod.boolean(),
   "isIndexable": zod.boolean(),
   "displayOrder": zod.number(),
-  "tourCount": zod.number()
+  "attractionCount": zod.number()
 })
 
 
@@ -288,7 +288,7 @@ export const UpdateActivityResponse = zod.object({
   "isFilterable": zod.boolean(),
   "isIndexable": zod.boolean(),
   "displayOrder": zod.number(),
-  "tourCount": zod.number()
+  "attractionCount": zod.number()
 })
 
 
@@ -1320,12 +1320,14 @@ export const createEnquiryBodyTourLocationMax = 200;
 
 export const createEnquiryBodyTourDurationDaysMultipleOf = 1;
 
+export const createEnquiryBodyAttractionIdMultipleOf = 1;
+
 export const createEnquiryBodyBudgetMax = 100;
 
 
 
 export const CreateEnquiryBody = zod.object({
-  "source": zod.enum(['tour', 'contact']),
+  "source": zod.enum(['tour', 'contact', 'attraction']),
   "title": zod.string().max(createEnquiryBodyTitleMax).optional(),
   "firstName": zod.string().min(1).max(createEnquiryBodyFirstNameMax),
   "lastName": zod.string().min(1).max(createEnquiryBodyLastNameMax),
@@ -1339,13 +1341,14 @@ export const CreateEnquiryBody = zod.object({
   "tourTitle": zod.string().max(createEnquiryBodyTourTitleMax).optional(),
   "tourLocation": zod.string().max(createEnquiryBodyTourLocationMax).optional(),
   "tourDurationDays": zod.number().min(1).multipleOf(createEnquiryBodyTourDurationDaysMultipleOf).optional(),
+  "attractionId": zod.number().min(1).multipleOf(createEnquiryBodyAttractionIdMultipleOf).optional(),
   "enquiryType": zod.enum(['tour-booking', 'custom-journey', 'membership', 'corporate', 'general']).optional(),
   "budget": zod.string().max(createEnquiryBodyBudgetMax).nullish()
 })
 
 export const CreateEnquiryResponse = zod.object({
   "id": zod.number(),
-  "source": zod.enum(['tour', 'contact']),
+  "source": zod.enum(['tour', 'contact', 'attraction']),
   "status": zod.enum(['new', 'handled']),
   "title": zod.string().nullish(),
   "firstName": zod.string(),
@@ -1361,6 +1364,7 @@ export const CreateEnquiryResponse = zod.object({
   "tourTitle": zod.string().nullish(),
   "tourLocation": zod.string().nullish(),
   "tourDurationDays": zod.number().nullish(),
+  "attractionId": zod.number().nullish(),
   "enquiryType": zod.string().nullish(),
   "budget": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -1511,7 +1515,7 @@ export const SendTestEmailResponse = zod.object({
  */
 export const ListEnquiriesResponseItem = zod.object({
   "id": zod.number(),
-  "source": zod.enum(['tour', 'contact']),
+  "source": zod.enum(['tour', 'contact', 'attraction']),
   "status": zod.enum(['new', 'handled']),
   "title": zod.string().nullish(),
   "firstName": zod.string(),
@@ -1527,6 +1531,7 @@ export const ListEnquiriesResponseItem = zod.object({
   "tourTitle": zod.string().nullish(),
   "tourLocation": zod.string().nullish(),
   "tourDurationDays": zod.number().nullish(),
+  "attractionId": zod.number().nullish(),
   "enquiryType": zod.string().nullish(),
   "budget": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -1559,7 +1564,7 @@ export const UpdateEnquiryStatusBody = zod.object({
 
 export const UpdateEnquiryStatusResponse = zod.object({
   "id": zod.number(),
-  "source": zod.enum(['tour', 'contact']),
+  "source": zod.enum(['tour', 'contact', 'attraction']),
   "status": zod.enum(['new', 'handled']),
   "title": zod.string().nullish(),
   "firstName": zod.string(),
@@ -1575,6 +1580,7 @@ export const UpdateEnquiryStatusResponse = zod.object({
   "tourTitle": zod.string().nullish(),
   "tourLocation": zod.string().nullish(),
   "tourDurationDays": zod.number().nullish(),
+  "attractionId": zod.number().nullish(),
   "enquiryType": zod.string().nullish(),
   "budget": zod.string().nullish(),
   "createdAt": zod.string(),
@@ -1586,11 +1592,11 @@ export const UpdateEnquiryStatusResponse = zod.object({
  * @summary Get dashboard summary statistics
  */
 export const GetStatsResponse = zod.object({
-  "tourCount": zod.number(),
+  "attractionCount": zod.number(),
   "destinationCount": zod.number(),
   "categoryCount": zod.number(),
   "journalCount": zod.number(),
-  "featuredTourCount": zod.number()
+  "featuredAttractionCount": zod.number()
 })
 
 

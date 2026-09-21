@@ -62,7 +62,7 @@ export default function CategoriesPage() {
               No Categories Yet
             </h3>
             <p className="font-sans text-sm text-muted-foreground">
-              Our tour categories are being curated. Check back soon.
+              Our categories are being curated. Check back soon.
             </p>
             <div className="w-16 h-px bg-primary mx-auto mt-8" />
           </div>
@@ -71,7 +71,7 @@ export default function CategoriesPage() {
             {categories.map((category) => (
               <Link
                 key={category.id}
-                href={`/tours?categoryId=${category.id}`}
+                href={category.slug ? `/attractions?categorySlug=${encodeURIComponent(category.slug)}` : "/attractions"}
                 data-testid={`category-card-${category.id}`}
                 className="group relative overflow-hidden rounded block"
                 style={{ height: "380px" }}
@@ -91,7 +91,7 @@ export default function CategoriesPage() {
                     {category.description}
                   </p>
                   <div className="flex items-center gap-2 text-accent font-sans text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    Explore Journeys <ArrowRight className="h-3 w-3" />
+                    Explore Attractions <ArrowRight className="h-3 w-3" />
                   </div>
                 </div>
 

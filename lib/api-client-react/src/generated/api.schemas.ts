@@ -239,7 +239,7 @@ export interface AdminActivity {
   isFilterable: boolean;
   isIndexable: boolean;
   displayOrder: number;
-  tourCount: number;
+  attractionCount: number;
 }
 
 export interface ActivityInput {
@@ -663,6 +663,7 @@ export type EnquirySource = typeof EnquirySource[keyof typeof EnquirySource];
 export const EnquirySource = {
   tour: 'tour',
   contact: 'contact',
+  attraction: 'attraction',
 } as const;
 
 export type EnquiryStatus = typeof EnquiryStatus[keyof typeof EnquiryStatus];
@@ -700,6 +701,8 @@ export interface Enquiry {
   /** @nullable */
   tourDurationDays?: number | null;
   /** @nullable */
+  attractionId?: number | null;
+  /** @nullable */
   enquiryType?: string | null;
   /** @nullable */
   budget?: string | null;
@@ -714,6 +717,7 @@ export type EnquiryInputSource = typeof EnquiryInputSource[keyof typeof EnquiryI
 export const EnquiryInputSource = {
   tour: 'tour',
   contact: 'contact',
+  attraction: 'attraction',
 } as const;
 
 export type EnquiryInputEnquiryType = typeof EnquiryInputEnquiryType[keyof typeof EnquiryInputEnquiryType];
@@ -767,6 +771,8 @@ export interface EnquiryInput {
   tourLocation?: string;
   /** @minimum 1 */
   tourDurationDays?: number;
+  /** @minimum 1 */
+  attractionId?: number;
   enquiryType?: EnquiryInputEnquiryType;
   /**
      * @maxLength 100
@@ -885,11 +891,11 @@ export interface TourWithTaxonomy {
 }
 
 export interface Stats {
-  tourCount: number;
+  attractionCount: number;
   destinationCount: number;
   categoryCount: number;
   journalCount: number;
-  featuredTourCount: number;
+  featuredAttractionCount: number;
 }
 
 export type ListToursParams = {

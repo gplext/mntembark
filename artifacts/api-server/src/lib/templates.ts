@@ -74,7 +74,8 @@ function detailLines(e: Enquiry): string {
     ["Name", fullName(e)],
     ["Email", e.email],
     ["Phone", e.phone],
-    ["Tour", e.tourTitle],
+    // Attraction enquiries store the attraction's name in the same column.
+    [e.source === "attraction" ? "Attraction" : "Tour", e.tourTitle],
     ["Location", e.tourLocation],
     ["Duration", e.tourDurationDays ? `${e.tourDurationDays} days` : null],
     ["Enquiry type", e.enquiryType],
@@ -300,7 +301,7 @@ export function sampleValues(key: TemplateKey): Record<string, string> {
 
   const sample = {
     id: 0,
-    source: "tour",
+    source: "attraction",
     status: "new",
     title: null,
     firstName: "Amelia",
@@ -309,9 +310,9 @@ export function sampleValues(key: TemplateKey): Record<string, string> {
     phone: "+44 7700 900123",
     isTravelAdvisor: false,
     notes: "We are hoping to travel in early March, two adults, no children.",
-    tourTitle: "Water in Gold",
-    tourLocation: "Maldives",
-    tourDurationDays: 9,
+    tourTitle: "Ngorongoro Crater",
+    tourLocation: "Arusha, Tanzania",
+    tourDurationDays: null,
     enquiryType: "custom-journey",
     budget: "£15,000 – £25,000",
     acceptPrivacy: true,

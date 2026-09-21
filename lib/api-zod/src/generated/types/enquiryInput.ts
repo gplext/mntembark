@@ -48,6 +48,8 @@ export interface EnquiryInput {
   tourLocation?: string;
   /** @minimum 1 */
   tourDurationDays?: number;
+  /** @minimum 1 */
+  attractionId?: number;
   enquiryType?: EnquiryInputEnquiryType;
   /**
      * @maxLength 100

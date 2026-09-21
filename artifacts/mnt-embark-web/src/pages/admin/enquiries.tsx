@@ -38,12 +38,12 @@ function EnquirySourceBadge({ source }: { source: Enquiry["source"] }) {
     <span
       className={cn(
         "inline-block font-sans text-[9px] font-semibold tracking-[0.18em] uppercase px-2 py-0.5 rounded-sm border",
-        source === "tour"
+        source !== "contact"
           ? "border-primary/30 bg-primary/8 text-primary"
           : "border-border/60 bg-card text-muted-foreground"
       )}
     >
-      {source === "tour" ? "Tour Enquiry" : "Contact Form"}
+      {source === "attraction" ? "Attraction Enquiry" : source === "tour" ? "Tour Enquiry" : "Contact Form"}
     </span>
   );
 }
@@ -262,13 +262,13 @@ function EnquiryDetail({
           </div>
         </section>
 
-        {/* Tour context (tour enquiries only) */}
-        {enquiry.source === "tour" && (enquiry.tourTitle || enquiry.tourLocation || enquiry.tourDurationDays) && (
+        {/* What it was about: tour enquiries from before, attraction enquiries now. */}
+        {enquiry.source !== "contact" && (enquiry.tourTitle || enquiry.tourLocation || enquiry.tourDurationDays) && (
           <>
             <Separator className="bg-border/30" />
             <section>
               <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-4">
-                Tour Context
+                {enquiry.source === "attraction" ? "Attraction" : "Tour Context"}
               </p>
               <div className="bg-card/50 border border-border/40 rounded-sm p-4 space-y-2">
                 {enquiry.tourTitle && (
@@ -549,7 +549,7 @@ export default function AdminEnquiriesPage() {
                 </p>
                 <p className="font-sans text-xs text-muted-foreground">
                   {filter === "all"
-                    ? "Enquiries submitted via tours or the contact form will appear here."
+                    ? "Enquiries sent from attraction pages or the contact form will appear here."
                     : "Switch filters to view other enquiries."}
                 </p>
               </div>

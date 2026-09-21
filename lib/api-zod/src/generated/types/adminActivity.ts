@@ -22,5 +22,5 @@ export interface AdminActivity {
   isFilterable: boolean;
   isIndexable: boolean;
   displayOrder: number;
-  tourCount: number;
+  attractionCount: number;
 }

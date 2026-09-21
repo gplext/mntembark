@@ -7,9 +7,9 @@
  */
 
 export interface Stats {
-  tourCount: number;
+  attractionCount: number;
   destinationCount: number;
   categoryCount: number;
   journalCount: number;
-  featuredTourCount: number;
+  featuredAttractionCount: number;
 }

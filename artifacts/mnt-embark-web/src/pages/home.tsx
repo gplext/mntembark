@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "wouter";
-import { useGetFeaturedTours, useListJournalEntries, useListDestinations } from "@workspace/api-client-react";
+import { useListJournalEntries, useListDestinations } from "@workspace/api-client-react";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Badge } from "@workspace/mnt-embark/components/ui/badge";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
@@ -9,15 +9,20 @@ import { cn } from "@workspace/mnt-embark/lib/utils";
 import { MapPin, Clock, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { TourCard } from "@/components/TourCard";
+import { AttractionCard } from "@/components/AttractionCard";
+import { useAttractions, placeOf } from "@/lib/attractions-api";
 import { DestinationCoverImage } from "@/components/DestinationCoverImage";
 import { DestinationMontage } from "@/components/DestinationMontage";
 
 const CAROUSEL_FADE_MS = 240;
 const CAROUSEL_GAP_MS = 16;
 
+/** The hero shows at most this many featured attractions (the first by display order). */
+const HERO_MAX = 10;
+
 function HeroCarousel() {
-  const { data: tours, isLoading } = useGetFeaturedTours();
+  const { data: allFeatured, isLoading } = useAttractions({ featured: true });
+  const items = useMemo(() => allFeatured?.slice(0, HERO_MAX), [allFeatured]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [fading, setFading] = useState(false);
   const [pendingIndex, setPendingIndex] = useState<number | null>(null);
@@ -37,7 +42,7 @@ function HeroCarousel() {
     clearTransitionTimers();
     setFading(true);
     setPendingIndex(nextIndex);
-    setPendingLoaded(loadedImageUrls.current.has(tours?.[nextIndex]?.coverImage ?? ""));
+    setPendingLoaded(loadedImageUrls.current.has(items?.[nextIndex]?.coverImage ?? ""));
     setTransitionPhase("out");
     transitionTimers.current = [
       setTimeout(() => setTransitionPhase("black"), CAROUSEL_FADE_MS),
@@ -61,12 +66,12 @@ function HeroCarousel() {
   useEffect(() => () => clearTransitionTimers(), []);
 
   useEffect(() => {
-    if (!tours || tours.length === 0) return;
+    if (!items || items.length === 0) return;
 
-    const preloadedImages = tours.map((tour) => {
+    const preloadedImages = items.map((item) => {
       const image = new Image();
-      image.onload = () => loadedImageUrls.current.add(tour.coverImage);
-      image.src = tour.coverImage;
+      image.onload = () => loadedImageUrls.current.add(item.coverImage);
+      image.src = item.coverImage;
       return image;
     });
 
@@ -76,7 +81,7 @@ function HeroCarousel() {
         image.onerror = null;
       });
     };
-  }, [tours]);
+  }, [items]);
 
   useEffect(() => {
     if (transitionPhase !== "black" || pendingIndex === null || !pendingLoaded) return;
@@ -108,13 +113,13 @@ function HeroCarousel() {
   }, [transitionPhase]);
 
   useEffect(() => {
-    if (!tours || tours.length === 0 || fading) return;
+    if (!items || items.length === 0 || fading) return;
     const timeout = setTimeout(
-      () => beginTransition((activeIndex + 1) % tours.length),
+      () => beginTransition((activeIndex + 1) % items.length),
       4000,
     );
     return () => clearTimeout(timeout);
-  }, [tours, activeIndex, fading]);
+  }, [items, activeIndex, fading]);
 
   const goTo = (idx: number) => {
     beginTransition(idx);
@@ -128,7 +133,7 @@ function HeroCarousel() {
     );
   }
 
-  if (!tours || tours.length === 0) {
+  if (!items || items.length === 0) {
     return (
       <div
         className="relative w-full flex items-center justify-center bg-card"
@@ -146,54 +151,48 @@ function HeroCarousel() {
     );
   }
 
-  const tour = tours[activeIndex];
-  const pendingTour = pendingIndex === null ? null : tours[pendingIndex];
+  const item = items[activeIndex];
+  const pendingItem = pendingIndex === null ? null : items[pendingIndex];
   const slideOpacity = transitionPhase === "idle" || transitionPhase === "in" ? 1 : 0;
-  const renderTourContent = (displayTour: typeof tour) => (
+  const renderContent = (display: typeof item) => (
     <div className="max-w-4xl">
-      {displayTour.featured && (
+      {display.classification === "exclusive" && (
         <Badge
           variant="outline"
           className="border-accent text-accent font-sans text-xs font-semibold tracking-widest uppercase mb-4"
         >
-          Featured
+          Exclusive
         </Badge>
       )}
-      <h2 className="font-serif text-5xl md:text-7xl font-light text-white leading-tight mb-4">
-        {displayTour.title}
+      <h2 className="font-serif text-4xl sm:text-5xl md:text-7xl font-light text-white leading-tight mb-4">
+        {display.name}
       </h2>
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex flex-wrap items-center gap-2 mb-6">
         <MapPin className="h-4 w-4 text-accent" />
-        <span className="font-sans text-sm text-white/80 tracking-wide">
-          {displayTour.location}
-        </span>
-        <span className="text-white/60 mx-2">|</span>
-        <Clock className="h-4 w-4 text-accent" />
-        <span className="font-sans text-sm text-white/80 tracking-wide">
-          {displayTour.durationDays} days
-        </span>
+        <span className="font-sans text-sm text-white/80 tracking-wide">{placeOf(display)}</span>
+        {display.visitDuration && (
+          <>
+            <span className="text-white/60 mx-2">|</span>
+            <Clock className="h-4 w-4 text-accent" />
+            <span className="font-sans text-sm text-white/80 tracking-wide">{display.visitDuration}</span>
+          </>
+        )}
       </div>
-      <div className="flex gap-4">
-        <Link
-          href={`/tours/${displayTour.slug ?? displayTour.id}`}
-          data-testid={`hero-cta-${displayTour.id}`}
-        >
+      <div className="flex flex-wrap gap-4">
+        <Link href={`/attractions/${display.slug}`} data-testid={`hero-cta-${display.id}`}>
           <Button
             variant="default"
             className="font-sans text-xs font-semibold tracking-widest uppercase text-white hover:text-white"
           >
-            Discover Journey
+            Discover
           </Button>
         </Link>
-        <Link
-          href="/tours"
-          data-testid="hero-view-all"
-        >
+        <Link href="/attractions" data-testid="hero-view-all">
           <Button
             variant="outline"
             className="font-sans text-xs font-semibold tracking-widest uppercase text-white hover:text-white border-white/60 hover:border-white"
           >
-            View All Tours
+            All Attractions
           </Button>
         </Link>
       </div>
@@ -215,15 +214,15 @@ function HeroCarousel() {
         }}
       >
         <img
-          src={tour.coverImage}
-          alt={tour.title}
+          src={item.coverImage}
+          alt={item.name}
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/80" />
       </div>
 
       {/* Preload the next image without allowing it to appear before the fade. */}
-      {pendingTour && (
+      {pendingItem && (
         <div
           className="absolute inset-0 pointer-events-none opacity-0"
           aria-hidden="true"
@@ -232,7 +231,7 @@ function HeroCarousel() {
           }}
         >
           <img
-            src={pendingTour.coverImage}
+            src={pendingItem.coverImage}
             alt=""
             onLoad={revealPending}
             onError={cancelTransition}
@@ -250,12 +249,12 @@ function HeroCarousel() {
           pointerEvents: transitionPhase === "idle" || transitionPhase === "in" ? "auto" : "none",
         }}
       >
-        {renderTourContent(tour)}
+        {renderContent(item)}
       </div>
 
       {/* Slide controls */}
       <div className="absolute right-8 md:right-16 bottom-1/2 translate-y-1/2 flex flex-col gap-3">
-        {tours.map((_, idx) => (
+        {items.map((_, idx) => (
           <button
             key={idx}
             data-testid={`hero-dot-${idx}`}
@@ -271,14 +270,14 @@ function HeroCarousel() {
       {/* Prev/next */}
       <button
         data-testid="hero-prev"
-        onClick={() => goTo((activeIndex - 1 + tours.length) % tours.length)}
+        onClick={() => goTo((activeIndex - 1 + items.length) % items.length)}
         className="absolute left-6 top-1/2 -translate-y-1/2 p-2 text-foreground/50 hover:text-foreground transition-colors"
       >
         <ChevronLeft className="h-6 w-6" />
       </button>
       <button
         data-testid="hero-next"
-        onClick={() => goTo((activeIndex + 1) % tours.length)}
+        onClick={() => goTo((activeIndex + 1) % items.length)}
         className="absolute right-6 md:right-14 top-1/2 -translate-y-1/2 p-2 text-foreground/50 hover:text-foreground transition-colors"
       >
         <ChevronRight className="h-6 w-6" />
@@ -288,9 +287,9 @@ function HeroCarousel() {
 }
 
 function LatestTravelsSection() {
-  const { data: tours, isLoading } = useGetFeaturedTours();
+  const { data: items, isLoading } = useAttractions({ featured: true });
 
-  const portraitTours = tours?.slice(0, 4) ?? [];
+  const portrait = items?.slice(0, 4) ?? [];
 
   return (
     <section className="max-w-7xl mx-auto px-6 py-20" data-testid="latest-travels">
@@ -303,7 +302,7 @@ function LatestTravelsSection() {
             Recent Expeditions
           </h2>
         </div>
-        <Link href="/tours">
+        <Link href="/attractions">
           <Button variant="ghost" data-testid="latest-travels-view-all" className="font-sans text-xs uppercase tracking-widest text-muted-foreground hover:text-primary gap-2">
             View All <ArrowRight className="h-3 w-3" />
           </Button>
@@ -317,27 +316,27 @@ function LatestTravelsSection() {
                 <Skeleton className="w-full h-full bg-card" />
               </div>
             ))
-          : portraitTours.map((tour, idx) => (
+          : portrait.map((item, idx) => (
               <Link
-                key={tour.id}
-                href={`/tours/${tour.slug ?? tour.id}`}
-                data-testid={`latest-travel-card-${tour.id}`}
+                key={item.id}
+                href={`/attractions/${item.slug}`}
+                data-testid={`latest-travel-card-${item.id}`}
                 className="group relative overflow-hidden rounded block"
                 style={{ aspectRatio: "2/3" }}
               >
                 <img
-                  src={tour.images[0] || tour.coverImage}
-                  alt={tour.title}
+                  src={item.images[0] || item.coverImage}
+                  alt={item.name}
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                     <p className="font-serif text-base font-bold text-white leading-tight">
-                    {tour.title}
+                    {item.name}
                   </p>
                   <p className="font-sans text-xs font-bold text-accent mt-1 flex items-center gap-1">
                     <MapPin className="h-3 w-3" />
-                    {tour.location}
+                    {placeOf(item)}
                   </p>
                 </div>
                 <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -535,39 +534,36 @@ function DestinationsCarousel() {
   );
 }
 
-function ToursCarousel() {
-  const { data: tours, isLoading } = useGetFeaturedTours();
-  const exclusiveTours = (tours || []).filter(
-    (tour) => tour.classification === "exclusive",
-  );
+function SignatureAttractions() {
+  const { data: attractions, isLoading } = useAttractions({ classification: ["exclusive", "special"] });
+  // Exclusive first, then special; the list is already featured-first within that.
+  const shown = [...(attractions ?? [])]
+    .sort((a, b) => Number(b.classification === "exclusive") - Number(a.classification === "exclusive"))
+    .slice(0, 3);
+
+  if (!isLoading && shown.length === 0) return null;
 
   return (
-    <section className="py-20 bg-card/20" data-testid="tours-section">
+    <section className="py-20 bg-card/20" data-testid="signature-section">
       <div className="max-w-7xl mx-auto px-6">
-        <div className="flex items-end justify-between mb-12">
+        <div className="flex flex-wrap items-end justify-between gap-4 mb-12">
           <div>
             <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-2">
               Our Unique Offerings
             </p>
-            <h2 className="font-serif text-4xl font-light text-foreground">
-              Signature Journeys
-            </h2>
+            <h2 className="font-serif text-4xl font-light text-foreground">Signature Attractions</h2>
           </div>
-          <Link href="/tours?classification=exclusive&classification=special">
-            <Button variant="ghost" data-testid="tours-view-all" className="font-sans text-xs uppercase tracking-widest text-muted-foreground hover:text-primary gap-2">
-              Signature Tours <ArrowRight className="h-3 w-3" />
+          <Link href="/attractions?classification=exclusive&classification=special">
+            <Button variant="ghost" data-testid="signature-view-all" className="font-sans text-xs uppercase tracking-widest text-muted-foreground hover:text-primary gap-2">
+              View all <ArrowRight className="h-3 w-3" />
             </Button>
           </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {isLoading
-            ? Array.from({ length: 3 }).map((_, i) => (
-                <Skeleton key={i} className="h-64 rounded bg-card" />
-              ))
-            : exclusiveTours.slice(0, 3).map((tour) => (
-                <TourCard key={tour.id} tour={tour} />
-              ))}
+            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-64 rounded bg-card" />)
+            : shown.map((a) => <AttractionCard key={a.id} attraction={a} />)}
         </div>
       </div>
     </section>
@@ -642,7 +638,7 @@ export default function HomePage() {
       <Separator className="bg-border/20" />
       <JournalCarousel />
       <DestinationsCarousel />
-      <ToursCarousel />
+      <SignatureAttractions />
       <DestinationMontage />
       <VideoSection />
       <Footer />

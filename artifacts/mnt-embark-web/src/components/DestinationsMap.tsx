@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
 import { Link } from "wouter";
-import { Mountain, Waves, Wind, Sun, type LucideProps } from "lucide-react";
+import { Mountain, Waves, Wind, Sun, Landmark, type LucideProps } from "lucide-react";
 import countriesTopology from "world-atlas/countries-110m.json";
 import { feature } from "topojson-client";
-import type { Tour } from "@workspace/api-client-react";
+import { placeOf, type Attraction } from "@/lib/attractions-api";
 import { cn } from "@workspace/mnt-embark/lib/utils";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -30,13 +30,34 @@ interface CategoryMeta {
 
 // ─── Category ────────────────────────────────────────────────────────────────
 
-type Category = "polar" | "desert" | "wilderness" | "island" | "unknown";
+type Category = "polar" | "desert" | "wilderness" | "island" | "heritage" | "unknown";
 
 const SLUG_CATEGORY_MAP: Record<string, Category> = {
   iceland: "polar",
   morocco: "desert",
   patagonia: "wilderness",
   "the-maldives": "island",
+  maldives: "island",
+  japan: "heritage",
+  "western-europe": "heritage",
+  "alps-central-europe": "wilderness",
+  mediterranean: "heritage",
+  "gulf-middle-east": "desert",
+  "caucasus-central-asia": "heritage",
+  "east-asia": "heritage",
+  "southeast-asia": "island",
+  "indian-ocean": "island",
+};
+
+/**
+ * Where a marker's name sits. Below by default; Europe and the Silk Road
+ * are crowded, so a few names move to the side to stay readable.
+ */
+const LABEL_SIDE: Record<string, "left" | "right"> = {
+  iceland: "left",
+  "western-europe": "left",
+  "alps-central-europe": "right",
+  "caucasus-central-asia": "right",
 };
 
 function deriveCategory(slug: string | null | undefined): Category {
@@ -80,6 +101,15 @@ const CATEGORY_META: Record<Category, CategoryMeta> = {
     iconColor: "hsl(var(--background))",
     regionFill: "hsl(var(--chart-3) / 0.22)",
     glowColor: "hsl(var(--chart-3) / 0.3)",
+  },
+  heritage: {
+    label: "Heritage",
+    Icon: Landmark,
+    markerFill: "hsl(var(--primary))",
+    markerStroke: "hsl(var(--background))",
+    iconColor: "hsl(var(--primary-foreground))",
+    regionFill: "hsl(var(--primary) / 0.16)",
+    glowColor: "hsl(var(--primary) / 0.24)",
   },
   unknown: {
     label: "Destination",
@@ -215,6 +245,15 @@ const DESTINATION_COORDS: Record<string, [number, number]> = {
   japan: [36.2048, 138.2529],
   chile: [-35.6751, -71.5430],
   argentina: [-38.4161, -63.6167],
+  // Regions (content/regions.csv), pinned where each region's heart is
+  "western-europe": [49.0, -1.0],
+  "alps-central-europe": [50.0, 15.0],
+  mediterranean: [34.0, 20.0],
+  "gulf-middle-east": [24.0, 47.0],
+  "caucasus-central-asia": [40.0, 62.0],
+  "east-asia": [33.0, 116.0],
+  "southeast-asia": [8.0, 104.0],
+  "indian-ocean": [7.5, 80.7],
 };
 
 function getCoords(slug: string | null | undefined): [number, number] | null {
@@ -360,7 +399,7 @@ interface MarkerProps {
 
 function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerProps) {
   const slug = encodeURIComponent(dest.slug ?? "");
-  const href = `/tours?destinationSlug=${slug}`;
+  const href = `/attractions?destinationSlug=${slug}`;
   const { Icon } = meta;
 
   const handleMouseEnter = useCallback(() => onActivate(dest.id), [dest.id, onActivate]);
@@ -372,6 +411,13 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
   const DISC_R = 18;    // coloured disc
   const PIN_Y  = RING_R + 8; // tip of pin below marker
   const LABEL_Y = PIN_Y + 14; // name text baseline
+  const side = LABEL_SIDE[(dest.slug ?? "").toLowerCase()];
+  const labelPos =
+    side === "left"
+      ? { x: -(RING_R + 8), y: 4, anchor: "end" as const }
+      : side === "right"
+        ? { x: RING_R + 8, y: 4, anchor: "start" as const }
+        : { x: 0, y: LABEL_Y, anchor: "middle" as const };
 
   return (
     <g
@@ -449,7 +495,7 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
         <Link
           href={href}
           className="block w-full h-full rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          aria-label={`View tours in ${dest.name}${dest.country ? `, ${dest.country}` : ""}`}
+          aria-label={`View attractions in ${dest.name}${dest.country ? `, ${dest.country}` : ""}`}
           onFocus={handleFocus}
           onBlur={handleBlur}
         />
@@ -465,8 +511,9 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
 
       {/* Name label with strong knockout stroke */}
       <text
-        y={LABEL_Y}
-        textAnchor="middle"
+        x={labelPos.x}
+        y={labelPos.y}
+        textAnchor={labelPos.anchor}
         fontSize="13"
         fontFamily="var(--app-font-serif)"
         fontStyle="italic"
@@ -483,8 +530,9 @@ function DestinationMarker({ dest, cx, cy, meta, isActive, onActivate }: MarkerP
       {/* Country label stays mounted to preserve the marker's SVG bounds. */}
       {dest.country && (
         <text
-          y={LABEL_Y + 15}
-          textAnchor="middle"
+          x={labelPos.x}
+          y={labelPos.y + 15}
+          textAnchor={labelPos.anchor}
           fontSize="8.5"
           fontFamily="var(--app-font-sans)"
           fontWeight="600"
@@ -543,12 +591,12 @@ function MapLegend({ categories }: { categories: Category[] }) {
 
 function ActiveCallout({
   activeItem,
-  tours = [],
-  toursLoading = false,
+  attractions = [],
+  loading = false,
 }: {
   activeItem: { dest: Destination; meta: CategoryMeta; category: Category } | null;
-  tours?: Tour[];
-  toursLoading?: boolean;
+  attractions?: Attraction[];
+  loading?: boolean;
 }) {
   return (
     <div
@@ -583,31 +631,31 @@ function ActiveCallout({
                   </div>
                 </div>
                 <Link
-                  href={`/tours?destinationSlug=${encodeURIComponent(activeItem.dest.slug ?? "")}`}
+                  href={`/attractions?destinationSlug=${encodeURIComponent(activeItem.dest.slug ?? "")}`}
                   className="font-sans text-xs font-semibold uppercase tracking-widest text-primary hover:text-foreground transition-colors whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background rounded-sm px-3 py-2 border border-primary/40 hover:border-foreground/40 shrink-0"
                 >
-                  View Tours
+                  View Attractions
                 </Link>
               </div>
 
               <div className="mt-3 border-t border-border pt-3">
                 <p className="mb-2 font-sans text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {toursLoading ? "Loading tours…" : `${tours.length} ${tours.length === 1 ? "tour" : "tours"} in this destination`}
+                  {loading ? "Loading…" : `${attractions.length} ${attractions.length === 1 ? "attraction" : "attractions"} in this destination`}
                 </p>
                 <div className="space-y-2">
-                  {toursLoading ? (
-                    <p className="font-sans text-xs text-muted-foreground">Loading tours…</p>
-                  ) : tours.length > 0 ? (
-                    tours.map((tour) => (
-                      <div key={tour.id} className="border-l-2 border-primary/40 pl-3">
-                        <p className="font-serif text-sm text-foreground leading-tight">{tour.title}</p>
+                  {loading ? (
+                    <p className="font-sans text-xs text-muted-foreground">Loading…</p>
+                  ) : attractions.length > 0 ? (
+                    attractions.map((a) => (
+                      <div key={a.id} className="border-l-2 border-primary/40 pl-3">
+                        <p className="font-serif text-sm text-foreground leading-tight">{a.name}</p>
                         <p className="mt-1 font-sans text-[10px] uppercase tracking-widest text-muted-foreground">
-                          {tour.durationDays} days
+                          {placeOf(a)}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <p className="font-sans text-xs text-muted-foreground">No tours available yet.</p>
+                    <p className="font-sans text-xs text-muted-foreground">No attractions added yet.</p>
                   )}
                 </div>
               </div>
@@ -622,14 +670,14 @@ function ActiveCallout({
 
 interface DestinationsMapProps {
   destinations: Destination[];
-  tours: Tour[];
-  toursLoading?: boolean;
+  attractions: Attraction[];
+  attractionsLoading?: boolean;
 }
 
 export default function DestinationsMap({
   destinations,
-  tours,
-  toursLoading = false,
+  attractions,
+  attractionsLoading = false,
 }: DestinationsMapProps) {
   const [activeId, setActiveId] = useState<number | null>(null);
   const handleActivate = useCallback((id: number | null) => setActiveId(id), []);
@@ -656,8 +704,8 @@ export default function DestinationsMap({
   const categories = enriched.map((e) => e.category);
   const routeLines = buildRouteLines(mappable);
   const activeItem = mappable.find((e) => e.dest.id === activeId) ?? null;
-  const activeTours = activeItem
-    ? tours.filter((tour) => tour.destinationId === activeItem.dest.id)
+  const activeAttractions = activeItem
+    ? attractions.filter((a) => a.destinationIds.includes(activeItem.dest.id))
     : [];
 
   // Lat labels for reference lines
@@ -1054,7 +1102,7 @@ export default function DestinationsMap({
           {activeItem && (
             <div
               role="tooltip"
-              data-testid={`destination-tour-hover-${activeItem.dest.id}`}
+              data-testid={`destination-attraction-hover-${activeItem.dest.id}`}
               className="pointer-events-none absolute z-20 hidden w-[min(19rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-sm border border-primary/30 bg-primary px-4 py-3 text-primary-foreground shadow-lg sm:block"
               style={{
                 left: `clamp(10.5rem, ${(activeItem.cx / MAP_W) * 100}%, calc(100% - 10.5rem))`,
@@ -1076,27 +1124,22 @@ export default function DestinationsMap({
                   </p>
                 </div>
                 <span className="shrink-0 font-sans text-[10px] font-semibold uppercase tracking-widest opacity-80">
-                  {toursLoading ? "…" : `${activeTours.length} ${activeTours.length === 1 ? "tour" : "tours"}`}
+                  {attractionsLoading ? "…" : `${activeAttractions.length} ${activeAttractions.length === 1 ? "attraction" : "attractions"}`}
                 </span>
               </div>
 
               <div className="mt-2 max-h-48 space-y-1.5 overflow-y-auto pr-1">
-                {toursLoading ? (
-                  <p className="font-sans text-xs opacity-80">Loading tours…</p>
-                ) : activeTours.length > 0 ? (
-                  activeTours.map((tour) => (
-                    <div
-                      key={tour.id}
-                      className="border-l border-primary-foreground/40 py-1 pl-2 text-left"
-                    >
-                      <p className="font-serif text-sm leading-tight">{tour.title}</p>
-                      <p className="mt-1 font-sans text-[10px] uppercase tracking-widest opacity-70">
-                        {tour.durationDays} days
-                      </p>
+                {attractionsLoading ? (
+                  <p className="font-sans text-xs opacity-80">Loading…</p>
+                ) : activeAttractions.length > 0 ? (
+                  activeAttractions.map((a) => (
+                    <div key={a.id} className="border-l border-primary-foreground/40 py-1 pl-2 text-left">
+                      <p className="font-serif text-sm leading-tight">{a.name}</p>
+                      <p className="mt-1 font-sans text-[10px] uppercase tracking-widest opacity-70">{placeOf(a)}</p>
                     </div>
                   ))
                 ) : (
-                  <p className="font-sans text-xs opacity-80">No tours available yet.</p>
+                  <p className="font-sans text-xs opacity-80">No attractions added yet.</p>
                 )}
               </div>
             </div>
@@ -1106,8 +1149,8 @@ export default function DestinationsMap({
         {/* ── Active callout ─────────────────────────────────────────────── */}
         <ActiveCallout
           activeItem={activeItem}
-          tours={activeTours}
-          toursLoading={toursLoading}
+          attractions={activeAttractions}
+          loading={attractionsLoading}
         />
 
         {/* ── Legend ─────────────────────────────────────────────────────── */}

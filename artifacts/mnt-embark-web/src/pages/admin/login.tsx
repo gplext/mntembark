@@ -17,7 +17,7 @@ export default function AdminLoginPage() {
     const result = await login(password, email);
     setLoading(false);
     if (result.ok) {
-      navigate('/admin/tours');
+      navigate('/admin/attractions');
     } else {
       setError(result.error ?? 'Invalid email or password');
     }

@@ -12,4 +12,5 @@ export type EnquirySource = typeof EnquirySource[keyof typeof EnquirySource];
 export const EnquirySource = {
   tour: 'tour',
   contact: 'contact',
+  attraction: 'attraction',
 } as const;

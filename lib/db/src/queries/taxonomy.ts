@@ -24,6 +24,8 @@ import {
   activitiesTable,
   tourActivitiesTable,
   toursTable,
+  attractionActivitiesTable,
+  attractionsTable,
   categoriesTable,
   destinationsTable,
   destinationCountriesTable,
@@ -149,7 +151,7 @@ export interface ActivityFilterGroup {
 
 /**
  * The four activity-group sections, each with their filterable
- * activities and a live tour count per activity.
+ * activities and a live attraction count per activity.
  *
  * Excludes:
  *   – activities where is_filterable = false
@@ -172,7 +174,10 @@ export async function getActivityFilters(): Promise<ActivityFilterGroup[]> {
       activityIcon: activitiesTable.icon,
       activityAliases: activitiesTable.aliases,
       activityOrder: activitiesTable.displayOrder,
-      tourCount: count(tourActivitiesTable.tourId),
+      // Live attractions carrying this activity. Hidden ones are not
+      // counted: the number sits beside a filter, and a filter that says 3
+      // and then shows 2 reads as broken.
+      tourCount: count(attractionsTable.id),
     })
     .from(activityGroupsTable)
     .innerJoin(
@@ -180,8 +185,15 @@ export async function getActivityFilters(): Promise<ActivityFilterGroup[]> {
       eq(activitiesTable.groupId, activityGroupsTable.id),
     )
     .leftJoin(
-      tourActivitiesTable,
-      eq(tourActivitiesTable.activityId, activitiesTable.id),
+      attractionActivitiesTable,
+      eq(attractionActivitiesTable.activityId, activitiesTable.id),
+    )
+    .leftJoin(
+      attractionsTable,
+      and(
+        eq(attractionsTable.id, attractionActivitiesTable.attractionId),
+        eq(attractionsTable.isActive, true),
+      ),
     )
     .where(
       and(

@@ -490,7 +490,7 @@ function ActivityForm({
         <div>
           <p className="font-sans text-sm text-foreground">Show in filters</p>
           <p className="font-sans text-[11px] text-muted-foreground">
-            Appears as a checkbox on the tours page.
+            Appears as a checkbox on the attractions page.
           </p>
         </div>
         <Switch
@@ -735,7 +735,7 @@ export default function AdminActivitiesPage() {
                 Activities
               </h2>
               <p className="font-sans text-xs text-muted-foreground">
-                What guests actually do on a tour.
+                What guests actually do at an attraction.
               </p>
             </div>
             <Button
@@ -783,7 +783,7 @@ export default function AdminActivitiesPage() {
                       Slug
                     </th>
                     <th className="text-left p-3 font-sans text-xs uppercase tracking-widest text-muted-foreground">
-                      Tours
+                      Attractions
                     </th>
                     <th className="text-left p-3 font-sans text-xs uppercase tracking-widest text-muted-foreground hidden md:table-cell">
                       Visibility
@@ -808,7 +808,7 @@ export default function AdminActivitiesPage() {
                         {a.slug}
                       </td>
                       <td className="p-3 font-sans text-xs text-muted-foreground">
-                        {a.tourCount}
+                        {a.attractionCount}
                       </td>
                       <td className="p-3 hidden md:table-cell">
                         <span className="font-sans text-[11px] text-muted-foreground">
@@ -930,9 +930,9 @@ export default function AdminActivitiesPage() {
             </AlertDialogTitle>
             <AlertDialogDescription className="font-sans text-sm text-muted-foreground">
               Delete "{deleteActivityTarget?.name}"?
-              {deleteActivityTarget && deleteActivityTarget.tourCount > 0
-                ? ` It is currently on ${deleteActivityTarget.tourCount} ${
-                    deleteActivityTarget.tourCount === 1 ? "tour" : "tours"
+              {deleteActivityTarget && deleteActivityTarget.attractionCount > 0
+                ? ` It is currently on ${deleteActivityTarget.attractionCount} ${
+                    deleteActivityTarget.attractionCount === 1 ? "attraction" : "attractions"
                   } and cannot be deleted until it is removed from them.`
                 : " This cannot be undone."}
             </AlertDialogDescription>

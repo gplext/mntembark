@@ -25,8 +25,8 @@ export default function Footer() {
               Discover
             </p>
             <div className="flex flex-col gap-3">
-              <Link href="/tours" data-testid="footer-link-tours" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
-                Exclusive Tours
+              <Link href="/attractions" data-testid="footer-link-attractions" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
+                Attractions
               </Link>
               <Link href="/destinations" data-testid="footer-link-destinations" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
                 Destinations

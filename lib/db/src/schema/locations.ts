@@ -70,3 +70,17 @@ export const insertLocationSchema = createInsertSchema(locationsTable, {
 
 export type InsertLocation = z.infer<typeof insertLocationSchema>;
 export type Location = typeof locationsTable.$inferSelect;
+
+/**
+ * Adding a place from the admin attraction form: a name plus an existing
+ * country, or the name of a new one. Exactly one of the two.
+ */
+export const newLocationBodySchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    countryId: z.number().int().positive().optional(),
+    newCountryName: z.string().trim().min(2).max(120).optional(),
+  })
+  .refine((b) => Boolean(b.countryId) !== Boolean(b.newCountryName), {
+    message: "Pick a country or type a new one, not both",
+  });
