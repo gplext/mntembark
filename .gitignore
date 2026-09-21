@@ -60,3 +60,8 @@ _cleanup/
 # Transfer scratch
 _cleanup/
 *.tar.gz
+
+# Working files, not part of the site
+content/gemini/
+scripts/copy-docker-data.ps1
+scripts/*.sql
