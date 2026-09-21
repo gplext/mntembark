@@ -1,0 +1,97 @@
+AIRLINE PHOTOGRAPHS — candidate URLs to paste in the admin panel
+================================================================
+Admin → Airlines → edit an airline → "Photographs for the Flights page"
+Paste into the URL box under the drop zone. Up to three per airline.
+
+TWO THINGS TO KNOW BEFORE YOU USE THESE
+---------------------------------------
+
+1. I COULD NOT LOAD THEM. The sandbox I work in blocks image hosts, so I
+   have not seen a single one of these pictures. What I did verify is that
+   each file exists on Wikimedia Commons — every filename below came back
+   from a Commons search — and the URLs are built with Commons' own naming
+   scheme, so they should resolve. "Should" is not "did". Paste one and the
+   thumbnail appears in the admin form straight away; if it does not, the
+   URL is wrong and nothing is lost. Do not push these to the live site
+   without looking at them first.
+
+2. LICENSING. These are Wikimedia Commons photographs. Most are CC BY-SA,
+   which allows commercial use but REQUIRES crediting the photographer, and
+   the site has nowhere to put a credit at the moment. Open the Commons page
+   listed under each one, check the licence box, and either add the credit
+   somewhere or use a different picture. Public-domain and CC0 files need no
+   credit. This is your call, not mine — I have flagged it rather than
+   quietly putting someone else's licensed work on a commercial site.
+
+   If you would rather not deal with credits at all, Unsplash and Pexels
+   allow commercial use with no attribution. Search "airplane", "aircraft
+   cabin", "airport terminal" there. They will be generic aircraft rather
+   than the actual airline, which for a card behind the airline's name is
+   usually fine.
+
+
+ACTIVE AIRLINES — the ones that serve your destinations
+-------------------------------------------------------
+
+ETHIOPIAN AIRLINES — A350
+https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Ethiopian_Airlines,_ET-ATQ,_Airbus_A350-941_(49565081031).jpg/1200px-Ethiopian_Airlines,_ET-ATQ,_Airbus_A350-941_(49565081031).jpg
+  page: https://commons.wikimedia.org/wiki/File:Ethiopian_Airlines,_ET-ATQ,_Airbus_A350-941_(49565081031).jpg
+
+QATAR AIRWAYS — A350-1000
+https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Qatar_Airways_Airbus_A350-1000_(A7-ANA).jpg/1200px-Qatar_Airways_Airbus_A350-1000_(A7-ANA).jpg
+  page: https://commons.wikimedia.org/wiki/File:Qatar_Airways_Airbus_A350-1000_(A7-ANA).jpg
+
+EMIRATES — A380
+https://upload.wikimedia.org/wikipedia/commons/thumb/1/12/Airbus_A380-861,_Emirates_AN1387813.jpg/1200px-Airbus_A380-861,_Emirates_AN1387813.jpg
+  page: https://commons.wikimedia.org/wiki/File:Airbus_A380-861,_Emirates_AN1387813.jpg
+
+TURKISH AIRLINES — 777-300ER
+https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Boeing_777-3F2-ER,_Turkish_Airlines_AN2255634.jpg/1200px-Boeing_777-3F2-ER,_Turkish_Airlines_AN2255634.jpg
+  page: https://commons.wikimedia.org/wiki/File:Boeing_777-3F2-ER,_Turkish_Airlines_AN2255634.jpg
+
+ETIHAD AIRWAYS — 787-9
+https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Etihad_Airways_Boeing_787-9_Dreamliner_A6-BLA.jpg/1200px-Etihad_Airways_Boeing_787-9_Dreamliner_A6-BLA.jpg
+  page: https://commons.wikimedia.org/wiki/File:Etihad_Airways_Boeing_787-9_Dreamliner_A6-BLA.jpg
+
+KENYA AIRWAYS — 787-8
+https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/5Y-KZA_-_Boeing_787-8_Dreamliner_-_Kenya_Airways_(31977955476).jpg/1200px-5Y-KZA_-_Boeing_787-8_Dreamliner_-_Kenya_Airways_(31977955476).jpg
+  page: https://commons.wikimedia.org/wiki/File:5Y-KZA_-_Boeing_787-8_Dreamliner_-_Kenya_Airways_(31977955476).jpg
+
+
+CURRENTLY HIDDEN — created, but not shown on the site
+------------------------------------------------------
+
+BRITISH AIRWAYS — 777-200ER
+https://upload.wikimedia.org/wikipedia/commons/thumb/1/1b/Boeing_777-236-ER,_British_Airways_AN1624195.jpg/1200px-Boeing_777-236-ER,_British_Airways_AN1624195.jpg
+  page: https://commons.wikimedia.org/wiki/File:Boeing_777-236-ER,_British_Airways_AN1624195.jpg
+
+PAKISTAN INTERNATIONAL AIRLINES — 777-340ER
+https://upload.wikimedia.org/wikipedia/commons/thumb/3/31/Boeing_777-340ER_-_Pakistan_International_Airlines_(AP-BHV).jpg/1200px-Boeing_777-340ER_-_Pakistan_International_Airlines_(AP-BHV).jpg
+  page: https://commons.wikimedia.org/wiki/File:Boeing_777-340ER_-_Pakistan_International_Airlines_(AP-BHV).jpg
+
+AIRSIAL — A320 cabin interior
+https://upload.wikimedia.org/wikipedia/commons/thumb/0/07/AirSial_Airbus_A320_interior.jpg/1200px-AirSial_Airbus_A320_interior.jpg
+  page: https://commons.wikimedia.org/wiki/File:AirSial_Airbus_A320_interior.jpg
+  note: a cabin shot, not an exterior — Commons has no exterior photograph of
+        an AirSial aircraft that I could find.
+
+FLY JINNAH — nothing found
+  Commons has a Fly Jinnah category but I could not confirm a usable
+  photograph in it: https://commons.wikimedia.org/wiki/Category:Fly_Jinnah
+  Their own press page or a stock A320 is the practical option.
+
+AMERICAN AIRLINES — not supplied
+  Deliberately. American has no Pakistan service, so this airline cannot be
+  part of any routing you sell. It is in the admin panel because it was
+  asked for, and it is switched off. Giving it a photograph would only make
+  it easier to switch on by mistake.
+
+
+THE STEP PHOTOGRAPHS
+--------------------
+Separate from the three above, each airline has two more slots: "Departure
+from Pakistan" and "Onward to the destination". Those want a terminal or a
+place, not an aircraft — Lahore or Karachi airport for the first, and the
+arrival city for the second. An aircraft picture in all five slots makes the
+itinerary read as a slideshow of the same plane. Leave them empty until you
+have something specific; the page lays out correctly without them.
