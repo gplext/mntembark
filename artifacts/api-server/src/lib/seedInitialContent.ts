@@ -558,6 +558,28 @@ export async function seedInitialContent(): Promise<void> {
     WHERE NOT EXISTS (SELECT 1 FROM categories c WHERE c.slug = v.slug);
   `);
 
+  /*
+   * Categories added through the admin panel have no slug — the create form
+   * never sent one — and a category without a slug cannot be linked to or
+   * filtered by. Give every one of them a slug made from its name, adding the
+   * id only where that name is already taken.
+   */
+  await pool.query(`
+    WITH missing AS (
+      SELECT id, trim(BOTH '-' FROM lower(regexp_replace(name, '[^a-zA-Z0-9]+', '-', 'g'))) AS base
+      FROM categories
+      WHERE slug IS NULL OR slug = ''
+    )
+    UPDATE categories c
+    SET slug = CASE
+      WHEN m.base = '' THEN 'category-' || c.id
+      WHEN EXISTS (SELECT 1 FROM categories o WHERE o.slug = m.base AND o.id <> c.id) THEN m.base || '-' || c.id
+      ELSE m.base
+    END
+    FROM missing m
+    WHERE m.id = c.id;
+  `);
+
   // 4. Seed Destinations if empty
   const destCountRes = await pool.query("SELECT COUNT(*) AS count FROM destinations");
   if (parseInt(destCountRes.rows[0].count, 10) === 0) {
@@ -612,9 +634,23 @@ export async function seedInitialContent(): Promise<void> {
     logger.info("Seeded starter countries and locations");
   }
 
-  // 6. Seed Tours if empty
+  /*
+   * 6. Seed Tours if empty.
+   *
+   * These sample tours point at starter locations by id. Once those places
+   * have been deleted — the attractions site does not use them — re-inserting
+   * the tours fails on the foreign key and the whole server refuses to start.
+   * So this runs only while the places it needs are still there.
+   */
   const tourCountRes = await pool.query("SELECT COUNT(*) AS count FROM tours");
-  if (parseInt(tourCountRes.rows[0].count, 10) === 0) {
+  const tourPlacesRes = await pool.query(
+    "SELECT COUNT(*) AS count FROM locations WHERE id IN (1, 2, 3, 4, 5)",
+  );
+  const tourPlacesReady = parseInt(tourPlacesRes.rows[0].count, 10) === 5;
+  if (parseInt(tourCountRes.rows[0].count, 10) === 0 && !tourPlacesReady) {
+    logger.info("Skipped starter tours — the places they reference are gone");
+  }
+  if (parseInt(tourCountRes.rows[0].count, 10) === 0 && tourPlacesReady) {
     await pool.query(`
       INSERT INTO tours (id, slug, title, description, cover_image, images, location, duration_days, price_from, featured, category_id, destination_id, location_id, itinerary_steps) VALUES
       (1, 'patagonia-the-southern-wild', 'Patagonia: The Southern Wild', 'Ten days between granite towers and turquoise lakes, staying at a private estancia with a guide who has walked these valleys for thirty years. Helicopter access to the ice field, and evenings by the fire with nobody else booked in.', '/images/hero-patagonia.jpg', ARRAY['/images/hero-patagonia.jpg', '/images/cat-mountain.jpg'], 'Torres del Paine, Chile', 10, 28500, true, 4, NULL, 4, '[

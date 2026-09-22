@@ -20,9 +20,21 @@ const CAROUSEL_GAP_MS = 16;
 /** The hero shows at most this many featured attractions (the first by display order). */
 const HERO_MAX = 10;
 
+/** A cover still on the drawn stand-in, rather than a photograph. */
+const isPlaceholder = (url?: string | null) => !url || url.startsWith("/api/placeholder.svg");
+
 function HeroCarousel() {
   const { data: allFeatured, isLoading } = useAttractions({ featured: true });
-  const items = useMemo(() => allFeatured?.slice(0, HERO_MAX), [allFeatured]);
+  /*
+   * The hero is nothing but a full-bleed photograph, so a featured attraction
+   * that still has a placeholder cover is held back until it has one. If none
+   * of them do yet, show them anyway rather than an empty stage.
+   */
+  const items = useMemo(() => {
+    const all = allFeatured ?? [];
+    const withPhoto = all.filter((a) => !isPlaceholder(a.coverImage));
+    return (withPhoto.length ? withPhoto : all).slice(0, HERO_MAX);
+  }, [allFeatured]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [fading, setFading] = useState(false);
   const [pendingIndex, setPendingIndex] = useState<number | null>(null);
