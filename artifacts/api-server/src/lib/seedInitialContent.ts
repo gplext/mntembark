@@ -535,6 +535,29 @@ export async function seedInitialContent(): Promise<void> {
     logger.info("Seeded starter categories");
   }
 
+  /*
+   * Categories added after this site first went live are missing from any
+   * database that was seeded earlier — the block above only runs on an empty
+   * table. Insert whatever is absent, matched on slug, and leave the rest
+   * (including names and images you edited) untouched.
+   */
+  await pool.query(`
+    INSERT INTO categories (slug, name, description, cover_image, icon, display_order)
+    SELECT v.slug, v.name, v.description, v.cover_image, v.icon, v.display_order
+    FROM (VALUES
+      ('safari', 'Safari', 'Private conservancies and unhurried game drives, where the only other guests are the ones you brought with you.', '/images/cat-safari.jpg', 'binoculars', 1),
+      ('expedition-cruising', 'Expedition Cruising', 'Small vessels and smaller manifests, tracing coastlines that larger ships will never reach.', '/images/cat-cruise.jpg', 'ship', 2),
+      ('island-coast', 'Island & Coast', 'Overwater villas, empty sandbars and water so clear it disappears beneath you.', '/images/cat-beach.jpg', 'palmtree', 3),
+      ('mountain-wilderness', 'Mountain & Wilderness', 'High country, glacial silence and lodges positioned exactly where the view is best.', '/images/cat-mountain.jpg', 'mountain', 4),
+      ('architecture-history', 'Architecture & History', 'Old cities, ruins and living heritage, read with someone who knows the story.', '/images/cat-mountain.jpg', 'landmark', 5),
+      ('family-fun', 'Family Fun', 'Trips built around travelling together, paced so nobody is bored or exhausted.', '/images/cat-safari.jpg', 'users', 6),
+      ('relaxation-spa', 'Relaxation & Spa', 'Thermal waters, long treatments and days with nothing scheduled in them.', '/images/cat-beach.jpg', 'flower', 7),
+      ('rail-road', 'Rail & Road', 'Legendary railways and long drives, where the journey is the destination.', '/images/cat-cruise.jpg', 'train', 8),
+      ('active-lifestyle', 'Active Lifestyle', 'Trips that keep you moving, from dawn starts to genuinely hard days.', '/images/cat-mountain.jpg', 'activity', 9)
+    ) AS v(slug, name, description, cover_image, icon, display_order)
+    WHERE NOT EXISTS (SELECT 1 FROM categories c WHERE c.slug = v.slug);
+  `);
+
   // 4. Seed Destinations if empty
   const destCountRes = await pool.query("SELECT COUNT(*) AS count FROM destinations");
   if (parseInt(destCountRes.rows[0].count, 10) === 0) {
