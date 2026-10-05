@@ -65,3 +65,6 @@ _cleanup/
 content/gemini/
 scripts/copy-docker-data.ps1
 scripts/*.sql
+
+# client documents
+*.docx

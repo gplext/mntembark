@@ -15,7 +15,7 @@ const rightLinks = [
   { href: "/contact", label: "Contact Us" },
 ];
 
-const brandLogoSrc = "/mnt-embark-logo.png";
+const brandLogoSrc = "/mnt-embark-logo-square.png";
 
 // ── NavLink ───────────────────────────────────────────────────────────────────
 
