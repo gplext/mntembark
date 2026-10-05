@@ -6,24 +6,13 @@ import { Sheet, SheetContent, SheetTrigger } from "@workspace/mnt-embark/compone
 import { cn } from "@workspace/mnt-embark/lib/utils";
 
 // ── Link groups ───────────────────────────────────────────────────────────────
-// Left side: discovery / transactional
 const leftLinks = [
-  { href: "/attractions", label: "Attractions" },
-  { href: "/activities", label: "Activities" },
-  { href: "/categories", label: "Categories" },
   { href: "/destinations", label: "Destinations" },
 ];
 
-/*
- * Right side. Flights and Hotels were here; those pages are gone (each
- * attraction says "Hotels available" instead, and the flight features live
- * on the "flights" branch).
- */
 const rightLinks = [
-  { href: "/guide", label: "Guide" },
-  { href: "/journals", label: "Travel Journals" },
   { href: "/about", label: "About Us" },
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Contact Us" },
 ];
 
 const brandLogoSrc = "/mnt-embark-logo.png";
@@ -61,8 +50,7 @@ function NavLink({ href, label, hasSurface, location }: NavLinkProps) {
 
 export default function Navbar() {
   const [location] = useLocation();
-  const [leftOpen, setLeftOpen] = useState(false);
-  const [rightOpen, setRightOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -72,10 +60,9 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", updateScrollState);
   }, []);
 
-  // Close sheets on route change
+  // Close sheet on route change
   useEffect(() => {
-    setLeftOpen(false);
-    setRightOpen(false);
+    setMobileOpen(false);
   }, [location]);
 
   const hasSurface = isScrolled || location !== "/";
@@ -88,11 +75,11 @@ export default function Navbar() {
       <Link
         href={href}
         data-testid={`mobile-nav-link-${label.toLowerCase().replace(/\s+/g, "-")}`}
-        onClick={() => { setLeftOpen(false); setRightOpen(false); }}
+        onClick={() => setMobileOpen(false)}
         className={cn(
           "font-sans text-xs font-semibold uppercase tracking-widest py-3 px-2 transition-colors duration-200 border-b border-border/20 block",
           isActive
-            ? "text-primary"
+            ? "text-primary font-bold"
             : "text-muted-foreground hover:text-foreground"
         )}
       >
@@ -100,6 +87,8 @@ export default function Navbar() {
       </Link>
     );
   }
+
+  const allLinks = [...leftLinks, ...rightLinks];
 
   return (
     <nav
@@ -115,7 +104,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-6">
 
         {/* ── Desktop ──────────────────────────────────────────────────────── */}
-        <div className="hidden xl:flex h-16 items-center justify-between">
+        <div className="hidden md:flex h-16 items-center justify-between">
 
           {/* Left nav */}
           <div className="flex items-center gap-8">
@@ -160,36 +149,36 @@ export default function Navbar() {
         </div>
 
         {/* ── Mobile ───────────────────────────────────────────────────────── */}
-        {/* Two burger menus: left for discovery, right for editorial */}
-        <div className="relative flex h-14 items-center justify-between xl:hidden">
+        <div className="relative flex h-14 items-center justify-between md:hidden">
 
-          {/* Left burger — discovery links */}
-          <Sheet open={leftOpen} onOpenChange={setLeftOpen}>
+          {/* Hamburger menu */}
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                data-testid="nav-mobile-menu-left"
-                aria-label="Discovery menu"
+                data-testid="nav-mobile-menu"
+                aria-label="Menu"
                 className={cn(
                   "transition-colors duration-300",
                   hasSurface ? "text-muted-foreground hover:text-foreground" : "text-white/90 hover:text-white"
                 )}
               >
-                {leftOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="bg-background border-border w-72">
               <div className="flex flex-col gap-1 mt-8">
                 <div className="mb-5 pb-4 border-b border-border/40">
                   <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-primary mb-1">
-                    Discover
+                    Navigation
                   </p>
                   <p className="font-serif text-xl font-light text-foreground">
-                    Explore
+                    MNT Embark
                   </p>
                 </div>
-                {leftLinks.map((link) => (
+                <MobileLinkItem href="/" label="Home" />
+                {allLinks.map((link) => (
                   <MobileLinkItem key={link.href} href={link.href} label={link.label} />
                 ))}
               </div>
@@ -209,38 +198,7 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Right burger — editorial links */}
-          <Sheet open={rightOpen} onOpenChange={setRightOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                data-testid="nav-mobile-menu-right"
-                aria-label="Editorial menu"
-                className={cn(
-                  "transition-colors duration-300",
-                  hasSurface ? "text-muted-foreground hover:text-foreground" : "text-white/90 hover:text-white"
-                )}
-              >
-                {rightOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="bg-background border-border w-72">
-              <div className="flex flex-col gap-1 mt-8">
-                <div className="mb-5 pb-4 border-b border-border/40">
-                  <p className="font-sans text-[10px] font-semibold uppercase tracking-[0.15em] text-primary mb-1">
-                    Editorial
-                  </p>
-                  <p className="font-serif text-xl font-light text-foreground">
-                    Read
-                  </p>
-                </div>
-                {rightLinks.map((link) => (
-                  <MobileLinkItem key={link.href} href={link.href} label={link.label} />
-                ))}
-              </div>
-            </SheetContent>
-          </Sheet>
+          <div className="w-10" />
         </div>
 
       </div>

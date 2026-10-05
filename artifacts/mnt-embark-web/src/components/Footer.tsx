@@ -19,38 +19,32 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Discover */}
+          {/* Navigation */}
           <div>
             <p className="font-sans text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">
-              Discover
+              Explore
             </p>
             <div className="flex flex-col gap-3">
-              <Link href="/attractions" data-testid="footer-link-attractions" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
-                Attractions
+              <Link href="/" data-testid="footer-link-home" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
+                Home
               </Link>
               <Link href="/destinations" data-testid="footer-link-destinations" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
                 Destinations
               </Link>
-              <Link href="/categories" data-testid="footer-link-categories" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
-                Categories
-              </Link>
             </div>
           </div>
 
-          {/* Editorial */}
+          {/* Company */}
           <div>
             <p className="font-sans text-xs font-medium uppercase tracking-widest text-muted-foreground mb-4">
-              Editorial
+              Company
             </p>
             <div className="flex flex-col gap-3">
-              <Link href="/journals" data-testid="footer-link-journals" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
-                Travel Journals
-              </Link>
               <Link href="/about" data-testid="footer-link-about" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
                 About Us
               </Link>
               <Link href="/contact" data-testid="footer-link-contact" className="font-sans text-sm text-foreground/70 hover:text-primary transition-colors">
-                Contact
+                Contact Us
               </Link>
             </div>
           </div>

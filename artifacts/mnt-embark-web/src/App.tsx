@@ -70,47 +70,40 @@ function RouteFallback() {
  * "/tours/sahara-under-a-billion-stars" becomes a search for "sahara under a
  * billion stars", which is the closest thing to what the visitor wanted.
  */
-function OldTourLink() {
-  const { slug = '' } = useParams<{ slug: string }>();
-  const words = /^\d+$/.test(slug) ? '' : slug.replace(/-/g, ' ');
-  return <Redirect to={words ? `/attractions?q=${encodeURIComponent(words)}` : '/attractions'} replace />;
-}
-
 function Router() {
   return (
     <Suspense fallback={<RouteFallback />}>
       <Switch>
         <Route path="/" component={HomePage} />
-        <Route path="/attractions" component={AttractionsPage} />
-        <Route path="/attractions/:slug" component={AttractionDetailPage} />
-        {/*
-          Old addresses still in search results and bookmarks. Tours are hidden
-          for now; the flights and hotels pages are gone (the flight features
-          are kept on the separate "flights" branch).
-        */}
-        <Route path="/tours"><Redirect to="/attractions" replace /></Route>
-        <Route path="/tours/:slug" component={OldTourLink} />
-        <Route path="/flights"><Redirect to="/attractions" replace /></Route>
-        <Route path="/flights/:slug"><Redirect to="/attractions" replace /></Route>
-        <Route path="/hotels"><Redirect to="/attractions" replace /></Route>
-        <Route path="/guide" component={GuidePage} />
         <Route path="/destinations" component={DestinationsPage} />
-        <Route path="/categories" component={CategoriesPage} />
-        <Route path="/journals" component={JournalsPage} />
-        <Route path="/journals/:id" component={JournalDetailPage} />
-        <Route path="/activities" component={ActivitiesPage} />
-        <Route path="/activities/:slug" component={ActivityDetailPage} />
         <Route path="/about" component={AboutPage} />
         <Route path="/contact" component={ContactPage} />
+
+        {/* Redirect other public paths to destinations */}
+        <Route path="/attractions"><Redirect to="/destinations" replace /></Route>
+        <Route path="/attractions/:slug"><Redirect to="/destinations" replace /></Route>
+        <Route path="/tours"><Redirect to="/destinations" replace /></Route>
+        <Route path="/tours/:slug"><Redirect to="/destinations" replace /></Route>
+        <Route path="/flights"><Redirect to="/destinations" replace /></Route>
+        <Route path="/flights/:slug"><Redirect to="/destinations" replace /></Route>
+        <Route path="/hotels"><Redirect to="/destinations" replace /></Route>
+        <Route path="/guide"><Redirect to="/destinations" replace /></Route>
+        <Route path="/categories"><Redirect to="/destinations" replace /></Route>
+        <Route path="/journals"><Redirect to="/destinations" replace /></Route>
+        <Route path="/journals/:id"><Redirect to="/destinations" replace /></Route>
+        <Route path="/activities"><Redirect to="/destinations" replace /></Route>
+        <Route path="/activities/:slug"><Redirect to="/destinations" replace /></Route>
+
+        {/* Admin routes */}
         <Route path="/admin/login" component={AdminLoginPage} />
         <Route path="/admin">
-          <AdminGuard><Redirect to="/admin/attractions" /></AdminGuard>
+          <AdminGuard><Redirect to="/admin/destinations" /></AdminGuard>
         </Route>
         <Route path="/admin/attractions">
           <AdminGuard><AdminAttractionsPage /></AdminGuard>
         </Route>
         <Route path="/admin/tours">
-          <AdminGuard><Redirect to="/admin/attractions" /></AdminGuard>
+          <AdminGuard><Redirect to="/admin/destinations" /></AdminGuard>
         </Route>
         <Route path="/admin/destinations">
           <AdminGuard><AdminDestinationsPage /></AdminGuard>
@@ -142,22 +135,6 @@ function Router() {
   );
 }
 
-/**
- * Visitor chrome that sits outside any single page: the travel planner, which
- * opens as a form on a first visit and then rests as a globe at the bottom.
- *
- * Kept out of the admin area, where it would land on top of the login screen.
- */
-function SiteChrome() {
-  const [location] = useLocation();
-  if (location.startsWith('/admin')) return null;
-  return (
-    <Suspense fallback={null}>
-      <TripPlanner />
-    </Suspense>
-  );
-}
-
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -166,12 +143,6 @@ function App() {
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
             <TripProvider>
               <Router />
-              {/*
-                Inside the router because both read the current location: the
-                trip bar hides itself on admin screens, where a floating
-                visitor-facing form would be in the way.
-              */}
-              <SiteChrome />
             </TripProvider>
           </WouterRouter>
           <Toaster />
