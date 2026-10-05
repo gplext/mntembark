@@ -154,6 +154,7 @@ export async function seedInitialContent(): Promise<void> {
       cover_image TEXT NOT NULL,
       images TEXT[] NOT NULL DEFAULT '{}',
       location TEXT NOT NULL,
+      author TEXT NOT NULL DEFAULT 'MNT Editorial',
       author_name TEXT NOT NULL DEFAULT 'MNT Editorial',
       author_role TEXT NOT NULL DEFAULT 'Curator',
       author_avatar TEXT,
@@ -442,6 +443,8 @@ export async function seedInitialContent(): Promise<void> {
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS longitude REAL;
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS description TEXT;
     ALTER TABLE countries ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+    ALTER TABLE journals ADD COLUMN IF NOT EXISTS author TEXT NOT NULL DEFAULT 'MNT Editorial';
 
     -- Backfill default centroid coordinates for standard seeded countries
     UPDATE countries SET latitude = 36.2048, longitude = 138.2529 WHERE (latitude IS NULL OR longitude IS NULL) AND (LOWER(name) = 'japan' OR LOWER(code) = 'jp');
