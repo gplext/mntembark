@@ -1,39 +1,91 @@
+import { useState, useMemo } from "react";
+import { useLocation } from "wouter";
 import { useListDestinations, useListCountries } from "@workspace/api-client-react";
 import { useAttractions } from "@/lib/attractions-api";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
-import { MapPin } from "lucide-react";
-import { Link } from "wouter";
+import { Button } from "@workspace/mnt-embark/components/ui/button";
+import { Badge } from "@workspace/mnt-embark/components/ui/badge";
+import { Globe2, MapPin, Compass, Search } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { DestinationCoverImage } from "@/components/DestinationCoverImage";
 import DestinationsMap from "@/components/DestinationsMap";
+import { CountryCard } from "@/components/CountryCard";
+import {
+  REGIONS_DATA,
+  COUNTRIES_DATA,
+  type RegionGroup,
+  type CountryItem,
+} from "@/lib/countriesData";
 
 export default function DestinationsPage() {
+  const [location] = useLocation();
+  const searchParams = useMemo(() => new URLSearchParams(window.location.search), [location]);
+  const initialRegion = searchParams.get("region") || "all";
+
+  const [selectedRegion, setSelectedRegion] = useState<string>(initialRegion);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const { data: destinations, isLoading, isError, refetch } = useListDestinations();
   const { data: countries } = useListCountries();
   const { data: attractions, isLoading: attractionsLoading } = useAttractions();
+
+  // Filtered regions & countries
+  const displayedRegions = useMemo(() => {
+    let list = REGIONS_DATA;
+
+    if (selectedRegion !== "all") {
+      list = list.filter((r) => r.slug === selectedRegion);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list
+        .map((region) => ({
+          ...region,
+          countries: region.countries.filter(
+            (c) =>
+              c.name.toLowerCase().includes(q) ||
+              c.description.toLowerCase().includes(q) ||
+              c.regionLabel.toLowerCase().includes(q) ||
+              (c.highlights && c.highlights.some((h) => h.toLowerCase().includes(q)))
+          ),
+        }))
+        .filter((region) => region.countries.length > 0);
+    }
+
+    return list;
+  }, [selectedRegion, searchQuery]);
+
+  const totalCountries = useMemo(() => {
+    return displayedRegions.reduce((acc, r) => acc + r.countries.length, 0);
+  }, [displayedRegions]);
 
   return (
     <div className="min-h-[100dvh] bg-background">
       <Navbar />
 
       {/* Header */}
-      <div className="pt-32 pb-16 border-b border-border/30">
+      <div className="pt-36 pb-16 border-b border-border/30 bg-card/20">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-3">
-            Around the World
-          </p>
-          <h1 className="font-serif text-6xl font-light text-foreground mb-4">
-            Destinations
+          <div className="flex items-center gap-2 mb-3">
+            <span className="inline-flex items-center gap-1.5 font-sans text-xs font-semibold uppercase tracking-[0.25em] text-primary">
+              <Globe2 className="h-3.5 w-3.5" />
+              Worldwide Portfolio
+            </span>
+          </div>
+
+          <h1 className="font-serif text-5xl md:text-7xl font-light text-foreground mb-6">
+            Destinations & Regions
           </h1>
-          <p className="font-sans text-sm text-muted-foreground max-w-xl">
-            We select only the world's most extraordinary places — each destination chosen for its singular ability to transform the traveler.
+
+          <p className="font-sans text-sm md:text-base text-muted-foreground max-w-2xl leading-relaxed">
+            From the serene bamboo groves of the Far East and limestone bays of Southeast Asia, to the imperial capitals of Europe and untamed savannas of Africa.
           </p>
         </div>
       </div>
 
-      {/* Illustrated Map — shown whenever data is available */}
-      {!isLoading && !isError && ((destinations && destinations.length > 0) || (countries && countries.length > 0)) && (
+      {/* Interactive Illustrated Map */}
+      {!isLoading && !isError && (
         <DestinationsMap
           destinations={destinations ?? []}
           countries={countries ?? []}
@@ -42,113 +94,115 @@ export default function DestinationsPage() {
         />
       )}
 
-      {/* Grid */}
-      <div className="max-w-7xl mx-auto px-6 py-16">
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-72 rounded bg-card" />
+      {/* Regional Explorer Controls */}
+      <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md border-y border-border/40 py-4 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Region Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+            <button
+              onClick={() => setSelectedRegion("all")}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+                selectedRegion === "all"
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border/50"
+              }`}
+            >
+              All Regions ({COUNTRIES_DATA.length})
+            </button>
+
+            {REGIONS_DATA.map((r) => (
+              <button
+                key={r.slug}
+                onClick={() => setSelectedRegion(r.slug)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-sans font-semibold uppercase tracking-wider transition-all whitespace-nowrap ${
+                  selectedRegion === r.slug
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "bg-card text-muted-foreground hover:text-foreground hover:bg-card/80 border border-border/50"
+                }`}
+              >
+                {r.name}
+              </button>
             ))}
           </div>
-        ) : isError ? (
+
+          {/* Search Box */}
+          <div className="relative w-full md:w-72 shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Search countries, highlights..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 text-xs font-sans rounded-full bg-card border border-border/60 focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/70"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Regional Groupings Showcase */}
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        {displayedRegions.length === 0 ? (
           <div className="text-center py-20">
             <div className="w-16 h-px bg-primary mx-auto mb-8" />
             <h3 className="font-serif text-3xl font-light text-foreground mb-4">
-              Unable to Load Destinations
+              No Destinations Found
             </h3>
             <p className="font-sans text-sm text-muted-foreground mb-6">
-              An error occurred while loading destinations.
+              We couldn't find any destinations matching "{searchQuery}".
             </p>
-            <button
-              data-testid="destinations-retry"
-              onClick={() => refetch()}
-              className="font-sans text-xs uppercase tracking-widest text-primary hover:text-foreground transition-colors"
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedRegion("all");
+                setSearchQuery("");
+              }}
+              className="font-sans text-xs uppercase tracking-widest"
             >
-              Try Again
-            </button>
-            <div className="w-16 h-px bg-primary mx-auto mt-8" />
-          </div>
-        ) : !destinations || destinations.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="w-16 h-px bg-primary mx-auto mb-8" />
-            <h3 className="font-serif text-3xl font-light text-foreground mb-4">
-              No Destinations Yet
-            </h3>
-            <p className="font-sans text-sm text-muted-foreground">
-              Our curated destination collection is being assembled. Check back soon.
-            </p>
+              View All Destinations
+            </Button>
             <div className="w-16 h-px bg-primary mx-auto mt-8" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {destinations.map((dest, idx) => {
-              const isLarge = idx % 5 === 0 || idx % 5 === 3;
-              // Through its location or its country: see destinationIds on the API.
-              const inDest = (attractions ?? []).filter((a) => a.destinationIds.includes(dest.id));
-              return (
-                <Link
-                  key={dest.id}
-                  href={`/attractions?destinationSlug=${encodeURIComponent(dest.slug ?? "")}`}
-                  data-testid={`destination-card-${dest.id}`}
-                  aria-label={`View attractions in ${dest.name}`}
-                  className={`group relative overflow-hidden rounded cursor-pointer block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${isLarge ? "md:col-span-1" : ""}`}
-                  style={{ height: isLarge ? "420px" : "300px" }}
-                >
-                  <DestinationCoverImage
-                    coverImage={dest.coverImage}
-                    alt={dest.name}
-                    className="w-full h-full object-cover transition-[filter,transform] duration-700 ease-out group-hover:scale-105 group-hover:blur-sm group-focus-within:scale-105 group-focus-within:blur-sm"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-colors duration-500 group-hover:from-black/80 group-hover:via-black/60 group-hover:to-black/60 group-focus-within:from-black/80 group-focus-within:via-black/60 group-focus-within:to-black/60" />
-
-                  {/* Destination label — stays visible at the bottom until the card is hovered. */}
-                  <div className="absolute bottom-0 left-0 right-0 p-6 transition-all duration-300 group-hover:translate-y-2 group-hover:opacity-0 group-focus-within:translate-y-2 group-focus-within:opacity-0">
+          <div className="space-y-24">
+            {displayedRegions.map((region) => (
+              <section
+                key={region.slug}
+                id={region.slug}
+                className="scroll-mt-36"
+                data-testid={`region-section-${region.slug}`}
+              >
+                {/* Region Section Header */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 pb-4 border-b border-border/40 gap-4">
+                  <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <MapPin className="h-3 w-3 text-accent" />
-                      <p className="font-sans text-xs font-medium uppercase tracking-widest text-accent">
-                        {dest.country}
-                        {dest.region && ` · ${dest.region}`}
-                      </p>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-sans font-semibold uppercase tracking-[0.2em] text-primary">
+                        <Compass className="h-3 w-3" />
+                        Regional Collection
+                      </span>
                     </div>
-                    <h3 className="font-serif text-2xl font-light text-white mb-2">
-                      {dest.name}
-                    </h3>
+
+                    <h2 className="font-serif text-3xl md:text-5xl font-light text-foreground">
+                      {region.name}
+                    </h2>
+
+                    <p className="font-sans text-xs md:text-sm text-muted-foreground mt-2 max-w-2xl leading-relaxed">
+                      {region.description}
+                    </p>
                   </div>
 
-                  {/* Preview: the first three attractions appear over the blurred image. */}
-                  <div
-                    className="pointer-events-none absolute inset-0 flex items-center justify-center p-6 opacity-0 transition-all duration-500 group-hover:opacity-100 group-focus-within:opacity-100"
-                    data-testid={`destination-card-attractions-${dest.id}`}
-                  >
-                    <div className="w-full max-w-sm">
-                      <p className="mb-4 font-sans text-[10px] font-semibold uppercase tracking-widest text-accent">
-                        {attractionsLoading
-                          ? "Loading…"
-                          : `${inDest.length} ${inDest.length === 1 ? "attraction" : "attractions"} in ${dest.name}`}
-                      </p>
-                      {!attractionsLoading && inDest.length > 0 && (
-                        <ul className="space-y-3" aria-label={`Attractions in ${dest.name}`}>
-                          {inDest.slice(0, 3).map((a) => (
-                            <li
-                              key={a.id}
-                              className="border-l border-accent/70 pl-3 font-serif text-base leading-tight text-white"
-                            >
-                              {a.name}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                      {!attractionsLoading && inDest.length === 0 && (
-                        <p className="font-sans text-xs text-white/70">No attractions added yet.</p>
-                      )}
-                    </div>
-                  </div>
+                  <span className="shrink-0 font-sans text-xs font-semibold uppercase tracking-widest text-primary/80 bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
+                    {region.countries.length} {region.countries.length === 1 ? "Country" : "Countries"}
+                  </span>
+                </div>
 
-                  {/* Top border on hover */}
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary/0 group-hover:bg-primary/60 transition-all duration-300" />
-                </Link>
-              );
-            })}
+                {/* Countries Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {region.countries.map((country) => (
+                    <CountryCard key={country.slug} country={country} height="360px" />
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>
