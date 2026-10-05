@@ -28,6 +28,20 @@ export async function seedInitialContent(): Promise<void> {
   }
 
   // 2. Ensure extensions, types, and tables exist
+  /*
+   * On its own, before the big block: a new enum value cannot be used in the
+   * transaction that adds it, and a multi-statement query is one transaction.
+   * A no-op on a fresh database, where the CREATE TYPE below already has it,
+   * except that CREATE TYPE has not run yet - hence the guard.
+   */
+  await pool.query(`
+    DO $$ BEGIN
+      IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enquiry_source') THEN
+        ALTER TYPE enquiry_source ADD VALUE IF NOT EXISTS 'attraction';
+      END IF;
+    END $$;
+  `);
+
   await pool.query(`
     CREATE EXTENSION IF NOT EXISTS "unaccent";
 
@@ -38,7 +52,7 @@ export async function seedInitialContent(): Promise<void> {
     END $$;
 
     DO $$ BEGIN
-      CREATE TYPE enquiry_source AS ENUM ('tour', 'contact');
+      CREATE TYPE enquiry_source AS ENUM ('tour', 'contact', 'attraction');
     EXCEPTION
       WHEN duplicate_object THEN NULL;
     END $$;
@@ -214,17 +228,6 @@ export async function seedInitialContent(): Promise<void> {
       handled_at TIMESTAMPTZ
     );
 
-    CREATE TABLE IF NOT EXISTS admins (
-      id SERIAL PRIMARY KEY,
-      email TEXT NOT NULL UNIQUE,
-      password_hash TEXT NOT NULL,
-      is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS admins_email_idx ON admins (LOWER(email));
-
     CREATE TABLE IF NOT EXISTS notifications (
       id SERIAL PRIMARY KEY,
       enquiry_id INTEGER REFERENCES enquiries(id) ON DELETE CASCADE,
@@ -258,6 +261,149 @@ export async function seedInitialContent(): Promise<void> {
     -- Channel-specific send data. WhatsApp keeps the approved template name and
     -- its parameters here, because it does not send text.
     ALTER TABLE notifications ADD COLUMN IF NOT EXISTS payload JSONB;
+
+    CREATE TABLE IF NOT EXISTS admins (
+      id SERIAL PRIMARY KEY,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      is_super_admin BOOLEAN NOT NULL DEFAULT FALSE,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS admins_email_idx ON admins (LOWER(email));
+
+    -- Airlines, and which of our destinations each one serves.
+    --
+    -- Nothing on this branch reads the airline, route and timetable tables any
+    -- more; the pages and scripts that did live on the "flights" branch. The
+    -- tables stay so that branch finds its data intact when it comes back.
+    --
+    -- Curated rather than imported: OurAirports has no routes and OpenFlights'
+    -- route data stopped being updated around 2014, so an automatic list would
+    -- confidently name flights that no longer exist.
+    CREATE TABLE IF NOT EXISTS airlines (
+      id SERIAL PRIMARY KEY,
+      slug TEXT NOT NULL,
+      name TEXT NOT NULL,
+      base_city TEXT NOT NULL,
+      base_airport_code TEXT,
+      iata_code TEXT,
+      description TEXT,
+      images TEXT[] NOT NULL DEFAULT '{}',
+      departure_image TEXT,
+      arrival_image TEXT,
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS airlines_slug_key ON airlines (slug);
+    CREATE INDEX IF NOT EXISTS airlines_order_idx ON airlines (display_order);
+
+    CREATE TABLE IF NOT EXISTS airline_destinations (
+      airline_id INTEGER NOT NULL REFERENCES airlines(id) ON DELETE CASCADE,
+      destination_id INTEGER NOT NULL REFERENCES destinations(id) ON DELETE CASCADE,
+      arrival_airport_code TEXT,
+      display_order SMALLINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (airline_id, destination_id)
+    );
+
+    -- The composite key already indexes airline_id. This covers the question
+    -- the public Flights page actually asks: who flies to this destination?
+    CREATE INDEX IF NOT EXISTS airline_destinations_destination_idx
+      ON airline_destinations (destination_id);
+
+    -- Observed route legs, from AeroDataBox.
+    --
+    -- Not content. Nobody edits this; scripts/refresh-routes.mjs overwrites it
+    -- one origin airport at a time. It exists to be compared against the
+    -- curated airlines above — the feed is a second opinion, not an authority,
+    -- so nothing here reaches the public site without somebody agreeing to it.
+    CREATE TABLE IF NOT EXISTS route_legs (
+      from_iata TEXT NOT NULL,
+      to_iata TEXT NOT NULL,
+      to_name TEXT,
+      to_country TEXT,
+      airline_name TEXT NOT NULL,
+      airline_iata TEXT,
+      avg_daily REAL,
+      observed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      -- airline_name and not the IATA code: Fly Jinnah has no code at all, and
+      -- is the exact carrier this company most needs to see.
+      PRIMARY KEY (from_iata, to_iata, airline_name)
+    );
+
+    CREATE INDEX IF NOT EXISTS route_legs_to_idx ON route_legs (to_iata);
+    CREATE INDEX IF NOT EXISTS route_legs_airline_idx ON route_legs (airline_name);
+
+    -- The published weekly timetable, folded from a week of the airport
+    -- departures board. Local times at each airport; days as ISO weekdays.
+    CREATE TABLE IF NOT EXISTS flight_schedules (
+      from_iata TEXT NOT NULL,
+      to_iata TEXT NOT NULL,
+      flight_number TEXT NOT NULL,
+      airline_name TEXT NOT NULL,
+      airline_iata TEXT,
+      dep_time TEXT NOT NULL,
+      arr_time TEXT,
+      arr_day_offset SMALLINT NOT NULL DEFAULT 0,
+      days TEXT NOT NULL,
+      observed_from DATE,
+      observed_to DATE,
+      observed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (from_iata, flight_number, dep_time)
+    );
+
+    CREATE INDEX IF NOT EXISTS flight_schedules_to_idx ON flight_schedules (to_iata);
+    CREATE INDEX IF NOT EXISTS flight_schedules_airline_idx ON flight_schedules (airline_iata);
+
+    -- Attractions: country + location + name. What destinations, categories
+    -- and activities lead to now. The country and the destinations come from
+    -- the location, so neither is stored here.
+    CREATE TABLE IF NOT EXISTS attractions (
+      id SERIAL PRIMARY KEY,
+      slug TEXT NOT NULL,
+      name TEXT NOT NULL,
+      summary TEXT,
+      description TEXT NOT NULL,
+      cover_image TEXT NOT NULL,
+      images TEXT[] NOT NULL DEFAULT '{}',
+      location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE RESTRICT,
+      classification tour_classification NOT NULL DEFAULT 'standard',
+      featured BOOLEAN NOT NULL DEFAULT FALSE,
+      visit_duration TEXT,
+      price_from REAL,
+      hotels_available BOOLEAN NOT NULL DEFAULT FALSE,
+      stay_note TEXT,
+      steps JSONB NOT NULL DEFAULT '[]',
+      is_active BOOLEAN NOT NULL DEFAULT TRUE,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS attractions_slug_key ON attractions (slug);
+    CREATE INDEX IF NOT EXISTS attractions_location_idx ON attractions (location_id);
+    CREATE INDEX IF NOT EXISTS attractions_featured_idx ON attractions (featured, display_order);
+
+    CREATE TABLE IF NOT EXISTS attraction_categories (
+      attraction_id INTEGER NOT NULL REFERENCES attractions(id) ON DELETE CASCADE,
+      category_id INTEGER NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
+      display_order SMALLINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (attraction_id, category_id)
+    );
+    CREATE INDEX IF NOT EXISTS attraction_categories_category_idx ON attraction_categories (category_id);
+
+    CREATE TABLE IF NOT EXISTS attraction_activities (
+      attraction_id INTEGER NOT NULL REFERENCES attractions(id) ON DELETE CASCADE,
+      activity_id INTEGER NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
+      display_order SMALLINT NOT NULL DEFAULT 0,
+      PRIMARY KEY (attraction_id, activity_id)
+    );
+    CREATE INDEX IF NOT EXISTS attraction_activities_activity_idx ON attraction_activities (activity_id);
+
+    ALTER TABLE enquiries ADD COLUMN IF NOT EXISTS attraction_id INTEGER REFERENCES attractions(id) ON DELETE SET NULL;
 
     -- Editable wording for the automatic messages. A row here overrides the
     -- copy that ships in the code; no row, or a blank one, falls back to it.
@@ -403,6 +549,51 @@ export async function seedInitialContent(): Promise<void> {
     logger.info("Seeded starter categories");
   }
 
+  /*
+   * Categories added after this site first went live are missing from any
+   * database that was seeded earlier — the block above only runs on an empty
+   * table. Insert whatever is absent, matched on slug, and leave the rest
+   * (including names and images you edited) untouched.
+   */
+  await pool.query(`
+    INSERT INTO categories (slug, name, description, cover_image, icon, display_order)
+    SELECT v.slug, v.name, v.description, v.cover_image, v.icon, v.display_order
+    FROM (VALUES
+      ('safari', 'Safari', 'Private conservancies and unhurried game drives, where the only other guests are the ones you brought with you.', '/images/cat-safari.jpg', 'binoculars', 1),
+      ('expedition-cruising', 'Expedition Cruising', 'Small vessels and smaller manifests, tracing coastlines that larger ships will never reach.', '/images/cat-cruise.jpg', 'ship', 2),
+      ('island-coast', 'Island & Coast', 'Overwater villas, empty sandbars and water so clear it disappears beneath you.', '/images/cat-beach.jpg', 'palmtree', 3),
+      ('mountain-wilderness', 'Mountain & Wilderness', 'High country, glacial silence and lodges positioned exactly where the view is best.', '/images/cat-mountain.jpg', 'mountain', 4),
+      ('architecture-history', 'Architecture & History', 'Old cities, ruins and living heritage, read with someone who knows the story.', '/images/cat-mountain.jpg', 'landmark', 5),
+      ('family-fun', 'Family Fun', 'Trips built around travelling together, paced so nobody is bored or exhausted.', '/images/cat-safari.jpg', 'users', 6),
+      ('relaxation-spa', 'Relaxation & Spa', 'Thermal waters, long treatments and days with nothing scheduled in them.', '/images/cat-beach.jpg', 'flower', 7),
+      ('rail-road', 'Rail & Road', 'Legendary railways and long drives, where the journey is the destination.', '/images/cat-cruise.jpg', 'train', 8),
+      ('active-lifestyle', 'Active Lifestyle', 'Trips that keep you moving, from dawn starts to genuinely hard days.', '/images/cat-mountain.jpg', 'activity', 9)
+    ) AS v(slug, name, description, cover_image, icon, display_order)
+    WHERE NOT EXISTS (SELECT 1 FROM categories c WHERE c.slug = v.slug);
+  `);
+
+  /*
+   * Categories added through the admin panel have no slug — the create form
+   * never sent one — and a category without a slug cannot be linked to or
+   * filtered by. Give every one of them a slug made from its name, adding the
+   * id only where that name is already taken.
+   */
+  await pool.query(`
+    WITH missing AS (
+      SELECT id, trim(BOTH '-' FROM lower(regexp_replace(name, '[^a-zA-Z0-9]+', '-', 'g'))) AS base
+      FROM categories
+      WHERE slug IS NULL OR slug = ''
+    )
+    UPDATE categories c
+    SET slug = CASE
+      WHEN m.base = '' THEN 'category-' || c.id
+      WHEN EXISTS (SELECT 1 FROM categories o WHERE o.slug = m.base AND o.id <> c.id) THEN m.base || '-' || c.id
+      ELSE m.base
+    END
+    FROM missing m
+    WHERE m.id = c.id;
+  `);
+
   // 4. Seed Destinations if empty
   const destCountRes = await pool.query("SELECT COUNT(*) AS count FROM destinations");
   if (parseInt(destCountRes.rows[0].count, 10) === 0) {
@@ -457,9 +648,23 @@ export async function seedInitialContent(): Promise<void> {
     logger.info("Seeded starter countries and locations");
   }
 
-  // 6. Seed Tours if empty
+  /*
+   * 6. Seed Tours if empty.
+   *
+   * These sample tours point at starter locations by id. Once those places
+   * have been deleted — the attractions site does not use them — re-inserting
+   * the tours fails on the foreign key and the whole server refuses to start.
+   * So this runs only while the places it needs are still there.
+   */
   const tourCountRes = await pool.query("SELECT COUNT(*) AS count FROM tours");
-  if (parseInt(tourCountRes.rows[0].count, 10) === 0) {
+  const tourPlacesRes = await pool.query(
+    "SELECT COUNT(*) AS count FROM locations WHERE id IN (1, 2, 3, 4, 5)",
+  );
+  const tourPlacesReady = parseInt(tourPlacesRes.rows[0].count, 10) === 5;
+  if (parseInt(tourCountRes.rows[0].count, 10) === 0 && !tourPlacesReady) {
+    logger.info("Skipped starter tours — the places they reference are gone");
+  }
+  if (parseInt(tourCountRes.rows[0].count, 10) === 0 && tourPlacesReady) {
     await pool.query(`
       INSERT INTO tours (id, slug, title, description, cover_image, images, location, duration_days, price_from, featured, category_id, destination_id, location_id, itinerary_steps) VALUES
       (1, 'patagonia-the-southern-wild', 'Patagonia: The Southern Wild', 'Ten days between granite towers and turquoise lakes, staying at a private estancia with a guide who has walked these valleys for thirty years. Helicopter access to the ice field, and evenings by the fire with nobody else booked in.', '/images/hero-patagonia.jpg', ARRAY['/images/hero-patagonia.jpg', '/images/cat-mountain.jpg'], 'Torres del Paine, Chile', 10, 28500, true, 4, NULL, 4, '[

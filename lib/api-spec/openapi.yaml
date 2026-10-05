@@ -1886,7 +1886,7 @@ components:
           type: boolean
         displayOrder:
           type: number
-        tourCount:
+        attractionCount:
           type: number
       required:
         [
@@ -1902,7 +1902,7 @@ components:
           isFilterable,
           isIndexable,
           displayOrder,
-          tourCount,
+          attractionCount,
         ]
 
     ActivityInput:
@@ -2629,7 +2629,7 @@ components:
           type: number
         source:
           type: string
-          enum: [tour, contact]
+          enum: [tour, contact, attraction]
         status:
           type: string
           enum: [new, handled]
@@ -2661,6 +2661,8 @@ components:
           type: ["string", "null"]
         tourDurationDays:
           type: ["number", "null"]
+        attractionId:
+          type: ["number", "null"]
         enquiryType:
           type: ["string", "null"]
         budget:
@@ -2676,7 +2678,7 @@ components:
       properties:
         source:
           type: string
-          enum: [tour, contact]
+          enum: [tour, contact, attraction]
         title:
           type: string
           maxLength: 50
@@ -2713,6 +2715,10 @@ components:
           type: string
           maxLength: 200
         tourDurationDays:
+          type: number
+          minimum: 1
+          multipleOf: 1
+        attractionId:
           type: number
           minimum: 1
           multipleOf: 1
@@ -2919,7 +2925,7 @@ components:
     Stats:
       type: object
       properties:
-        tourCount:
+        attractionCount:
           type: number
         destinationCount:
           type: number
@@ -2927,6 +2933,6 @@ components:
           type: number
         journalCount:
           type: number
-        featuredTourCount:
+        featuredAttractionCount:
           type: number
-      required: [tourCount, destinationCount, categoryCount, journalCount, featuredTourCount]
+      required: [attractionCount, destinationCount, categoryCount, journalCount, featuredAttractionCount]

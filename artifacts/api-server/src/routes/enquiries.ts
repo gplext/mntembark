@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { desc, eq } from "drizzle-orm";
-import { db, enquiriesTable } from "@workspace/db";
+import { db, enquiriesTable, attractionsTable, locationsTable, countriesTable } from "@workspace/db";
 import {
   CreateEnquiryBody,
   CreateEnquiryResponse,
@@ -86,6 +86,53 @@ router.post("/enquiries", async (req, res): Promise<void> => {
     }
   }
 
+  /*
+   * An attraction enquiry names the attraction by id, and the name and place
+   * stored with it are read from the database, not taken from the form. They
+   * are what the office sees and what the emails print, so they should say
+   * what the attraction is called, not what the browser sent.
+   */
+  let attractionId: number | null = null;
+  let attractionTitle: string | null = null;
+  let attractionPlace: string | null = null;
+  if (data.source === "attraction") {
+    if (!phone || !data.acceptPrivacy) {
+      res.status(400).json({
+        error: "A phone number and privacy acceptance are required for attraction enquiries",
+      });
+      return;
+    }
+    if (!data.attractionId) {
+      res.status(400).json({ error: "Which attraction is this enquiry about?" });
+      return;
+    }
+    if (enquiryType || budget || data.tourDurationDays) {
+      res.status(400).json({ error: "Attraction enquiries cannot include tour or contact-only context" });
+      return;
+    }
+    const [a] = await db
+      .select({
+        id: attractionsTable.id,
+        name: attractionsTable.name,
+        location: locationsTable.name,
+        country: countriesTable.name,
+      })
+      .from(attractionsTable)
+      .innerJoin(locationsTable, eq(locationsTable.id, attractionsTable.locationId))
+      .leftJoin(countriesTable, eq(countriesTable.id, locationsTable.countryId))
+      .where(eq(attractionsTable.id, data.attractionId));
+    if (!a) {
+      res.status(400).json({ error: "That attraction is no longer available" });
+      return;
+    }
+    attractionId = a.id;
+    attractionTitle = a.name;
+    attractionPlace = [a.location, a.country].filter((v, i, arr) => v && arr.indexOf(v) === i).join(", ");
+  } else if (data.attractionId) {
+    res.status(400).json({ error: "Only attraction enquiries can name an attraction" });
+    return;
+  }
+
   if (data.source === "contact") {
     if (!notes || notes.length < 10) {
       res.status(400).json({
@@ -126,9 +173,10 @@ router.post("/enquiries", async (req, res): Promise<void> => {
       notes,
       acceptPrivacy: data.acceptPrivacy,
       receiveUpdates: data.receiveUpdates,
-      tourTitle,
-      tourLocation,
+      tourTitle: attractionTitle ?? tourTitle,
+      tourLocation: attractionPlace ?? tourLocation,
       tourDurationDays: data.tourDurationDays ?? null,
+      attractionId,
       enquiryType,
       budget,
       whatsappConsent: data.whatsappConsent ?? false,

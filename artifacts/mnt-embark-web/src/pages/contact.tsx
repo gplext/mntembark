@@ -12,6 +12,7 @@ import { useToast } from "@workspace/mnt-embark/hooks/use-toast";
 import { useCreateEnquiry } from "@workspace/api-client-react";
 import type { EnquiryInputEnquiryType } from "@workspace/api-client-react";
 import Navbar from "@/components/Navbar";
+import { useTrip, tripSummary } from "@/lib/trip";
 import Footer from "@/components/Footer";
 
 const enquirySchema = z.object({
@@ -30,6 +31,13 @@ type EnquiryFormData = z.infer<typeof enquirySchema>;
 export default function ContactPage() {
   const { toast } = useToast();
   const createEnquiry = useCreateEnquiry();
+  /*
+   * The plan from the first-visit planner, written into the message so the
+   * visitor does not have to type it again. Only read once, on arrival: it is
+   * a starting point, and they can edit or delete it.
+   */
+  const { trip } = useTrip();
+  const planText = trip.planSet ? tripSummary(trip) : null;
 
   const form = useForm<EnquiryFormData>({
     resolver: zodResolver(enquirySchema),
@@ -38,9 +46,9 @@ export default function ContactPage() {
       lastName: "",
       email: "",
       phone: "",
-      enquiryType: "",
+      enquiryType: planText ? "custom-journey" : "",
       budget: "",
-      message: "",
+      message: planText ?? "",
       whatsappConsent: false,
     },
   });

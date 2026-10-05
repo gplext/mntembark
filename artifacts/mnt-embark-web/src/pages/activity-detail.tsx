@@ -5,9 +5,9 @@
  *
  * - redirectToSlug set  → activity has been merged; 301 to the target slug.
  * - API 404            → standard not-found state.
- * - Normal             → hero + description + tour list filtered by this activity.
+ * - Normal             → hero + description + the attractions with this activity.
  *
- * Tours come from GET /tours?activitySlugs={slug} — no new endpoint.
+ * Attractions come from GET /attractions?activitySlugs={slug}.
  */
 
 import { useEffect } from "react";
@@ -15,16 +15,15 @@ import { useParams, Link, useLocation } from "wouter";
 import {
   useGetActivityBySlug,
   getGetActivityBySlugQueryKey,
-  useListTours,
-  getListToursQueryKey,
 } from "@workspace/api-client-react";
+import { useAttractions } from "@/lib/attractions-api";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { Separator } from "@workspace/mnt-embark/components/ui/separator";
 import { ArrowLeft } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { TourRow } from "@/components/TourCard";
+import { AttractionRow } from "@/components/AttractionCard";
 import { DestinationCoverImage } from "@/components/DestinationCoverImage";
 
 export default function ActivityDetailPage() {
@@ -77,17 +76,10 @@ export default function ActivityDetailPage() {
     };
   }, [activity?.isIndexable]);
 
-  const tourParams = { activitySlugs: [slug ?? ""] };
-  const { data: tours, isLoading: toursLoading } = useListTours(tourParams, {
-    query: {
-      enabled:
-        Boolean(slug) &&
-        !isLoading &&
-        !isError &&
-        !activity?.redirectToSlug,
-      queryKey: getListToursQueryKey(tourParams),
-    },
-  });
+  const { data: attractions, isLoading: attractionsLoading } = useAttractions(
+    { activitySlugs: [slug ?? ""] },
+    { enabled: Boolean(slug) && !isLoading && !isError && !activity?.redirectToSlug },
+  );
 
   // ── Loading ───────────────────────────────────────────────────────────────
   if (isLoading) {
@@ -127,15 +119,15 @@ export default function ActivityDetailPage() {
               Activity Not Found
             </h1>
             <p className="font-sans text-sm text-muted-foreground mb-8">
-              This activity may no longer be available. Explore our tours to
-              discover what's on offer.
+              This activity may no longer be available. The attractions show
+              what's on offer.
             </p>
-            <Link href="/tours">
+            <Link href="/attractions">
               <Button
                 variant="outline"
                 className="font-sans text-xs uppercase tracking-widest"
               >
-                View All Tours
+                View All Attractions
               </Button>
             </Link>
             <div className="w-16 h-px bg-primary mx-auto mt-8" />
@@ -178,11 +170,11 @@ export default function ActivityDetailPage() {
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Back link */}
         <Link
-          href="/tours"
+          href="/activities"
           className="flex items-center gap-2 font-sans text-xs text-muted-foreground hover:text-foreground uppercase tracking-widest mb-8 transition-colors w-fit"
         >
           <ArrowLeft className="h-3 w-3" />
-          All Tours
+          All Activities
         </Link>
 
         {/* Description — only when present */}
@@ -195,26 +187,25 @@ export default function ActivityDetailPage() {
           </>
         )}
 
-        {/* Tour list */}
         <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-6">
-          Tours featuring this activity
+          Attractions with this activity
         </p>
 
-        {toursLoading ? (
+        {attractionsLoading ? (
           <div className="space-y-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Skeleton key={i} className="h-40 w-full rounded" />
             ))}
           </div>
-        ) : tours && tours.length > 0 ? (
+        ) : attractions && attractions.length > 0 ? (
           <div className="space-y-4">
-            {tours.map((tour) => (
-              <TourRow key={tour.id} tour={tour} />
+            {attractions.map((a) => (
+              <AttractionRow key={a.id} attraction={a} />
             ))}
           </div>
         ) : (
           <p className="font-sans text-sm text-muted-foreground">
-            No tours are currently listed for this activity.
+            No attractions are listed for this activity yet.
           </p>
         )}
       </div>

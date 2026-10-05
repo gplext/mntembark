@@ -8,13 +8,17 @@ import { cn } from "@workspace/mnt-embark/lib/utils";
 // ── Link groups ───────────────────────────────────────────────────────────────
 // Left side: discovery / transactional
 const leftLinks = [
-  { href: "/tours", label: "Exclusive Tours" },
+  { href: "/attractions", label: "Attractions" },
   { href: "/activities", label: "Activities" },
   { href: "/categories", label: "Categories" },
   { href: "/destinations", label: "Destinations" },
 ];
 
-// Right side: editorial / brand
+/*
+ * Right side. Flights and Hotels were here; those pages are gone (each
+ * attraction says "Hotels available" instead, and the flight features live
+ * on the "flights" branch).
+ */
 const rightLinks = [
   { href: "/guide", label: "Guide" },
   { href: "/journals", label: "Travel Journals" },

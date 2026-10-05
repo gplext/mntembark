@@ -10,8 +10,9 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { attractionsTable } from "./attractions";
 
-export const enquirySourceEnum = pgEnum("enquiry_source", ["tour", "contact"]);
+export const enquirySourceEnum = pgEnum("enquiry_source", ["tour", "contact", "attraction"]);
 export const enquiryStatusEnum = pgEnum("enquiry_status", ["new", "handled"]);
 
 export const enquiriesTable = pgTable(
@@ -52,6 +53,14 @@ export const enquiriesTable = pgTable(
     tourTitle: text("tour_title"),
     tourLocation: text("tour_location"),
     tourDurationDays: integer("tour_duration_days"),
+    /**
+     * The attraction an "attraction" enquiry was sent from. Its name and place
+     * are also copied into tour_title and tour_location at the time, so the
+     * enquiry still reads correctly if the attraction is renamed or deleted.
+     */
+    attractionId: integer("attraction_id").references(() => attractionsTable.id, {
+      onDelete: "set null",
+    }),
     enquiryType: text("enquiry_type"),
     budget: text("budget"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

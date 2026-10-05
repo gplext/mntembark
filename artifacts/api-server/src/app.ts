@@ -34,7 +34,11 @@ app.use(
 );
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+/*
+ * 5mb, not express's 100kb default: a whole week of Dubai departures sent by
+ * scripts/refresh-schedules.mjs is several hundred kilobytes.
+ */
+app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const sessionSecret = process.env["SESSION_SECRET"];
@@ -111,6 +115,20 @@ app.use(
     next: express.NextFunction,
   ) => {
     if (res.headersSent) return next(err);
+
+    /*
+     * The body parser's own refusals (too large, malformed JSON) carry a 4xx
+     * status and a safe message. Answering those as a 500 "see the log" hid a
+     * plain "request too large" behind a reference number.
+     */
+    const status = (err as { status?: number; expose?: boolean } | null)?.status;
+    if (typeof status === "number" && status >= 400 && status < 500) {
+      const expose = (err as { expose?: boolean }).expose;
+      res.status(status).json({
+        error: expose && err instanceof Error ? err.message : "Bad request",
+      });
+      return;
+    }
 
     const ref = Math.random().toString(36).slice(2, 8).toUpperCase();
     logger.error(

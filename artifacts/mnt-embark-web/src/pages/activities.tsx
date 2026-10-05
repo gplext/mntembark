@@ -154,7 +154,7 @@ function ActivityTile({
             "font-sans text-[10px] uppercase tracking-widest",
             count > 0 ? "text-muted-foreground" : "text-muted-foreground/40"
           )}>
-            {count > 0 ? `${count} ${count === 1 ? "Tour" : "Tours"}` : "Coming soon"}
+            {count > 0 ? `${count} ${count === 1 ? "Attraction" : "Attractions"}` : "Coming soon"}
           </span>
           <span className="flex items-center gap-1 font-sans text-[10px] uppercase tracking-widest text-primary">
             Explore
@@ -307,12 +307,12 @@ export default function ActivitiesPage() {
             <p className="font-sans text-sm text-muted-foreground mb-8">
               Our activity catalogue is being assembled. Check back shortly.
             </p>
-            <Link href="/tours">
+            <Link href="/attractions">
               <Button
                 variant="outline"
                 className="font-sans text-xs uppercase tracking-widest"
               >
-                Browse All Tours
+                Browse All Attractions
               </Button>
             </Link>
             <div className="w-16 h-px bg-primary mx-auto mt-8" />

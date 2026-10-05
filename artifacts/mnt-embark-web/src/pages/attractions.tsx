@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "wouter";
-import {
-  useListTours,
-  useSearchTours,
-  getListToursQueryKey,
-  getSearchToursQueryKey,
-} from "@workspace/api-client-react";
-import type { ListToursClassificationItem } from "@workspace/api-client-react";
+import { useAttractions } from "@/lib/attractions-api";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Input } from "@workspace/mnt-embark/components/ui/input";
 import { Badge } from "@workspace/mnt-embark/components/ui/badge";
@@ -14,20 +8,17 @@ import { Skeleton } from "@workspace/mnt-embark/components/ui/skeleton";
 import { Search, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { TourRow } from "@/components/TourCard";
-import { TourFilterSidebar } from "@/components/TourFilterSidebar";
+import { AttractionRow } from "@/components/AttractionCard";
+import { AttractionFilterSidebar } from "@/components/AttractionFilterSidebar";
 
-// Valid classification values for the type guard
-const VALID_CLASSIFICATIONS: ReadonlyArray<ListToursClassificationItem> = [
-  "standard",
-  "special",
-  "exclusive",
-];
-function isClassification(v: string): v is ListToursClassificationItem {
-  return VALID_CLASSIFICATIONS.includes(v as ListToursClassificationItem);
-}
+const VALID_CLASSIFICATIONS = ["standard", "special", "exclusive"];
+const isClassification = (v: string) => VALID_CLASSIFICATIONS.includes(v);
 
-export default function ToursPage() {
+/**
+ * /attractions - every attraction, filterable by the URL so a filtered view
+ * can be linked from destination, category and activity pages.
+ */
+export default function AttractionsPage() {
   const [urlParams, setUrlParams] = useSearchParams();
 
   // ── search (q lives in URL so the view is shareable) ──────────────────────
@@ -54,35 +45,18 @@ export default function ToursPage() {
     classifications.length +
     activitySlugs.length;
 
-  // ── data hooks ────────────────────────────────────────────────────────────
-  const isSearching = Boolean(qParam);
-
-  const listParams = {
-    ...(categorySlug    ? { categorySlug }    : {}),
-    ...(destinationSlug ? { destinationSlug } : {}),
-    ...(countrySlug     ? { countrySlug }     : {}),
-    ...(locationSlug    ? { locationSlug }    : {}),
-    ...(classifications.length > 0 ? { classification: classifications } : {}),
-    ...(activitySlugs.length   > 0 ? { activitySlugs }                  : {}),
-  };
-
-  const { data: listTours, isLoading: listLoading } = useListTours(listParams, {
-    query: { enabled: !isSearching, queryKey: getListToursQueryKey(listParams) },
+  // ── data ──────────────────────────────────────────────────────────────────
+  // One endpoint for both: with `q` the server ranks by match, without it by
+  // featured and display order. Filters apply either way.
+  const { data: attractions, isLoading } = useAttractions({
+    q: qParam,
+    categorySlug,
+    destinationSlug,
+    countrySlug,
+    locationSlug,
+    classification: classifications,
+    activitySlugs,
   });
-
-  const searchQueryParams = { q: qParam };
-  const { data: searchTours, isLoading: searchLoading } = useSearchTours(
-    searchQueryParams,
-    {
-      query: {
-        enabled: isSearching,
-        queryKey: getSearchToursQueryKey(searchQueryParams),
-      },
-    },
-  );
-
-  const tours     = isSearching ? searchTours : listTours;
-  const isLoading = isSearching ? searchLoading : listLoading;
 
   // ── handlers ──────────────────────────────────────────────────────────────
   function handleSearch() {
@@ -120,11 +94,11 @@ export default function ToursPage() {
           <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-3">
             Our Collection
           </p>
-          <h1 className="font-serif text-5xl font-light text-foreground mb-2">
-            Exclusive Tours
+          <h1 className="font-serif text-4xl sm:text-5xl font-light text-foreground mb-2">
+            Attractions
           </h1>
           <p className="font-sans text-sm text-muted-foreground">
-            Each journey, a masterpiece composed for the discerning traveler.
+            The places worth the journey, with how to reach each one and what to bring.
           </p>
         </div>
       </div>
@@ -135,17 +109,17 @@ export default function ToursPage() {
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              data-testid="tours-search-input"
+              data-testid="attractions-search-input"
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleSearch()}
-              placeholder="Describe the journey you want — destination, mood, or activity..."
+              placeholder="Search by place, country, category or activity…"
               className="pl-12 pr-12 h-12 bg-card border-border/60 font-sans text-sm rounded-none focus-visible:ring-primary placeholder:text-muted-foreground/60"
             />
             {searchInput && (
               <button
                 onClick={clearSearch}
-                data-testid="tours-search-clear"
+                data-testid="attractions-search-clear"
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
@@ -154,14 +128,14 @@ export default function ToursPage() {
           </div>
           <Button
             onClick={handleSearch}
-            data-testid="tours-search-submit"
+            data-testid="attractions-search-submit"
             className="h-12 px-6 font-sans text-xs uppercase tracking-widest rounded-none"
           >
             Search
           </Button>
         </div>
         <p className="mt-3 font-sans text-xs text-muted-foreground">
-          AI-assisted search understands journey descriptions and close spellings.
+          Close spellings are fine.
         </p>
 
         {/* Active search badge */}
@@ -186,14 +160,14 @@ export default function ToursPage() {
         )}
       </div>
 
-      {/* Main content: sidebar + tour listing */}
+      {/* Main content: sidebar + listing */}
       <div className="max-w-7xl mx-auto px-6 py-10">
         <div className="flex flex-col md:flex-row gap-10 items-start">
 
           {/* Sidebar */}
-          <TourFilterSidebar activeCount={activeFilterCount} />
+          <AttractionFilterSidebar activeCount={activeFilterCount} />
 
-          {/* Tour list */}
+          {/* Attraction list */}
           <main className="flex-1 min-w-0">
             {isLoading ? (
               <div className="space-y-4">
@@ -201,20 +175,20 @@ export default function ToursPage() {
                   <Skeleton key={i} className="h-40 w-full rounded bg-card" />
                 ))}
               </div>
-            ) : !tours || tours.length === 0 ? (
+            ) : !attractions || attractions.length === 0 ? (
               <div className="text-center py-20">
                 <div className="w-16 h-px bg-primary mx-auto mb-8" />
                 <h3 className="font-serif text-3xl font-light text-foreground mb-4">
-                  No Journeys Found
+                  Nothing Found
                 </h3>
                 <p className="font-sans text-sm text-muted-foreground mb-6">
                   {qParam
-                    ? "No tours match your search. Try a different query."
-                    : "No tours are available with the current filters."}
+                    ? "No attractions match your search. Try a different word."
+                    : "No attractions match these filters yet."}
                 </p>
                 <Button
                   variant="outline"
-                  data-testid="tours-empty-clear"
+                  data-testid="attractions-empty-clear"
                   onClick={clearAll}
                   className="font-sans text-xs uppercase tracking-widest"
                 >
@@ -225,8 +199,8 @@ export default function ToursPage() {
             ) : (
               <div className="space-y-4">
                 <p className="font-sans text-xs text-muted-foreground uppercase tracking-widest mb-6">
-                  {tours.length}{" "}
-                  {tours.length === 1 ? "Journey" : "Journeys"} Available
+                  {attractions.length}{" "}
+                  {attractions.length === 1 ? "Attraction" : "Attractions"}
                   {activeFilterCount > 0 && (
                     <span className="ml-2 text-primary">
                       · {activeFilterCount}{" "}
@@ -234,8 +208,8 @@ export default function ToursPage() {
                     </span>
                   )}
                 </p>
-                {tours.map(tour => (
-                  <TourRow key={tour.id} tour={tour} />
+                {attractions.map(a => (
+                  <AttractionRow key={a.id} attraction={a} />
                 ))}
               </div>
             )}

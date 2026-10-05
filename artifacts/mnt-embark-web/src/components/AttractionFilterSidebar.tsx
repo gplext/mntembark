@@ -49,14 +49,14 @@ function SubLabel({
   );
 }
 
-// ─── TourFilterSidebar ────────────────────────────────────────────────────────
+// ─── AttractionFilterSidebar ────────────────────────────────────────────────────────
 
 interface Props {
   /** Number of active filter selections — shown next to "Clear all". */
   activeCount: number;
 }
 
-export function TourFilterSidebar({ activeCount }: Props) {
+export function AttractionFilterSidebar({ activeCount }: Props) {
   const [urlParams, setUrlParams] = useSearchParams();
 
   // ── current selections ──────────────────────────────────────────────────────

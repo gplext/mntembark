@@ -8,8 +8,8 @@ import {
   ArrowLeft,
   Inbox,
   Compass,
-  PenLine,
   Mail,
+  PenLine,
   Users,
   LogOut,
   Shield,
@@ -18,7 +18,7 @@ import {
 import { useAdminAuth } from "@/context/AdminAuthContext";
 
 const baseNavItems = [
-  { href: "/admin/tours", label: "Tours", icon: LayoutDashboard },
+  { href: "/admin/attractions", label: "Attractions", icon: LayoutDashboard },
   { href: "/admin/destinations", label: "Destinations", icon: Globe },
   { href: "/admin/categories", label: "Categories", icon: Tag },
   { href: "/admin/activities", label: "Activities", icon: Compass },

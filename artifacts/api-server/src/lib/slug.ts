@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db, toursTable } from "@workspace/db";
+import { db, toursTable, attractionsTable } from "@workspace/db";
 
 /**
  * Turning a title into the URL segment it will live at.
@@ -47,5 +47,21 @@ export async function uniqueTourSlug(title: string): Promise<string> {
    * Fifty titles that slugify identically means something is wrong upstream,
    * but a save must not fail over it. The timestamp is ugly and unique.
    */
+  return `${base}-${Date.now()}`;
+}
+
+/** The same, for attractions: `attractions_slug_key` is unique too. */
+export async function uniqueAttractionSlug(name: string, exceptId?: number): Promise<string> {
+  const base = slugify(name) || "attraction";
+
+  for (let n = 1; n <= 50; n++) {
+    const candidate = n === 1 ? base : `${base}-${n}`;
+    const [taken] = await db
+      .select({ id: attractionsTable.id })
+      .from(attractionsTable)
+      .where(eq(attractionsTable.slug, candidate))
+      .limit(1);
+    if (!taken || taken.id === exceptId) return candidate;
+  }
   return `${base}-${Date.now()}`;
 }

@@ -5,6 +5,7 @@ import {
   activitiesTable,
   activityGroupsTable,
   tourActivitiesTable,
+  attractionActivitiesTable,
 } from "@workspace/db";
 import { getActivityFilters, getActivityBySlug } from "@workspace/db/queries";
 import { serialize } from "../lib/serialize";
@@ -300,7 +301,7 @@ router.get(
          * sorting facets but not for correctness. An admin deciding whether an
          * activity is safe to delete needs the true number.
          */
-        tourCount: sql<number>`count(${tourActivitiesTable.tourId})::int`,
+        attractionCount: sql<number>`count(${attractionActivitiesTable.attractionId})::int`,
       })
       .from(activitiesTable)
       .innerJoin(
@@ -308,8 +309,8 @@ router.get(
         eq(activityGroupsTable.id, activitiesTable.groupId),
       )
       .leftJoin(
-        tourActivitiesTable,
-        eq(tourActivitiesTable.activityId, activitiesTable.id),
+        attractionActivitiesTable,
+        eq(attractionActivitiesTable.activityId, activitiesTable.id),
       )
       /*
        * Group by both primary keys, not by the group's name. Postgres lets you
@@ -353,7 +354,7 @@ router.post("/admin/activities", requireAdmin, async (req, res): Promise<void> =
     const [row] = await db.insert(activitiesTable).values(parsed.data).returning();
     res.status(201).json(
       CreateActivityResponse.parse(
-        serialize({ ...row, groupName: group.name, tourCount: 0 }),
+        serialize({ ...row, groupName: group.name, attractionCount: 0 }),
       ),
     );
   } catch (err) {
@@ -422,14 +423,14 @@ router.patch(
         .from(activityGroupsTable)
         .where(eq(activityGroupsTable.id, row.groupId));
 
-      const [{ tourCount }] = await db
-        .select({ tourCount: count() })
-        .from(tourActivitiesTable)
-        .where(eq(tourActivitiesTable.activityId, row.id));
+      const [{ attractionCount }] = await db
+        .select({ attractionCount: count() })
+        .from(attractionActivitiesTable)
+        .where(eq(attractionActivitiesTable.activityId, row.id));
 
       res.json(
         UpdateActivityResponse.parse(
-          serialize({ ...row, groupName: group?.name ?? "", tourCount }),
+          serialize({ ...row, groupName: group?.name ?? "", attractionCount }),
         ),
       );
     } catch (err) {
@@ -456,21 +457,27 @@ router.delete(
     }
 
     /*
-     * tour_activities cascades on activity delete, so deleting an activity in
-     * use would silently strip it from every tour that has it. Refuse instead
-     * and let the admin see the number first — this is the one destructive
-     * action on this screen that cannot be undone by re-creating the row.
+     * Both link tables cascade on activity delete, so deleting an activity in
+     * use would silently strip it from everything that has it - including the
+     * tours that are hidden for now but kept for later. Refuse instead and let
+     * the admin see the number first.
      */
+    const [{ attractionCount }] = await db
+      .select({ attractionCount: count() })
+      .from(attractionActivitiesTable)
+      .where(eq(attractionActivitiesTable.activityId, params.data.id));
     const [{ tourCount }] = await db
       .select({ tourCount: count() })
       .from(tourActivitiesTable)
       .where(eq(tourActivitiesTable.activityId, params.data.id));
 
-    if (tourCount > 0) {
+    if (attractionCount > 0 || tourCount > 0) {
+      const parts = [
+        attractionCount > 0 && `${attractionCount} ${attractionCount === 1 ? "attraction" : "attractions"}`,
+        tourCount > 0 && `${tourCount} hidden ${tourCount === 1 ? "tour" : "tours"}`,
+      ].filter(Boolean);
       res.status(409).json({
-        error: `This activity is on ${tourCount} ${
-          tourCount === 1 ? "tour" : "tours"
-        }. Remove it from them before deleting it.`,
+        error: `This activity is on ${parts.join(" and ")}. Remove it from them before deleting it.`,
       });
       return;
     }

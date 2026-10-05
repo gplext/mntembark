@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useTrip, tripSummary } from "@/lib/trip";
 import * as RadixDialog from "@radix-ui/react-dialog";
 import {
   Dialog,
@@ -23,18 +24,22 @@ import { X } from "lucide-react";
 import { useToast } from "@workspace/mnt-embark/hooks/use-toast";
 import { useCreateEnquiry } from "@workspace/api-client-react";
 
-interface Tour {
+/** What the modal shows on its picture side, and which attraction it is about. */
+interface EnquiryAttraction {
+  id: number;
   title: string;
   coverImage: string;
-  durationDays: number;
+  /** "Kyoto, Japan" */
   location: string;
   featured?: boolean;
+  /** Printed before the place, e.g. the visit duration. */
+  subtitle?: string | null;
 }
 
 interface EnquiryModalProps {
   open: boolean;
   onClose: () => void;
-  tour: Tour;
+  attraction: EnquiryAttraction;
 }
 
 const TITLES = ["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."];
@@ -42,7 +47,7 @@ const TITLES = ["Mr.", "Mrs.", "Ms.", "Dr.", "Prof."];
 const SECTION_LABEL =
   "font-sans text-[10px] font-semibold tracking-[0.2em] uppercase text-muted-foreground mb-3";
 
-export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps) {
+export default function EnquiryModal({ open, onClose, attraction: item }: EnquiryModalProps) {
   const { toast } = useToast();
   const createEnquiry = useCreateEnquiry();
 
@@ -59,6 +64,17 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
     whatsappConsent: false,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  /*
+   * Opening the form with the visitor's travel plan already in the notes. Not
+   * if they have typed there already, and only the parts they filled in.
+   */
+  const { trip } = useTrip();
+  useEffect(() => {
+    if (!open || !trip.planSet) return;
+    const plan = tripSummary(trip);
+    if (plan) setForm((prev) => (prev.notes.trim() ? prev : { ...prev, notes: plan }));
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (field: string, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -104,7 +120,7 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
     createEnquiry.mutate(
       {
         data: {
-          source: "tour",
+          source: "attraction",
           ...(form.title ? { title: form.title } : {}),
           firstName: form.firstName,
           lastName: form.lastName,
@@ -115,9 +131,8 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
           acceptPrivacy: form.acceptPrivacy,
           receiveUpdates: form.receiveUpdates,
           whatsappConsent: form.whatsappConsent,
-          tourTitle: tour.title,
-          tourLocation: tour.location,
-          tourDurationDays: tour.durationDays,
+          // The server reads the name and place from the attraction itself.
+          attractionId: item.id,
         },
       },
       {
@@ -159,11 +174,11 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
         >
           <div className="flex h-full">
 
-            {/* ── LEFT PANEL: tour image ── */}
+            {/* ── LEFT PANEL: image ── */}
             <div className="relative w-[38%] shrink-0 overflow-hidden hidden sm:block">
               <img
-                src={tour.coverImage}
-                alt={tour.title}
+                src={item.coverImage}
+                alt={item.title}
                 className="absolute inset-0 w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/20 to-black/75" />
@@ -175,16 +190,17 @@ export default function EnquiryModal({ open, onClose, tour }: EnquiryModalProps)
               </div>
 
               <div className="absolute bottom-8 left-8 right-8">
-                {tour.featured && (
+                {item.featured && (
                   <span className="inline-block border border-white/60 text-white font-sans text-[9px] tracking-[0.2em] uppercase px-3 py-1 mb-3">
-                    Featured Journey
+                    Exclusive
                   </span>
                 )}
                 <h3 className="font-serif text-3xl font-light text-white leading-tight mb-2">
-                  {tour.title}
+                  {item.title}
                 </h3>
                 <p className="font-sans text-[11px] text-white/80 tracking-[0.15em] uppercase mb-1">
-                  {tour.durationDays} Days · {tour.location}
+                  {item.subtitle ? `${item.subtitle} · ` : ""}
+                  {item.location}
                 </p>
               </div>
             </div>

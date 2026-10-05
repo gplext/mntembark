@@ -119,11 +119,11 @@ export default function AboutPage() {
           <div className="max-w-7xl mx-auto px-6">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-8 text-center">
               {[
-                { label: "Exclusive Tours", value: stats.tourCount },
+                { label: "Attractions", value: stats.attractionCount },
                 { label: "Destinations", value: stats.destinationCount },
                 { label: "Categories", value: stats.categoryCount },
                 { label: "Journal Entries", value: stats.journalCount },
-                { label: "Featured Journeys", value: stats.featuredTourCount },
+                { label: "Featured", value: stats.featuredAttractionCount },
               ].map((stat) => (
                 <div key={stat.label} data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}>
                   <p className="font-serif text-5xl font-light text-primary mb-2">
@@ -221,13 +221,13 @@ export default function AboutPage() {
                 Make an Enquiry
               </Button>
             </Link>
-            <Link href="/tours">
+            <Link href="/attractions">
               <Button
                 variant="outline"
-                data-testid="about-tours-cta"
+                data-testid="about-attractions-cta"
                 className="font-sans text-xs uppercase tracking-widest"
               >
-                View Tours
+                View Attractions
               </Button>
             </Link>
           </div>
