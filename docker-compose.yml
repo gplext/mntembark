@@ -1,50 +1,55 @@
-# Deploying to Coolify with a Separate PostgreSQL Resource:
-#   1. Provision a PostgreSQL Database resource in Coolify.
-#   2. In Coolify project settings, set DATABASE_URL to your PostgreSQL connection string.
-#   3. Deploy this Compose stack. The 'db' service is under the 'with-db' profile,
-#      so Coolify will only start the 'app' container and connect to your standalone DB.
+# ==============================================================================
+# MNT Embark — Docker Compose Configuration
+# ==============================================================================
 #
-# Running locally with embedded PostgreSQL:
-#   - Run: docker compose --profile with-db up
+# Production Deployment (Coolify / Standalone PostgreSQL):
+#   1. Set DATABASE_URL to your external/managed PostgreSQL connection string.
+#   2. Run: docker compose up -d
+#      (The 'db' service will be skipped as it is under the 'with-db' profile)
+#
+# Local Development with Embedded PostgreSQL:
+#   - Run: docker compose --profile with-db up -d --build
 #   - Or set COMPOSE_PROFILES=with-db in your local .env file.
+#
+# ==============================================================================
 
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: mnt_embark_app
     restart: unless-stopped
     ports:
-      - '${PORT:-8080}:8080'
+      - "${PORT:-8080}:8080"
     expose:
-      - '8080'
+      - "8080"
     environment:
       NODE_ENV: production
       PORT: ${PORT:-8080}
-      DATABASE_URL: ${DATABASE_URL:-postgres://mnt:${POSTGRES_PASSWORD:-changeme}@db:5432/mnt_embark}
+      DATABASE_URL: ${DATABASE_URL:-postgres://mnt:${POSTGRES_PASSWORD:-changeme}@db:5432/${POSTGRES_DB:-mnt_embark}}
       SESSION_SECRET: ${SESSION_SECRET:-secret_key_change_me_in_production}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
       UPLOAD_DIR: /data/uploads
-      # The site's own address, used for the link in branded email footers.
-      # Absent, the footer simply carries no link and the mail still sends.
       PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-}
-      # Outgoing email. Compose only passes through what is listed here, so a
-      # value present in .env but absent from this block never reaches the
-      # container - the app would start with email silently unconfigured.
-      # All optional: leave them unset and enquiries still save, with their
-      # notifications queued and the reason recorded.
+
+      # ── Outgoing SMTP & Notifications ──
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-465}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
       MAIL_FROM: ${MAIL_FROM:-}
-      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-MNT Embark}
       ADMIN_NOTIFY_EMAILS: ${ADMIN_NOTIFY_EMAILS:-}
+
+      # ── IMAP Sent Folder Synchronization ──
       IMAP_HOST: ${IMAP_HOST:-}
       IMAP_PORT: ${IMAP_PORT:-993}
       IMAP_USER: ${IMAP_USER:-}
       IMAP_PASS: ${IMAP_PASS:-}
       IMAP_SENT_MAILBOX: ${IMAP_SENT_MAILBOX:-Sent}
+
+      # ── WhatsApp Cloud API (Meta) ──
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
       WHATSAPP_NOTIFY_NUMBERS: ${WHATSAPP_NOTIFY_NUMBERS:-}
@@ -55,34 +60,51 @@ services:
       DEFAULT_PHONE_COUNTRY_CODE: ${DEFAULT_PHONE_COUNTRY_CODE:-}
     volumes:
       - app-data:/data
+    networks:
+      - mnt-network
     depends_on:
       db:
         condition: service_healthy
         required: false
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
   db:
     image: postgres:16-alpine
+    container_name: mnt_embark_db
     restart: unless-stopped
     profiles:
       - with-db
       - local
-    # Exposed so you can push the Drizzle schema from the host:
-    #   pnpm --filter @workspace/db run push
+      - dev
     ports:
-      - '5432:5432'
+      - "${POSTGRES_PORT:-5432}:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-mnt}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
       POSTGRES_DB: ${POSTGRES_DB:-mnt_embark}
     volumes:
       - db-data:/var/lib/postgresql/data
+    networks:
+      - mnt-network
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-mnt} -d ${POSTGRES_DB:-mnt_embark}']
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mnt} -d ${POSTGRES_DB:-mnt_embark}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+
+networks:
+  mnt-network:
+    name: mnt_embark_network
+    driver: bridge
 
 volumes:
   app-data:
+    name: mnt_embark_app_data
   db-data:
-
+    name: mnt_embark_db_data
