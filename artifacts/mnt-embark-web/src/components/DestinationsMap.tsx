@@ -82,6 +82,24 @@ function deriveCategory(slug: string | null | undefined): Category {
 }
 
 const CATEGORY_META: Record<Category, CategoryMeta> = {
+  polar: {
+    label: "Polar",
+    Icon: Wind,
+    markerFill: "hsl(var(--chart-4))",
+    markerStroke: "hsl(var(--background))",
+    iconColor: "hsl(var(--background))",
+    regionFill: "hsl(var(--chart-4) / 0.25)",
+    glowColor: "hsl(var(--chart-4) / 0.3)",
+  },
+  desert: {
+    label: "Desert",
+    Icon: Sun,
+    markerFill: "hsl(var(--primary))",
+    markerStroke: "hsl(var(--background))",
+    iconColor: "hsl(var(--primary-foreground))",
+    regionFill: "hsl(var(--primary) / 0.2)",
+    glowColor: "hsl(var(--primary) / 0.28)",
+  },
   wilderness: {
     label: "Wilderness",
     Icon: Mountain,
