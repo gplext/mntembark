@@ -280,10 +280,10 @@ export default function ContactPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="bg-card border-border">
-                          <SelectItem value="10k-25k">$10,000 — $25,000</SelectItem>
-                          <SelectItem value="25k-50k">$25,000 — $50,000</SelectItem>
-                          <SelectItem value="50k-100k">$50,000 — $100,000</SelectItem>
-                          <SelectItem value="100k+">$100,000+</SelectItem>
+                          <SelectItem value="under-10-lacs">Under PKR 10 lacs</SelectItem>
+                          <SelectItem value="10-20-lacs">PKR 10 — 20 lacs</SelectItem>
+                          <SelectItem value="20-30-lacs">PKR 20 — 30 lacs</SelectItem>
+                          <SelectItem value="above-30-lacs">Above PKR 30 lacs</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage className="font-sans text-xs" />
