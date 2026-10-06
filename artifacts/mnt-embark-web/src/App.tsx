@@ -25,6 +25,7 @@ const TripPlanner = lazy(() => import('@/components/planner/TripPlanner'));
 const AttractionsPage = lazy(() => import('@/pages/attractions'));
 const AttractionDetailPage = lazy(() => import('@/pages/attraction-detail'));
 const DestinationsPage = lazy(() => import('@/pages/destinations'));
+const CountryDetailPage = lazy(() => import('@/pages/country-detail'));
 const CategoriesPage = lazy(() => import('@/pages/categories'));
 const JournalsPage = lazy(() => import('@/pages/journals'));
 const JournalDetailPage = lazy(() => import('@/pages/journal-detail'));
@@ -76,6 +77,7 @@ function Router() {
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/destinations" component={DestinationsPage} />
+        <Route path="/destinations/:slug" component={CountryDetailPage} />
         <Route path="/about" component={AboutPage} />
         <Route path="/contact" component={ContactPage} />
 

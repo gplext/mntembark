@@ -8,7 +8,6 @@ import { Badge } from "@workspace/mnt-embark/components/ui/badge";
 import { Globe2, MapPin, Compass, Search } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import DestinationsMap from "@/components/DestinationsMap";
 import { CountryCard } from "@/components/CountryCard";
 import {
   REGIONS_DATA,
@@ -83,16 +82,6 @@ export default function DestinationsPage() {
           </p>
         </div>
       </div>
-
-      {/* Interactive Illustrated Map */}
-      {!isLoading && !isError && (
-        <DestinationsMap
-          destinations={destinations ?? []}
-          countries={countries ?? []}
-          attractions={attractions ?? []}
-          attractionsLoading={attractionsLoading}
-        />
-      )}
 
       {/* Regional Explorer Controls */}
       <div className="sticky top-16 z-30 bg-background/95 backdrop-blur-md border-y border-border/40 py-4 shadow-sm">

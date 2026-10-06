@@ -16,9 +16,11 @@ export function CountryCard({ country, className = "", height = "360px" }: Count
 
   return (
     <>
-      <div
+      <Link
+        href={`/destinations/${country.slug}`}
         data-testid={`country-card-${country.slug}`}
-        className={`group relative overflow-hidden rounded-md border border-border/40 bg-card shadow-sm transition-all duration-500 hover:shadow-xl hover:border-primary/50 flex flex-col justify-between ${className}`}
+        aria-label={`Open ${country.name}`}
+        className={`group relative block overflow-hidden rounded-md border border-border/40 bg-card shadow-sm transition-all duration-500 hover:shadow-xl hover:border-primary/50 flex flex-col justify-between ${className}`}
         style={{ height }}
       >
         {/* Background Image */}
@@ -83,12 +85,9 @@ export function CountryCard({ country, className = "", height = "360px" }: Count
 
           {/* Action Link */}
           <div className="mt-4 flex items-center justify-between pt-2 border-t border-white/10 group-hover:border-white/20">
-            <Link
-              href={`/destinations?region=${country.region}&country=${country.slug}`}
-              className="inline-flex items-center gap-1.5 font-sans text-xs font-semibold uppercase tracking-widest text-accent hover:text-white transition-colors"
-            >
+            <span className="inline-flex items-center gap-1.5 font-sans text-xs font-semibold uppercase tracking-widest text-accent group-hover:text-white transition-colors">
               Explore Country <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-1" />
-            </Link>
+            </span>
 
             <span className="font-serif italic text-xs text-white/60">
               MNT Curated
@@ -98,7 +97,7 @@ export function CountryCard({ country, className = "", height = "360px" }: Count
 
         {/* Gold Accent Top Border */}
         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </div>
+      </Link>
 
       {/* Quick Enquiry Modal */}
       {enquiryOpen && (
