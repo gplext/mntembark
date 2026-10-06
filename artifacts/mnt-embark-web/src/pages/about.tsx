@@ -4,6 +4,7 @@ import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { COUNTRIES_DATA, REGIONS_DATA } from "@/lib/countriesData";
 
 const values = [
   {
@@ -241,13 +242,17 @@ export default function AboutPage() {
       {stats && (
         <div className="py-16 bg-card/20" data-testid="about-stats">
           <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-8 text-center">
+            <div className="grid grid-cols-3 gap-8 text-center">
+              {/*
+                Only what a visitor can actually reach. Attractions, categories
+                and journals are counted by the API but are not on the site in
+                this phase, so printing them would advertise pages that are not
+                there.
+              */}
               {[
-                { label: "Attractions", value: stats.attractionCount },
+                { label: "Regions", value: REGIONS_DATA.length },
+                { label: "Countries", value: COUNTRIES_DATA.length },
                 { label: "Destinations", value: stats.destinationCount },
-                { label: "Categories", value: stats.categoryCount },
-                { label: "Journal Entries", value: stats.journalCount },
-                { label: "Featured", value: stats.featuredAttractionCount },
               ].map((stat) => (
                 <div key={stat.label} data-testid={`stat-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}>
                   <p className="font-serif text-5xl font-light text-primary mb-2">
