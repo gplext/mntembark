@@ -251,8 +251,6 @@ export default function ContactPage() {
                         </FormControl>
                         <SelectContent className="bg-card border-border">
                           <SelectItem value="tour-booking">Tour Booking</SelectItem>
-                          <SelectItem value="custom-journey">Custom Journey Design</SelectItem>
-                          <SelectItem value="membership">Membership Enquiry</SelectItem>
                           <SelectItem value="corporate">Corporate Travel</SelectItem>
                           <SelectItem value="general">General Enquiry</SelectItem>
                         </SelectContent>
