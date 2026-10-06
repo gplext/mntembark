@@ -28,6 +28,29 @@ const values = [
   },
 ];
 
+/**
+ * Multinational Travels' corporate client base. Listed rather than prosed
+ * because the breadth is the point — a reader scanning for their own industry
+ * should find it in a second.
+ */
+const clientSectors = [
+  "Banking & Financial Services",
+  "Multinational Corporations",
+  "Pharmaceutical Companies",
+  "Distribution & Trading",
+  "Textile & Apparel",
+  "Event Management",
+  "Fashion Houses",
+  "Law Firms",
+  "Other Leading Corporates",
+];
+
+const companyFigures = [
+  { value: "40+", label: "Years in travel" },
+  { value: "USD 2M+", label: "Annual sales" },
+  { value: "9", label: "Industries served" },
+];
+
 const team = [
   {
     name: "Alexandre Morel",
@@ -110,6 +133,107 @@ export default function AboutPage() {
               />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ── Company introduction ──────────────────────────────────────────── */}
+      <div id="company" className="border-b border-border/30 bg-card/20">
+        <div className="max-w-7xl mx-auto px-6 py-20 md:py-24">
+
+          <div className="max-w-3xl">
+            <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-3">
+              The Company Behind the Brand
+            </p>
+            <h2 className="font-serif text-4xl md:text-5xl font-light text-foreground leading-[1.1] mb-8">
+              Multinational Travels{" "}
+              <span className="text-muted-foreground">(Pvt) Ltd</span>
+            </h2>
+            <p className="font-sans text-base text-muted-foreground leading-relaxed">
+              A well-established travel management company with over forty years in
+              the travel and tourism industry. Across that time we have built a
+              reputation for reliable, personalised and professional travel
+              solutions.
+            </p>
+          </div>
+
+          {/* Figures */}
+          <div className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-8 md:gap-12">
+            {companyFigures.map((figure) => (
+              <div
+                key={figure.label}
+                data-testid={`company-figure-${figure.label.toLowerCase().replace(/\s+/g, "-")}`}
+                className="border-t border-primary/30 pt-5"
+              >
+                <p className="font-serif text-4xl md:text-5xl font-light text-primary mb-2">
+                  {figure.value}
+                </p>
+                <p className="font-sans text-xs uppercase tracking-widest text-muted-foreground">
+                  {figure.label}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Who we serve */}
+          <div className="mt-16 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)] gap-10 md:gap-16">
+            <div>
+              <h3 className="font-serif text-2xl md:text-3xl font-light text-foreground leading-snug mb-4">
+                Who we serve
+              </h3>
+              <p className="font-sans text-sm text-muted-foreground leading-relaxed mb-5">
+                Our clientele is primarily corporate, spanning a wide range of
+                industries.
+              </p>
+              <p className="font-sans text-sm text-muted-foreground leading-relaxed">
+                Alongside that portfolio we look after a select group of
+                high-net-worth individuals who seek premium, bespoke travel —
+                the clients for whom MNT Embark was created.
+              </p>
+            </div>
+
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 self-center">
+              {clientSectors.map((sector) => (
+                <li
+                  key={sector}
+                  className="flex items-start gap-3 font-sans text-sm text-foreground/85 leading-relaxed"
+                >
+                  <span className="mt-[0.5rem] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                  {sector}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Partnerships */}
+          <div className="mt-16 border border-primary/25 rounded-sm bg-background/60 p-8 md:p-12">
+            <p className="font-sans text-xs font-medium uppercase tracking-widest text-primary mb-4">
+              Looking Forward
+            </p>
+            <h3 className="font-serif text-2xl md:text-3xl font-light text-foreground leading-snug mb-6 max-w-2xl">
+              Building direct partnerships with operators and destination
+              management companies.
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+              <p className="font-sans text-sm text-muted-foreground leading-relaxed">
+                For many years we have served our corporate and high-value
+                individual clients through intermediary agents. As part of our
+                strategic growth, we are now seeking to work directly with tour
+                operators and destination management companies.
+              </p>
+              <p className="font-sans text-sm text-muted-foreground leading-relaxed">
+                Direct relationships let us deliver greater value, more
+                competitive offerings, faster response times and better travel
+                experiences — and we approach them as long-term partnerships,
+                built to benefit both sides.
+              </p>
+            </div>
+            <Link href="/contact">
+              <span className="mt-8 inline-block font-sans text-xs tracking-[0.2em] uppercase text-primary border-b border-primary/50 pb-0.5 hover:border-primary transition-colors cursor-pointer">
+                Partner With Us
+              </span>
+            </Link>
+          </div>
+
         </div>
       </div>
 
