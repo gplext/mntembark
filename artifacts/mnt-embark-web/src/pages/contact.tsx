@@ -376,7 +376,7 @@ export default function ContactPage() {
                 Private Consultation
               </p>
               <p className="font-sans text-sm text-muted-foreground leading-relaxed">
-                For journeys exceeding $50,000, we offer a complimentary private consultation with our Founder. Available in person in New York or London, or via secure video.
+                For journeys exceeding PKR 20 lacs, we offer a complimentary private consultation with our Founder — in person in Lahore or Karachi, or via secure video.
               </p>
             </div>
           </div>
