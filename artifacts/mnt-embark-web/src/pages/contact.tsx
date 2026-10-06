@@ -351,7 +351,8 @@ export default function ContactPage() {
                   Member Services
                 </p>
                 <p className="font-sans text-sm text-foreground/80">
-                  +1 (800) MNT-EMBARK
+                  {/* Placeholder — swap for the real line before launch. */}
+                  +92 42 111 626 272
                 </p>
                 <p className="font-sans text-xs text-muted-foreground mt-1">
                   Available 24 hours, 7 days a week
@@ -362,7 +363,7 @@ export default function ContactPage() {
                   Global Offices
                 </p>
                 <p className="font-sans text-sm text-foreground/80">
-                  New York · London · Dubai · Singapore
+                  Lahore · Dubai · Singapore
                 </p>
               </div>
             </div>

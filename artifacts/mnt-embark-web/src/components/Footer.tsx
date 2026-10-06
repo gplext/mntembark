@@ -57,7 +57,7 @@ export default function Footer() {
             <div className="flex flex-col gap-3">
               <p className="font-sans text-sm text-foreground/70">reservations@mntembark.com</p>
               {/* Placeholder — swap for the real line before launch. */}
-              <p className="font-sans text-sm text-foreground/70">+92 42 111 000 000</p>
+              <p className="font-sans text-sm text-foreground/70">+92 42 111 626 272</p>
               <p className="font-sans text-sm text-foreground/70">Available 24/7 for members</p>
             </div>
           </div>
