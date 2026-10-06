@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@workspace/mnt-embark/components/ui/toaster';
 import { TooltipProvider } from '@workspace/mnt-embark/components/ui/tooltip';
@@ -71,9 +71,29 @@ function RouteFallback() {
  * "/tours/sahara-under-a-billion-stars" becomes a search for "sahara under a
  * billion stars", which is the closest thing to what the visitor wanted.
  */
+/**
+ * Puts every new page at the top.
+ *
+ * wouter keeps the window's scroll position across a route change, so opening
+ * a country card from halfway down the destinations page used to land the
+ * visitor halfway down the country page — often looking straight at the
+ * footer. The browser's own back/forward restoration is left alone; this only
+ * fires when the path itself changes.
+ */
+function ScrollToTop() {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
+  return null;
+}
+
 function Router() {
   return (
     <Suspense fallback={<RouteFallback />}>
+      <ScrollToTop />
       <Switch>
         <Route path="/" component={HomePage} />
         <Route path="/destinations" component={DestinationsPage} />
