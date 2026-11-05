@@ -1,13 +1,9 @@
-import { useGetStats } from "@workspace/api-client-react";
 import { Button } from "@workspace/mnt-embark/components/ui/button";
 import { Link } from "wouter";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { COUNTRIES_DATA, REGIONS_DATA } from "@/lib/countriesData";
 
 export default function AboutPage() {
-  const { data: stats } = useGetStats();
-
   return (
     <div className="min-h-[100dvh] bg-background">
       <Navbar />
@@ -125,36 +121,6 @@ export default function AboutPage() {
 
         </div>
       </div>
-
-      {/* ── Portfolio at a glance ─────────────────────────────────────────── */}
-      {stats && (
-        <div className="py-16 bg-background border-b border-border/30" data-testid="about-stats">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="grid grid-cols-3 gap-8 text-center">
-              {/*
-                Only what a visitor can actually reach. Attractions, categories
-                and journals are counted by the API but are not on the site in
-                this phase, so printing them would advertise pages that are not
-                there.
-              */}
-              {[
-                { label: "Regions", value: REGIONS_DATA.length },
-                { label: "Countries", value: COUNTRIES_DATA.length },
-                { label: "Destinations", value: stats.destinationCount },
-              ].map((stat) => (
-                <div key={stat.label} data-testid={`stat-${stat.label.toLowerCase()}`}>
-                  <p className="font-serif text-5xl font-light text-primary mb-2">
-                    {stat.value}
-                  </p>
-                  <p className="font-sans text-xs uppercase tracking-widest text-muted-foreground">
-                    {stat.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ── Curation ──────────────────────────────────────────────────────── */}
       <div className="border-b border-border/30 bg-background">
