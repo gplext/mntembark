@@ -1356,7 +1356,7 @@ export const CreateEnquiryBody = zod.object({
   "tourLocation": zod.string().max(createEnquiryBodyTourLocationMax).optional(),
   "tourDurationDays": zod.number().min(1).multipleOf(createEnquiryBodyTourDurationDaysMultipleOf).optional(),
   "attractionId": zod.number().min(1).multipleOf(createEnquiryBodyAttractionIdMultipleOf).optional(),
-  "enquiryType": zod.enum(['tour-booking', 'custom-journey', 'membership', 'corporate', 'general']).optional(),
+  "enquiryType": zod.enum(['tour-booking', 'custom-journey', 'membership', 'corporate', 'ticketing', 'general']).optional(),
   "budget": zod.string().max(createEnquiryBodyBudgetMax).nullish()
 })
 

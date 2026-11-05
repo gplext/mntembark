@@ -748,6 +748,7 @@ export const EnquiryInputEnquiryType = {
   'custom-journey': 'custom-journey',
   membership: 'membership',
   corporate: 'corporate',
+  ticketing: 'ticketing',
   general: 'general',
 } as const;
 

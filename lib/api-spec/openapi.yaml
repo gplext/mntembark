@@ -2724,7 +2724,7 @@ components:
           multipleOf: 1
         enquiryType:
           type: string
-          enum: [tour-booking, custom-journey, membership, corporate, general]
+          enum: [tour-booking, custom-journey, membership, corporate, ticketing, general]
         budget:
           type: ["string", "null"]
           maxLength: 100

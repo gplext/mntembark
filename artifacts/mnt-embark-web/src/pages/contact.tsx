@@ -252,6 +252,7 @@ export default function ContactPage() {
                         <SelectContent className="bg-card border-border">
                           <SelectItem value="tour-booking">Tour Booking</SelectItem>
                           <SelectItem value="corporate">Corporate Travel</SelectItem>
+                          <SelectItem value="ticketing">Ticketing Enquiry</SelectItem>
                           <SelectItem value="general">General Enquiry</SelectItem>
                         </SelectContent>
                       </Select>
@@ -328,10 +329,10 @@ export default function ContactPage() {
             <div>
               <div className="w-12 h-px bg-primary mb-6" />
               <h2 className="font-serif text-3xl font-light text-foreground mb-4">
-                Our Promise
+                Inquiries
               </h2>
               <p className="font-sans text-sm text-muted-foreground leading-relaxed">
-                Every enquiry is handled personally by a senior member of our team. We respond within 24 hours — often sooner. We never use automated responses. Your journey deserves a human conversation.
+                All inquiries are managed personally by our team, with a response guaranteed within 24 hours.
               </p>
             </div>
 
@@ -348,18 +349,6 @@ export default function ContactPage() {
               </div>
               <div>
                 <p className="font-sans text-xs uppercase tracking-widest text-primary mb-2">
-                  Member Services
-                </p>
-                <p className="font-sans text-sm text-foreground/80">
-                  {/* Placeholder — swap for the real line before launch. */}
-                  +92 42 111 626 272
-                </p>
-                <p className="font-sans text-xs text-muted-foreground mt-1">
-                  Available 24 hours, 7 days a week
-                </p>
-              </div>
-              <div>
-                <p className="font-sans text-xs uppercase tracking-widest text-primary mb-2">
                   Global Offices
                 </p>
                 <p className="font-sans text-sm text-foreground/80">
@@ -368,16 +357,6 @@ export default function ContactPage() {
               </div>
             </div>
 
-            <Separator className="bg-border/20" />
-
-            <div className="bg-card/40 border border-border/40 rounded p-6">
-              <p className="font-serif text-lg font-light text-foreground mb-3">
-                Private Consultation
-              </p>
-              <p className="font-sans text-sm text-muted-foreground leading-relaxed">
-                For journeys exceeding PKR 20 lacs, we offer a complimentary private consultation with our Founder — in person in Lahore or Karachi, or via secure video.
-              </p>
-            </div>
           </div>
         </div>
       </div>
