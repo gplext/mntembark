@@ -46,7 +46,7 @@ export default function ContactPage() {
       lastName: "",
       email: "",
       phone: "",
-      enquiryType: planText ? "custom-journey" : "",
+      enquiryType: planText ? "general" : "",
       budget: "",
       message: planText ?? "",
       whatsappConsent: false,
