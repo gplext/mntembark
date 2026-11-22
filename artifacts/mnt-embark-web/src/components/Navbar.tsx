@@ -15,7 +15,18 @@ const rightLinks = [
   { href: "/contact", label: "Contact Us" },
 ];
 
-const brandLogoSrc = "/mnt-embark-logo-square.png";
+const brandLogoSrc = "/mnt-embark-logo-transparent.png";
+
+/*
+ * On the home page, before scrolling, the hero carousel shows the logo large,
+ * so the small one in the bar steps aside. It fades in once the bar gains its
+ * light surface, which is also where the navy artwork reads properly.
+ */
+const brandVisibility = (hasSurface: boolean) =>
+  cn(
+    "transition-opacity duration-300",
+    hasSurface ? "opacity-100" : "opacity-0 pointer-events-none",
+  );
 
 // ── NavLink ───────────────────────────────────────────────────────────────────
 
@@ -120,7 +131,13 @@ export default function Navbar() {
           </div>
 
           {/* Center brand */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <div
+            className={cn(
+              "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
+              brandVisibility(hasSurface),
+            )}
+            aria-hidden={!hasSurface}
+          >
             <Link
               href="/"
               data-testid="nav-brand"
@@ -189,7 +206,11 @@ export default function Navbar() {
           <Link
             href="/"
             data-testid="nav-brand-mobile"
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center"
+            aria-hidden={!hasSurface}
+            className={cn(
+              "absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center",
+              brandVisibility(hasSurface),
+            )}
           >
             <img
               src={brandLogoSrc}

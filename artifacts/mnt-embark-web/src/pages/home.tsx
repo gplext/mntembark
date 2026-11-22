@@ -171,6 +171,24 @@ function HeroCarousel() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/40" />
         </div>
 
+        {/*
+          The brand, large and steady while the photographs change beneath it.
+          Ivory-and-gold artwork with a soft shadow so it holds on bright skies.
+          Right side on tablets and up, top edge at 20% of the height so it sits
+          well above centre, just inside the slide dots and arrow.
+          Phones keep it top-right: their slide text fills the middle.
+        */}
+        <div
+          className="absolute right-6 top-[9%] sm:right-10 sm:top-[10%] md:top-[20%] md:right-32 lg:right-36 z-10 flex justify-end pointer-events-none"
+          data-testid="hero-logo"
+        >
+          <img
+            src="/mnt-embark-logo-hero.png"
+            alt="MNT Embark — Envision, Explore, Experience"
+            className="h-auto w-[62vw] sm:w-[44vw] md:w-[26vw] max-w-[420px] max-h-[26vh] md:max-h-[34vh] object-contain drop-shadow-[0_6px_28px_rgba(0,0,0,0.55)]"
+          />
+        </div>
+
         {/* Preload the next image without allowing it to appear before the fade. */}
         {pendingCountry && (
           <div
